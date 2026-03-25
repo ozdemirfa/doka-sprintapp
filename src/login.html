@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Giriş Yap — TR90 Sprint Kanban</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="css/app.css">
+</head>
+<body class="login-page">
+
+  <div class="login-card">
+    <div class="login-logo">
+      <div class="logo-badge">TR</div>
+      <h2>TR90 Kalkınma Ajansı</h2>
+      <p>Sprint Kanban Sistemi</p>
+    </div>
+
+    <form id="login-form">
+      <div class="form-group">
+        <label for="email">E-posta Adresi</label>
+        <input
+          type="email"
+          id="email"
+          class="form-control"
+          placeholder="ornek@tr90.gov.tr"
+          required
+          autocomplete="email"
+        >
+      </div>
+
+      <div class="form-group">
+        <label for="password">Parola</label>
+        <input
+          type="password"
+          id="password"
+          class="form-control"
+          placeholder="••••••••"
+          required
+          autocomplete="current-password"
+        >
+      </div>
+
+      <div
+        id="error-msg"
+        class="hidden mb-4 p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm"
+      ></div>
+
+      <button
+        type="submit"
+        id="login-btn"
+        class="btn-primary w-full mt-2"
+        style="width:100%;padding:11px;"
+      >
+        Giriş Yap
+      </button>
+    </form>
+
+    <p class="text-center text-xs text-gray-400 mt-6">
+      TR90 Kalkınma Ajansı &copy; 2026 — Tüm hakları saklıdır
+    </p>
+  </div>
+
+  <script type="module">
+    import { signIn, getSession } from './js/auth.js'
+
+    // Zaten oturum açıksa kanban'a yönlendir
+    getSession().then(session => {
+      if (session) window.location.href = 'index.html'
+    })
+
+    const form    = document.getElementById('login-form')
+    const btn     = document.getElementById('login-btn')
+    const errMsg  = document.getElementById('error-msg')
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault()
+      btn.textContent = 'Giriş yapılıyor...'
+      btn.disabled = true
+      errMsg.classList.add('hidden')
+
+      const email    = document.getElementById('email').value.trim()
+      const password = document.getElementById('password').value
+
+      const { session, error } = await signIn(email, password)
+
+      if (error) {
+        errMsg.textContent = hataMetni(error.message)
+        errMsg.classList.remove('hidden')
+        btn.textContent = 'Giriş Yap'
+        btn.disabled = false
+        return
+      }
+
+      if (session) {
+        window.location.href = 'index.html'
+      }
+    })
+
+    function hataMetni(msg) {
+      if (msg.includes('Invalid login credentials')) return 'E-posta veya parola hatalı.'
+      if (msg.includes('Email not confirmed'))       return 'E-posta adresiniz doğrulanmamış.'
+      if (msg.includes('Too many requests'))         return 'Çok fazla deneme. Lütfen bekleyin.'
+      return 'Giriş yapılamadı: ' + msg
+    }
+  </script>
+</body>
+</html>

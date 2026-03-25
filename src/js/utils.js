@@ -1,0 +1,150 @@
+// ============================================================
+// Paylaşılan Yardımcı Fonksiyonlar — TR90 Sprint Kanban
+// ============================================================
+
+/**
+ * Tarih nesnesi veya string'i Türkçe yerel formata çevirir
+ * @param {string|Date} date
+ * @returns {string} örn: "15.03.2026"
+ */
+export function formatDate(date) {
+  if (!date) return '—'
+  const d = new Date(date)
+  if (isNaN(d.getTime())) return '—'
+  return d.toLocaleDateString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric' })
+}
+
+/**
+ * Sayıyı Türkçe para formatına çevirir
+ * @param {number} amount
+ * @returns {string} örn: "1.250.000,50 ₺"
+ */
+export function formatCurrency(amount) {
+  if (amount == null || isNaN(amount)) return '—'
+  return new Intl.NumberFormat('tr-TR', {
+    style: 'currency',
+    currency: 'TRY',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  }).format(amount)
+}
+
+/**
+ * Sayıyı yüzde formatına çevirir
+ * @param {number} value
+ * @param {number} decimals
+ * @returns {string} örn: "98.51%"
+ */
+export function formatPercent(value, decimals = 1) {
+  if (value == null || isNaN(value)) return '—'
+  return `${Number(value).toFixed(decimals)}%`
+}
+
+/**
+ * Hepiniss G.ort hesabı: SQRT(rol × hakkında)
+ * @param {number} rol
+ * @param {number} hakkinda
+ * @returns {number}
+ */
+export function calcGort(rol, hakkinda) {
+  if (!rol || !hakkinda) return 0
+  return Math.sqrt(rol * hakkinda)
+}
+
+/**
+ * GKİ hesabı: T.Skor / (sure_gun × ekip - izin) × 100
+ * @param {number} tSkor
+ * @param {number} sureGun
+ * @param {number} ekip
+ * @param {number} izin
+ * @returns {number}
+ */
+export function calcGki(tSkor, sureGun, ekip, izin = 0) {
+  const payda = sureGun * ekip - izin
+  if (payda <= 0) return 0
+  return (tSkor / payda) * 100
+}
+
+/**
+ * Sprint seçim dropdown'ını doldurur
+ * @param {HTMLSelectElement} selectEl
+ * @param {Array} sprints — sprint_veri kayıtları
+ * @param {string|number} selectedVal
+ */
+export function populateSprintDropdown(selectEl, sprints, selectedVal = null) {
+  selectEl.innerHTML = ''
+  sprints.forEach(s => {
+    const opt = document.createElement('option')
+    opt.value = s.sprint_donem
+    opt.textContent = `${s.sprint_donem} — ${s.sprint_adi || ''} (${formatDate(s.baslangic)} – ${formatDate(s.bitis)})`
+    if (String(s.sprint_donem) === String(selectedVal)) opt.selected = true
+    selectEl.appendChild(opt)
+  })
+}
+
+/**
+ * Toast bildirimi gösterir
+ * @param {string} message
+ * @param {'success'|'error'|'warning'} type
+ */
+export function showToast(message, type = 'success') {
+  let toast = document.getElementById('app-toast')
+  if (!toast) {
+    toast = document.createElement('div')
+    toast.id = 'app-toast'
+    toast.className = 'toast'
+    document.body.appendChild(toast)
+  }
+  toast.textContent = message
+  toast.className = `toast ${type}`
+  // Trigger reflow
+  void toast.offsetWidth
+  toast.classList.add('show')
+  setTimeout(() => toast.classList.remove('show'), 3000)
+}
+
+/**
+ * Bugünün tarihini YYYY-MM-DD formatında döndürür
+ * @returns {string}
+ */
+export function todayISO() {
+  return new Date().toISOString().split('T')[0]
+}
+
+/**
+ * Aylık plan anahtar etiketleri (Gantt için)
+ */
+export const AY_LABELS = {
+  oca: 'Oca', sub: 'Şub', mar: 'Mar', nis: 'Nis',
+  may: 'May', haz: 'Haz', tem: 'Tem', agu: 'Ağu',
+  eyl: 'Eyl', eki: 'Eki', kas: 'Kas', ara: 'Ara'
+}
+
+export const AY_KEYS = Object.keys(AY_LABELS)
+
+/**
+ * Kullanıcı adını session'dan alıp göstermek için personel tablosunu sorgular
+ * Bu async helper her sayfada kullanılır
+ * @param {object} supabase
+ * @param {string} authId
+ * @returns {Promise<object|null>} personel kaydı
+ */
+export async function getPersonel(supabase, authId) {
+  if (!authId) return null
+  const { data } = await supabase
+    .from('personel')
+    .select('ad, soyad, bkod')
+    .eq('auth_id', authId)
+    .single()
+  return data
+}
+
+/**
+ * Sidebar'daki kullanıcı bilgisi alanını günceller
+ * @param {string} ad
+ * @param {string} soyad
+ */
+export function renderUserInfo(ad, soyad) {
+  const el = document.getElementById('user-name')
+  if (el) el.textContent = `${ad} ${soyad}`
+}

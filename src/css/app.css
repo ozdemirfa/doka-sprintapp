@@ -1,0 +1,642 @@
+/* TR90 Kalkınma Ajansı — Özel Stiller */
+
+:root {
+  --navy: #1a2744;
+  --navy-dark: #111c36;
+  --navy-light: #243259;
+  --gold: #c9a227;
+  --gold-light: #e8c048;
+  --gold-pale: #fdf4d7;
+  --sidebar-width: 240px;
+}
+
+/* ── Layout ─────────────────────────────── */
+body {
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  background: #f1f5f9;
+}
+
+.app-layout {
+  display: flex;
+  min-height: 100vh;
+}
+
+/* ── Sidebar ─────────────────────────────── */
+.sidebar {
+  width: var(--sidebar-width);
+  background: var(--navy);
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 100vh;
+  z-index: 100;
+  overflow-y: auto;
+}
+
+.sidebar-logo {
+  padding: 20px 16px 16px;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+
+.sidebar-logo h1 {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--gold-light);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  line-height: 1.4;
+}
+
+.sidebar-logo p {
+  font-size: 0.65rem;
+  color: rgba(255,255,255,0.5);
+  margin-top: 2px;
+}
+
+.sidebar nav {
+  flex: 1;
+  padding: 12px 0;
+}
+
+.sidebar nav a {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  color: rgba(255,255,255,0.75);
+  text-decoration: none;
+  font-size: 0.875rem;
+  transition: all 0.15s;
+}
+
+.sidebar nav a:hover {
+  background: rgba(255,255,255,0.08);
+  color: #fff;
+}
+
+.sidebar nav a.active {
+  background: var(--gold);
+  color: var(--navy-dark);
+  font-weight: 600;
+}
+
+.sidebar nav a .icon {
+  width: 18px;
+  text-align: center;
+  font-size: 1rem;
+}
+
+.sidebar-footer {
+  padding: 12px 16px;
+  border-top: 1px solid rgba(255,255,255,0.1);
+}
+
+.user-info {
+  font-size: 0.75rem;
+  color: rgba(255,255,255,0.65);
+  margin-bottom: 8px;
+}
+
+.user-info strong {
+  color: #fff;
+  display: block;
+  font-size: 0.825rem;
+}
+
+.btn-logout {
+  width: 100%;
+  padding: 7px 12px;
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 6px;
+  color: rgba(255,255,255,0.75);
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 0.15s;
+  text-align: left;
+}
+
+.btn-logout:hover {
+  background: rgba(255,0,0,0.2);
+  color: #fca5a5;
+  border-color: rgba(255,0,0,0.3);
+}
+
+/* ── Main Content ──────────────────────── */
+.main-content {
+  margin-left: var(--sidebar-width);
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.page-header {
+  background: #fff;
+  border-bottom: 1px solid #e2e8f0;
+  padding: 16px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.page-header h2 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--navy);
+}
+
+.page-body {
+  padding: 24px;
+  flex: 1;
+}
+
+/* ── Kanban Board ──────────────────────── */
+.kanban-board {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.kanban-column {
+  background: #f8fafc;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+  overflow: hidden;
+}
+
+.kanban-col-header {
+  padding: 12px 14px;
+  font-weight: 700;
+  font-size: 0.825rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.kanban-col-header .badge {
+  background: rgba(0,0,0,0.12);
+  border-radius: 9999px;
+  padding: 1px 8px;
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+
+.col-backlog .kanban-col-header    { background: #e2e8f0; color: #475569; }
+.col-devam .kanban-col-header      { background: #dbeafe; color: #1d4ed8; }
+.col-inceleme .kanban-col-header   { background: #fef3c7; color: #92400e; }
+.col-tamamlandi .kanban-col-header { background: #dcfce7; color: #14532d; }
+
+.kanban-cards {
+  padding: 8px;
+  min-height: 80px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.kanban-card {
+  background: #fff;
+  border-radius: 8px;
+  padding: 12px;
+  border: 1px solid #e2e8f0;
+  cursor: grab;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+  transition: box-shadow 0.15s, transform 0.1s;
+}
+
+.kanban-card:hover {
+  box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+  transform: translateY(-1px);
+}
+
+.kanban-card.sortable-drag {
+  opacity: 0.4;
+}
+
+.kanban-card.sortable-ghost {
+  opacity: 0.5;
+  border: 2px dashed var(--gold);
+}
+
+.card-title {
+  font-size: 0.825rem;
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 8px;
+  line-height: 1.4;
+}
+
+.card-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: center;
+}
+
+.badge-ekip {
+  background: var(--navy);
+  color: #fff;
+  border-radius: 9999px;
+  padding: 2px 8px;
+  font-size: 0.68rem;
+  font-weight: 600;
+}
+
+.badge-sure {
+  background: var(--gold-pale);
+  color: #78350f;
+  border-radius: 9999px;
+  padding: 2px 8px;
+  font-size: 0.68rem;
+  font-weight: 600;
+  border: 1px solid #fde68a;
+}
+
+.badge-sno {
+  background: #f1f5f9;
+  color: #64748b;
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  border: 1px solid #e2e8f0;
+}
+
+/* ── Cards / Metric Cards ──────────────── */
+.metric-card {
+  background: #fff;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+  padding: 20px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+
+.metric-card .metric-value {
+  font-size: 2rem;
+  font-weight: 800;
+  color: var(--navy);
+}
+
+.metric-card .metric-label {
+  font-size: 0.75rem;
+  color: #64748b;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-top: 4px;
+}
+
+/* ── Modal ─────────────────────────────── */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.modal-overlay.hidden { display: none; }
+
+.modal-box {
+  background: #fff;
+  border-radius: 12px;
+  padding: 24px;
+  width: 100%;
+  max-width: 540px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+}
+
+.modal-box h3 {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--navy);
+  margin-bottom: 18px;
+}
+
+/* ── Forms ─────────────────────────────── */
+.form-group {
+  margin-bottom: 16px;
+}
+
+.form-group label {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 5px;
+}
+
+.form-control {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  color: #1f2937;
+  background: #fff;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.form-control:focus {
+  border-color: var(--gold);
+  box-shadow: 0 0 0 3px rgba(201,162,39,0.15);
+}
+
+/* ── Buttons ───────────────────────────── */
+.btn-primary {
+  background: var(--navy);
+  color: #fff;
+  border: none;
+  border-radius: 7px;
+  padding: 9px 18px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.btn-primary:hover { background: var(--navy-light); }
+
+.btn-gold {
+  background: var(--gold);
+  color: var(--navy-dark);
+  border: none;
+  border-radius: 7px;
+  padding: 9px 18px;
+  font-size: 0.875rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.btn-gold:hover { background: var(--gold-light); }
+
+.btn-secondary {
+  background: #f1f5f9;
+  color: #475569;
+  border: 1px solid #cbd5e1;
+  border-radius: 7px;
+  padding: 9px 18px;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.btn-secondary:hover { background: #e2e8f0; }
+
+.btn-danger {
+  background: #fee2e2;
+  color: #b91c1c;
+  border: 1px solid #fca5a5;
+  border-radius: 7px;
+  padding: 9px 18px;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.btn-danger:hover { background: #fecaca; }
+
+/* ── Progress Bar ──────────────────────── */
+.progress-bar-bg {
+  background: #e2e8f0;
+  border-radius: 9999px;
+  height: 8px;
+  overflow: hidden;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  border-radius: 9999px;
+  background: var(--gold);
+  transition: width 0.3s;
+}
+
+.progress-bar-fill.green { background: #22c55e; }
+.progress-bar-fill.navy { background: var(--navy); }
+
+/* ── Accordion ─────────────────────────── */
+.accordion-item {
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  margin-bottom: 8px;
+  overflow: hidden;
+}
+
+.accordion-header {
+  padding: 12px 16px;
+  background: #f8fafc;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  user-select: none;
+  transition: background 0.15s;
+}
+
+.accordion-header:hover { background: #f1f5f9; }
+.accordion-header.open { background: #e8eef8; }
+
+.accordion-body {
+  padding: 12px 16px;
+  border-top: 1px solid #e2e8f0;
+  display: none;
+}
+
+.accordion-body.open { display: block; }
+
+/* ── Gantt ─────────────────────────────── */
+.gantt-grid {
+  display: grid;
+  grid-template-columns: 200px repeat(12, 1fr);
+  font-size: 0.72rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.gantt-header {
+  background: var(--navy);
+  color: #fff;
+  padding: 6px 4px;
+  text-align: center;
+  font-weight: 600;
+  font-size: 0.68rem;
+}
+
+.gantt-row-label {
+  padding: 6px 8px;
+  border-bottom: 1px solid #f1f5f9;
+  border-right: 1px solid #e2e8f0;
+  font-size: 0.72rem;
+  color: #374151;
+  background: #fafafa;
+}
+
+.gantt-cell {
+  border-bottom: 1px solid #f1f5f9;
+  border-right: 1px solid #eef0f4;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.gantt-cell.active {
+  background: var(--navy);
+}
+
+.gantt-cell.active-partial {
+  background: var(--gold);
+}
+
+/* ── Slider ─────────────────────────────── */
+input[type=range] {
+  -webkit-appearance: none;
+  width: 100%;
+  height: 6px;
+  background: #e2e8f0;
+  border-radius: 9999px;
+  outline: none;
+}
+
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--gold);
+  cursor: pointer;
+  border: 2px solid var(--navy);
+}
+
+/* ── Tables ─────────────────────────────── */
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.825rem;
+}
+
+.data-table th {
+  background: var(--navy);
+  color: #fff;
+  padding: 10px 12px;
+  text-align: left;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+}
+
+.data-table td {
+  padding: 9px 12px;
+  border-bottom: 1px solid #f1f5f9;
+  color: #374151;
+}
+
+.data-table tr:hover td {
+  background: #f8fafc;
+}
+
+/* ── Login Page ─────────────────────────── */
+.login-page {
+  min-height: 100vh;
+  background: linear-gradient(135deg, var(--navy-dark) 0%, var(--navy) 60%, #2d3f6e 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.login-card {
+  background: #fff;
+  border-radius: 14px;
+  padding: 40px;
+  width: 100%;
+  max-width: 400px;
+  box-shadow: 0 25px 60px rgba(0,0,0,0.35);
+}
+
+.login-logo {
+  text-align: center;
+  margin-bottom: 28px;
+}
+
+.login-logo .logo-badge {
+  display: inline-block;
+  background: var(--navy);
+  color: var(--gold-light);
+  font-size: 1.5rem;
+  font-weight: 900;
+  width: 56px;
+  height: 56px;
+  border-radius: 12px;
+  line-height: 56px;
+  margin-bottom: 10px;
+}
+
+.login-logo h2 {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--navy);
+}
+
+.login-logo p {
+  font-size: 0.78rem;
+  color: #64748b;
+  margin-top: 2px;
+}
+
+/* ── Toast ─────────────────────────────── */
+.toast {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  background: var(--navy);
+  color: #fff;
+  padding: 12px 20px;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.25);
+  z-index: 9999;
+  transform: translateY(80px);
+  opacity: 0;
+  transition: transform 0.25s, opacity 0.25s;
+}
+
+.toast.show {
+  transform: translateY(0);
+  opacity: 1;
+}
+
+.toast.success { border-left: 4px solid #22c55e; }
+.toast.error   { border-left: 4px solid #ef4444; background: #7f1d1d; }
+.toast.warning { border-left: 4px solid var(--gold); }
+
+/* ── Responsive ─────────────────────────── */
+@media (max-width: 1024px) {
+  .kanban-board {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .sidebar {
+    transform: translateX(-100%);
+    transition: transform 0.3s;
+  }
+  .sidebar.open { transform: translateX(0); }
+  .main-content { margin-left: 0; }
+  .kanban-board { grid-template-columns: 1fr; }
+}
