@@ -144,7 +144,7 @@
         <div class="accordion-item" style="margin:12px;border-radius:8px;">
           <div class="accordion-header">
             <div style="flex:1;min-width:0;">
-              <div style="font-weight:600;font-size:0.875rem;color:var(--navy);margin-bottom:6px;">${faaliyet.fkod} — ${faaliyet.faaliyet_adi || ''}</div>
+              <div style="font-weight:600;font-size:0.875rem;color:var(--navy);margin-bottom:6px;">${faaliyet.fkod} — ${faaliyet.faaliyet || ''}</div>
               <div style="display:flex;align-items:center;gap:10px;">
                 <div class="progress-bar-bg" style="flex:1;max-width:200px;">
                   <div class="progress-bar-fill${pct >= 100 ? ' green' : ''}" style="width:${pct}%;"></div>
@@ -187,7 +187,7 @@
                   <tr>
                     <td><span class="badge-sno">${af.sno || '—'}</span></td>
                     <td>
-                      <div>${af.aciklama || '—'}</div>
+                      <div>${af.alt_faaliyet || '—'}</div>
           `
 
           if (asList.length > 0) {
@@ -195,7 +195,7 @@
             for (const as_ of asList) {
               html += `
                         <div style="font-size:0.7rem;color:#64748b;padding:2px 0;border-left:2px solid var(--gold);padding-left:6px;margin-bottom:2px;">
-                          <strong style="color:var(--navy);">${as_.as_no}.</strong> ${as_.aciklama || ''}
+                          <strong style="color:var(--navy);">${as_.as_no}.</strong> ${as_.anahtar_sonuc || ''}
                           ${as_.hedef ? `<span style="color:#10b981;"> → Hedef: ${as_.hedef}</span>` : ''}
                           ${as_.olcum ? `<span style="color:#6366f1;"> | Ölçüm: ${as_.olcum}</span>` : ''}
                         </div>
