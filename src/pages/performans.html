@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Performans Göstergeleri — TR90 Sprint Kanban</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="../css/app.css">
+</head>
+<body>
+<div class="app-layout">
+
+  <!-- Sidebar -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <h1>TR90 Kalkınma Ajansı</h1>
+      <p>Sprint Kanban Sistemi</p>
+    </div>
+    <nav>
+      <a href="../index.html">
+        <span class="icon">📋</span> Kanban Board
+      </a>
+      <a href="sprint-ozet.html">
+        <span class="icon">📊</span> Sprint Özet
+      </a>
+      <a href="faaliyetler.html">
+        <span class="icon">📁</span> Faaliyetler
+      </a>
+      <a href="retro.html">
+        <span class="icon">🔁</span> Retrospektif
+      </a>
+      <a href="performans.html" class="active">
+        <span class="icon">🎯</span> Performans
+      </a>
+      <a href="harcamalar.html">
+        <span class="icon">💰</span> Harcamalar
+      </a>
+      <a href="izinler.html">
+        <span class="icon">🗓️</span> İzinler & Saha
+      </a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="user-info">
+        <strong id="user-name">Yükleniyor...</strong>
+        Ekip Üyesi
+      </div>
+      <button class="btn-logout" id="logout-btn">⇐ Çıkış Yap</button>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="main-content">
+    <div class="page-header">
+      <h2>🎯 Performans Göstergeleri</h2>
+      <button class="btn-gold" id="btn-gerceklesme-gir">+ Gerçekleşme Gir</button>
+    </div>
+
+    <div class="page-body">
+
+      <!-- Performans Tablosu -->
+      <div class="metric-card" style="padding:0;overflow:auto;margin-bottom:24px;">
+        <table class="data-table" id="perf-table">
+          <thead>
+            <tr>
+              <th>CG Kod</th>
+              <th>Açıklama</th>
+              <th>Hedef 2026</th>
+              <th>Gerçek 2026</th>
+              <th>Kümülatif Hedef</th>
+              <th>Kümülatif Gerçekleşme</th>
+              <th style="min-width:140px;">İlerleme</th>
+            </tr>
+          </thead>
+          <tbody id="perf-tbody">
+            <tr>
+              <td colspan="7" style="text-align:center;color:#94a3b8;padding:32px;">Veriler yükleniyor...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Grafik Grid -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+        <div class="metric-card" style="padding:16px;">
+          <canvas id="chart-perf-bar" height="220"></canvas>
+        </div>
+        <div class="metric-card" style="padding:16px;">
+          <canvas id="chart-perf-doughnut" height="220"></canvas>
+        </div>
+      </div>
+
+    </div><!-- /page-body -->
+  </main>
+</div>
+
+<!-- Gerçekleşme Giriş Modalı -->
+<div class="modal-overlay hidden" id="modal-gerceklesme">
+  <div class="modal-box">
+    <h3>Gerçekleşme Gir</h3>
+    <form id="form-gerceklesme">
+
+      <div class="form-group">
+        <label for="gir-sprint">Sprint Dönemi</label>
+        <select id="gir-sprint" class="form-control" required></select>
+      </div>
+
+      <div class="form-group">
+        <label for="gir-cg-kod">CG Kod</label>
+        <select id="gir-cg-kod" class="form-control" required>
+          <option value="">Seçiniz...</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="gir-sno">Alt Faaliyet (S.No)</label>
+        <select id="gir-sno" class="form-control" required>
+          <option value="">Seçiniz...</option>
+        </select>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div class="form-group">
+          <label for="gir-yil">Yıl</label>
+          <input type="number" id="gir-yil" class="form-control" placeholder="2026" min="2024" max="2026" required>
+        </div>
+        <div class="form-group">
+          <label for="gir-donem">Dönem (1-4)</label>
+          <input type="number" id="gir-donem" class="form-control" placeholder="1" min="1" max="4" required>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="gir-gerceklesen">Gerçekleşen</label>
+        <input type="number" id="gir-gerceklesen" class="form-control" placeholder="0" step="any" required>
+      </div>
+
+      <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:8px;">
+        <button type="button" class="btn-secondary" id="btn-modal-kapat">İptal</button>
+        <button type="submit" class="btn-gold">Kaydet</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script type="module">
+  import { requireAuth, signOut } from '../js/auth.js'
+  import { getPersonel, renderUserInfo, populateSprintDropdown, formatPercent, showToast } from '../js/utils.js'
+  import { supabase } from '../js/supabase.js'
+  import Chart from 'https://cdn.jsdelivr.net/npm/chart.js/+esm'
+
+  // ── Auth guard ────────────────────────────────────────
+  let session
+  try {
+    session = await requireAuth()
+  } catch (e) {
+    // requireAuth yönlendirdi
+  }
+
+  // ── Kullanıcı bilgisi ─────────────────────────────────
+  if (session) {
+    const personel = await getPersonel(supabase, session.user.id)
+    if (personel) renderUserInfo(personel.ad, personel.soyad)
+  }
+
+  // ── Çıkış butonu ─────────────────────────────────────
+  document.getElementById('logout-btn').addEventListener('click', signOut)
+
+  // ── State ─────────────────────────────────────────────
+  let perfData = []
+
+  // ── Veri çekme ────────────────────────────────────────
+  async function loadPerfData() {
+    const { data, error } = await supabase
+      .from('v_perf_gosterge_ozet')
+      .select('*')
+      .order('sop')
+
+    if (error) {
+      showToast('Performans verileri yüklenemedi: ' + error.message, 'error')
+      return
+    }
+
+    perfData = data || []
+    renderTable(perfData)
+    renderCharts(perfData)
+  }
+
+  // ── Tablo render (SOP bazında gruplandırılmış) ────────
+  function renderTable(rows) {
+    const tbody = document.getElementById('perf-tbody')
+    if (!rows.length) {
+      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#94a3b8;padding:32px;">Veri bulunamadı.</td></tr>'
+      return
+    }
+
+    // SOP gruplarına ayır
+    const groups = {}
+    rows.forEach(r => {
+      const sop = r.sop || '—'
+      if (!groups[sop]) groups[sop] = []
+      groups[sop].push(r)
+    })
+
+    let html = ''
+    Object.entries(groups).forEach(([sop, items]) => {
+      // SOP başlık satırı
+      html += `
+        <tr>
+          <td colspan="7" style="background:#1a2744;color:#c9a227;font-weight:700;font-size:0.8rem;padding:8px 12px;letter-spacing:0.04em;">
+            SOP: ${sop}
+          </td>
+        </tr>
+      `
+      items.forEach(r => {
+        const kumHedef = r.kumulatif_hedef ?? 0
+        const kumGercek = r.kumulatif_gerceklesme ?? 0
+        const pct = kumHedef > 0 ? Math.min((kumGercek / kumHedef) * 100, 100) : 0
+
+        html += `
+          <tr>
+            <td><span class="badge-sno">${r.cg_kod ?? '—'}</span></td>
+            <td>${r.aciklama ?? '—'}</td>
+            <td style="text-align:right;">${r.hedef_2026 ?? '—'}</td>
+            <td style="text-align:right;">${r.gerceklesen_2026 ?? '—'}</td>
+            <td style="text-align:right;">${kumHedef > 0 ? kumHedef : '—'}</td>
+            <td style="text-align:right;">${kumGercek > 0 ? kumGercek : '—'}</td>
+            <td>
+              <div style="display:flex;align-items:center;gap:8px;">
+                <div class="progress-bar-bg" style="flex:1;">
+                  <div class="progress-bar-fill navy" style="width:${pct.toFixed(1)}%;"></div>
+                </div>
+                <span style="font-size:0.72rem;color:#64748b;white-space:nowrap;">${pct.toFixed(1)}%</span>
+              </div>
+            </td>
+          </tr>
+        `
+      })
+    })
+
+    tbody.innerHTML = html
+  }
+
+  // ── Grafik render ─────────────────────────────────────
+  function renderCharts(rows) {
+    // Bar chart: toplam hedef vs gerçekleşme yıl bazında
+    const years = [2024, 2025, 2026]
+    const totalHedef = years.map(y => rows.reduce((s, r) => s + (r[`hedef_${y}`] ?? 0), 0))
+    const totalGercek = years.map(y => rows.reduce((s, r) => s + (r[`gerceklesen_${y}`] ?? 0), 0))
+
+    Chart.getChart('chart-perf-bar')?.destroy()
+    const ctxBar = document.getElementById('chart-perf-bar')
+    if (ctxBar) {
+      new Chart(ctxBar, {
+        type: 'bar',
+        data: {
+          labels: ['2024', '2025', '2026'],
+          datasets: [
+            {
+              label: 'Hedef',
+              data: totalHedef,
+              backgroundColor: '#1a2744',
+              borderRadius: 4
+            },
+            {
+              label: 'Gerçekleşme',
+              data: totalGercek,
+              backgroundColor: '#c9a227',
+              borderRadius: 4
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            title: {
+              display: true,
+              text: 'Yıllık Hedef vs Gerçekleşme',
+              color: '#1a2744',
+              font: { size: 13, weight: '700' }
+            },
+            legend: {
+              display: true,
+              position: 'bottom',
+              labels: { font: { size: 11 }, padding: 12 }
+            }
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              ticks: { font: { size: 11 } },
+              grid: { color: 'rgba(0,0,0,0.06)' }
+            },
+            x: {
+              ticks: { font: { size: 11 } },
+              grid: { display: false }
+            }
+          }
+        }
+      })
+    }
+
+    // Doughnut chart: kümülatif ilerleme
+    const totalKumHedef = rows.reduce((s, r) => s + (r.kumulatif_hedef ?? 0), 0)
+    const totalKumGercek = rows.reduce((s, r) => s + (r.kumulatif_gerceklesme ?? 0), 0)
+    const kalan = Math.max(totalKumHedef - totalKumGercek, 0)
+    const doughnutPct = totalKumHedef > 0
+      ? ((totalKumGercek / totalKumHedef) * 100).toFixed(1)
+      : '0.0'
+
+    Chart.getChart('chart-perf-doughnut')?.destroy()
+    const ctxDoughnut = document.getElementById('chart-perf-doughnut')
+    if (ctxDoughnut) {
+      new Chart(ctxDoughnut, {
+        type: 'doughnut',
+        data: {
+          labels: ['Gerçekleşme', 'Kalan'],
+          datasets: [{
+            data: [totalKumGercek, kalan],
+            backgroundColor: ['#1a2744', '#e2e8f0'],
+            borderWidth: 0
+          }]
+        },
+        options: {
+          responsive: true,
+          cutout: '70%',
+          plugins: {
+            title: {
+              display: true,
+              text: `Kümülatif İlerleme — ${doughnutPct}%`,
+              color: '#1a2744',
+              font: { size: 13, weight: '700' }
+            },
+            legend: {
+              display: true,
+              position: 'bottom',
+              labels: { font: { size: 11 }, padding: 12 }
+            }
+          }
+        }
+      })
+    }
+  }
+
+  // ── Modal: Gerçekleşme Giriş ──────────────────────────
+  async function loadModalDropdowns() {
+    // Sprint dropdown
+    const { data: sprintler } = await supabase
+      .from('sprint_veri')
+      .select('sprint_donem, sprint_adi, baslangic, bitis')
+      .order('sprint_donem')
+    if (sprintler) {
+      populateSprintDropdown(document.getElementById('gir-sprint'), sprintler)
+    }
+
+    // CG Kod dropdown
+    const cgKodSel = document.getElementById('gir-cg-kod')
+    cgKodSel.innerHTML = '<option value="">Seçiniz...</option>'
+    const { data: cgKodlar } = await supabase
+      .from('v_perf_gosterge_ozet')
+      .select('cg_kod, aciklama')
+      .order('cg_kod')
+    if (cgKodlar) {
+      cgKodlar.forEach(r => {
+        const opt = document.createElement('option')
+        opt.value = r.cg_kod
+        opt.textContent = `${r.cg_kod} — ${r.aciklama || ''}`
+        cgKodSel.appendChild(opt)
+      })
+    }
+
+    // Alt faaliyet (sno) dropdown
+    const snoSel = document.getElementById('gir-sno')
+    snoSel.innerHTML = '<option value="">Seçiniz...</option>'
+    const { data: altFaal } = await supabase
+      .from('alt_faaliyetler')
+      .select('sno, aciklama')
+      .order('sno')
+    if (altFaal) {
+      altFaal.forEach(r => {
+        const opt = document.createElement('option')
+        opt.value = r.sno
+        opt.textContent = `${r.sno} — ${r.aciklama || ''}`
+        snoSel.appendChild(opt)
+      })
+    }
+  }
+
+  document.getElementById('btn-gerceklesme-gir').addEventListener('click', async () => {
+    await loadModalDropdowns()
+    document.getElementById('modal-gerceklesme').classList.remove('hidden')
+  })
+
+  document.getElementById('btn-modal-kapat').addEventListener('click', () => {
+    document.getElementById('modal-gerceklesme').classList.add('hidden')
+    document.getElementById('form-gerceklesme').reset()
+  })
+
+  document.getElementById('modal-gerceklesme').addEventListener('click', (e) => {
+    if (e.target === e.currentTarget) {
+      e.currentTarget.classList.add('hidden')
+      document.getElementById('form-gerceklesme').reset()
+    }
+  })
+
+  document.getElementById('form-gerceklesme').addEventListener('submit', async (e) => {
+    e.preventDefault()
+    const sprintDonem = document.getElementById('gir-sprint').value
+    const cgKod = document.getElementById('gir-cg-kod').value
+    const sno = document.getElementById('gir-sno').value
+    const yil = parseInt(document.getElementById('gir-yil').value)
+    const donem = parseInt(document.getElementById('gir-donem').value)
+    const gerceklesen = parseFloat(document.getElementById('gir-gerceklesen').value)
+
+    if (!sprintDonem || !cgKod || !sno || isNaN(yil) || isNaN(donem) || isNaN(gerceklesen)) {
+      showToast('Lütfen tüm alanları doldurun.', 'error')
+      return
+    }
+
+    const { error } = await supabase
+      .from('sprint_perf_gos')
+      .insert([{ sprint_donem: sprintDonem, cg_kod: cgKod, sno, yil, donem, gerceklesen }])
+
+    if (error) {
+      showToast('Kayıt başarısız: ' + error.message, 'error')
+      return
+    }
+
+    showToast('Gerçekleşme kaydedildi.', 'success')
+    document.getElementById('modal-gerceklesme').classList.add('hidden')
+    document.getElementById('form-gerceklesme').reset()
+    await loadPerfData()
+  })
+
+  // ── Başlat ────────────────────────────────────────────
+  await loadPerfData()
+</script>
+</body>
+</html>

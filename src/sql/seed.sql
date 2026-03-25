@@ -92,22 +92,22 @@ INSERT INTO faaliyetler (fkod, sop, kategori, faaliyet, butce_2026, aylik_plan) 
  1000000.00,
  '{"oca":1,"sub":1,"mar":1,"nis":1,"may":0,"haz":0,"tem":0,"agu":0,"eyl":0,"eki":0,"kas":0,"ara":0}'),
 
-('KDU103', 'KDU', 'Araştırma, Analiz ve Raporlama',
+('KDU102', 'KDU', 'Araştırma, Analiz ve Raporlama',
  'Üretim ve ticarileşme veri tabanı oluşturma',
  1000000.00,
  '{"oca":0,"sub":1,"mar":1,"nis":1,"may":1,"haz":0,"tem":0,"agu":0,"eyl":0,"eki":0,"kas":0,"ara":0}'),
 
-('KDU108', 'KDU', 'Destek Programları',
+('KDU501', 'KDU', 'Destek Programları',
  'KDU destek programı başvuru ve değerlendirme süreci',
  5000000.00,
  '{"oca":1,"sub":1,"mar":1,"nis":1,"may":1,"haz":1,"tem":1,"agu":1,"eyl":1,"eki":1,"kas":1,"ara":1}'),
 
-('KDU204', 'KDU', 'İşbirliği ve Koordinasyon Faaliyetleri',
+('KDU201', 'KDU', 'İşbirliği ve Koordinasyon Faaliyetleri',
  'Sektörel işbirliği toplantıları ve koordinasyon',
  0.00,
  '{"oca":1,"sub":1,"mar":1,"nis":1,"may":1,"haz":1,"tem":1,"agu":1,"eyl":1,"eki":1,"kas":1,"ara":1}'),
 
-('KDU205', 'KDU', 'İşbirliği ve Koordinasyon Faaliyetleri',
+('KDU202', 'KDU', 'İşbirliği ve Koordinasyon Faaliyetleri',
  'Uluslararası işbirliği ve platform katılımları',
  500000.00,
  '{"oca":0,"sub":1,"mar":0,"nis":1,"may":0,"haz":1,"tem":0,"agu":1,"eyl":0,"eki":1,"kas":0,"ara":0}'),
@@ -122,27 +122,27 @@ INSERT INTO faaliyetler (fkod, sop, kategori, faaliyet, butce_2026, aylik_plan) 
  1000000.00,
  '{"oca":0,"sub":0,"mar":1,"nis":1,"may":1,"haz":1,"tem":0,"agu":0,"eyl":0,"eki":0,"kas":0,"ara":0}'),
 
-('KDU304', 'KDU', 'Kapasite Geliştirme Faaliyetleri',
+('KDU303', 'KDU', 'Kapasite Geliştirme Faaliyetleri',
  'İhracat ve pazarlama kapasitesi geliştirme',
  3000000.00,
  '{"oca":0,"sub":0,"mar":0,"nis":1,"may":1,"haz":1,"tem":1,"agu":0,"eyl":0,"eki":0,"kas":0,"ara":0}'),
 
-('KDU305', 'KDU', 'Kapasite Geliştirme Faaliyetleri',
+('KDU304', 'KDU', 'Kapasite Geliştirme Faaliyetleri',
  'Dijitalleşme ve e-ticaret kapasitesi',
  2000000.00,
  '{"oca":1,"sub":1,"mar":0,"nis":0,"may":1,"haz":1,"tem":0,"agu":0,"eyl":0,"eki":0,"kas":0,"ara":0}'),
 
-('KDU406', 'KDU', 'Tanıtım ve Yatırım Destek Faaliyetleri',
+('KDU401', 'KDU', 'Tanıtım ve Yatırım Destek Faaliyetleri',
  'Bölgesel ürün tanıtım fuarları ve etkinlikler',
  2000000.00,
  '{"oca":0,"sub":0,"mar":1,"nis":1,"may":1,"haz":0,"tem":1,"agu":0,"eyl":1,"eki":0,"kas":0,"ara":0}'),
 
-('KDU407', 'KDU', 'Tanıtım ve Yatırım Destek Faaliyetleri',
+('KDU402', 'KDU', 'Tanıtım ve Yatırım Destek Faaliyetleri',
  'Yatırım ortamı iyileştirme faaliyetleri',
  500000.00,
  '{"oca":1,"sub":1,"mar":0,"nis":0,"may":0,"haz":0,"tem":0,"agu":0,"eyl":0,"eki":0,"kas":0,"ara":0}'),
 
-('KDU501', 'KDU', 'Destek Programları',
+('KDU502', 'KDU', 'Destek Programları',
  'KDU mali destek programı uygulama ve izleme',
  20000000.00,
  '{"oca":1,"sub":1,"mar":1,"nis":1,"may":1,"haz":1,"tem":1,"agu":1,"eyl":1,"eki":1,"kas":1,"ara":1}'),
@@ -158,27 +158,27 @@ INSERT INTO faaliyetler (fkod, sop, kategori, faaliyet, butce_2026, aylik_plan) 
  2000000.00,
  '{"oca":1,"sub":0,"mar":1,"nis":0,"may":1,"haz":0,"tem":1,"agu":0,"eyl":1,"eki":0,"kas":1,"ara":0}'),
 
-('STU103', 'STU', 'İşbirliği ve Koordinasyon Faaliyetleri',
+('STU201', 'STU', 'İşbirliği ve Koordinasyon Faaliyetleri',
  'Turizm paydaş toplantıları ve platform etkinlikleri',
  11000000.00,
  '{"oca":1,"sub":1,"mar":1,"nis":1,"may":1,"haz":1,"tem":1,"agu":1,"eyl":1,"eki":1,"kas":1,"ara":1}'),
 
-('STU104', 'STU', 'İşbirliği ve Koordinasyon Faaliyetleri',
+('STU202', 'STU', 'İşbirliği ve Koordinasyon Faaliyetleri',
  'Kültür-turizm entegrasyon projeleri koordinasyon',
  10000000.00,
  '{"oca":0,"sub":1,"mar":1,"nis":1,"may":1,"haz":1,"tem":1,"agu":0,"eyl":0,"eki":0,"kas":0,"ara":0}'),
 
-('STU201', 'STU', 'Kapasite Geliştirme Faaliyetleri',
+('STU301', 'STU', 'Kapasite Geliştirme Faaliyetleri',
  'Turizm işletmeciliği eğitim programları',
  4000000.00,
  '{"oca":0,"sub":1,"mar":1,"nis":0,"may":1,"haz":1,"tem":0,"agu":0,"eyl":1,"eki":0,"kas":0,"ara":0}'),
 
-('STU301', 'STU', 'Kapasite Geliştirme Faaliyetleri',
+('STU302', 'STU', 'Kapasite Geliştirme Faaliyetleri',
  'Gastronomi turizmi ürün geliştirme',
  1000000.00,
  '{"oca":0,"sub":0,"mar":1,"nis":1,"may":0,"haz":0,"tem":1,"agu":1,"eyl":0,"eki":0,"kas":0,"ara":0}'),
 
-('STU302', 'STU', 'Kapasite Geliştirme Faaliyetleri',
+('STU303', 'STU', 'Kapasite Geliştirme Faaliyetleri',
  'Ekoturizm rotaları geliştirme çalışmaları',
  1000000.00,
  '{"oca":0,"sub":0,"mar":1,"nis":1,"may":1,"haz":0,"tem":0,"agu":0,"eyl":0,"eki":0,"kas":0,"ara":0}'),
@@ -203,38 +203,38 @@ INSERT INTO faaliyetler (fkod, sop, kategori, faaliyet, butce_2026, aylik_plan) 
  2000000.00,
  '{"oca":0,"sub":0,"mar":1,"nis":1,"may":1,"haz":0,"tem":0,"agu":0,"eyl":1,"eki":0,"kas":0,"ara":0}'),
 
-('STU405', 'STU', 'Destek Programları',
+('STU501', 'STU', 'Destek Programları',
  'Turizm altyapı ve destinasyon geliştirme desteği',
  2000000.00,
  '{"oca":1,"sub":0,"mar":0,"nis":1,"may":0,"haz":1,"tem":0,"agu":0,"eyl":0,"eki":1,"kas":0,"ara":0}'),
 
-('STU501', 'STU', 'Destek Programları',
+('STU502', 'STU', 'Destek Programları',
  'STU mali destek programı uygulama ve izleme',
  10000000.00,
  '{"oca":1,"sub":1,"mar":1,"nis":1,"may":1,"haz":1,"tem":1,"agu":1,"eyl":1,"eki":1,"kas":1,"ara":1}'),
 
-('STU502', 'STU', 'Destek Programları',
+('STU503', 'STU', 'Destek Programları',
  'STU küçük ölçekli destek program çağrısı',
  0.00,
  '{"oca":0,"sub":0,"mar":0,"nis":0,"may":0,"haz":1,"tem":1,"agu":1,"eyl":1,"eki":0,"kas":0,"ara":0}'),
 
 -- SOG, AB, BAK, SOPD
-('SOG001', 'SOG', 'Proje Uygulama Faaliyetleri',
+('SOG301', 'SOG', 'Proje Uygulama Faaliyetleri',
  'SoGreen interreg projesi uygulama ve koordinasyon',
  40000000.00,
  '{"oca":1,"sub":1,"mar":1,"nis":1,"may":1,"haz":1,"tem":1,"agu":1,"eyl":1,"eki":1,"kas":1,"ara":1}'),
 
-('AB0001', 'AB',   'Araştırma, Analiz ve Raporlama',
+('AB0101', 'AB',   'Araştırma, Analiz ve Raporlama',
  'AB projesi teknik çalışmaları ve raporlama',
  0.00,
  '{"oca":1,"sub":1,"mar":1,"nis":1,"may":1,"haz":1,"tem":0,"agu":0,"eyl":0,"eki":0,"kas":0,"ara":0}'),
 
-('BAK001', 'BAK',  'İşbirliği ve Koordinasyon Faaliyetleri',
+('BAK201', 'BAK',  'İşbirliği ve Koordinasyon Faaliyetleri',
  'Bakanlık talep ve yazışma koordinasyonu',
  0.00,
  '{"oca":1,"sub":1,"mar":1,"nis":1,"may":1,"haz":1,"tem":1,"agu":1,"eyl":1,"eki":1,"kas":1,"ara":1}'),
 
-('SOPD01', 'SOPD', 'İşbirliği ve Koordinasyon Faaliyetleri',
+('SOP201', 'SOPD', 'İşbirliği ve Koordinasyon Faaliyetleri',
  'SOP dışı kurumsal görevler ve koordinasyon',
  0.00,
  '{"oca":1,"sub":1,"mar":1,"nis":1,"may":1,"haz":1,"tem":1,"agu":1,"eyl":1,"eki":1,"kas":1,"ara":1}');
@@ -250,19 +250,19 @@ INSERT INTO alt_faaliyetler (sno, fkod, sop, kategori, faaliyet, alt_faaliyet, p
 (2,  'KDU101', 'KDU', 'Araştırma, Analiz ve Raporlama', 'Bölgesel ekonomik analiz ve raporlama çalışmaları',
  'Sektörel analiz ve SWOT çalışması', 3.0, 2),
 -- KDU103
-(3,  'KDU103', 'KDU', 'Araştırma, Analiz ve Raporlama', 'Üretim ve ticarileşme veri tabanı oluşturma',
+(3,  'KDU102', 'KDU', 'Araştırma, Analiz ve Raporlama', 'Üretim ve ticarileşme veri tabanı oluşturma',
  'Veri tabanı tasarım ve geliştirme', 5.0, 1),
-(4,  'KDU103', 'KDU', 'Araştırma, Analiz ve Raporlama', 'Üretim ve ticarileşme veri tabanı oluşturma',
+(4,  'KDU102', 'KDU', 'Araştırma, Analiz ve Raporlama', 'Üretim ve ticarileşme veri tabanı oluşturma',
  'Veri toplama ve doğrulama', 3.0, 2),
 -- KDU108
-(5,  'KDU108', 'KDU', 'Destek Programları', 'KDU destek programı başvuru ve değerlendirme süreci',
+(5,  'KDU501', 'KDU', 'Destek Programları', 'KDU destek programı başvuru ve değerlendirme süreci',
  'Başvuru kılavuzu hazırlama ve ilan', 2.0, 1),
-(6,  'KDU108', 'KDU', 'Destek Programları', 'KDU destek programı başvuru ve değerlendirme süreci',
+(6,  'KDU501', 'KDU', 'Destek Programları', 'KDU destek programı başvuru ve değerlendirme süreci',
  'Başvuru değerlendirme ve seçim komisyonu', 3.0, 1),
 -- KDU204
-(7,  'KDU204', 'KDU', 'İşbirliği ve Koordinasyon Faaliyetleri', 'Sektörel işbirliği toplantıları ve koordinasyon',
+(7,  'KDU201', 'KDU', 'İşbirliği ve Koordinasyon Faaliyetleri', 'Sektörel işbirliği toplantıları ve koordinasyon',
  'Çalışma grubu toplantısı organizasyonu ve yönetimi', 1.0, 8),
-(8,  'KDU204', 'KDU', 'İşbirliği ve Koordinasyon Faaliyetleri', 'Sektörel işbirliği toplantıları ve koordinasyon',
+(8,  'KDU201', 'KDU', 'İşbirliği ve Koordinasyon Faaliyetleri', 'Sektörel işbirliği toplantıları ve koordinasyon',
  'Sektör temsilcileri ile düzenli koordinasyon', 1.0, 4),
 -- KDU301
 (9,  'KDU301', 'KDU', 'Kapasite Geliştirme Faaliyetleri', 'Girişimcilik eğitim programları',
@@ -270,14 +270,14 @@ INSERT INTO alt_faaliyetler (sno, fkod, sop, kategori, faaliyet, alt_faaliyet, p
 (10, 'KDU301', 'KDU', 'Kapasite Geliştirme Faaliyetleri', 'Girişimcilik eğitim programları',
  'Finansman ve hibe kaynakları eğitimi', 2.0, 2),
 -- KDU304
-(11, 'KDU304', 'KDU', 'Kapasite Geliştirme Faaliyetleri', 'İhracat ve pazarlama kapasitesi geliştirme',
+(11, 'KDU303', 'KDU', 'Kapasite Geliştirme Faaliyetleri', 'İhracat ve pazarlama kapasitesi geliştirme',
  'İhracat stratejisi geliştirme çalıştayı', 2.0, 2),
-(12, 'KDU304', 'KDU', 'Kapasite Geliştirme Faaliyetleri', 'İhracat ve pazarlama kapasitesi geliştirme',
+(12, 'KDU303', 'KDU', 'Kapasite Geliştirme Faaliyetleri', 'İhracat ve pazarlama kapasitesi geliştirme',
  'Pazarlama ve marka eğitimi', 2.0, 2),
 -- KDU501
-(13, 'KDU501', 'KDU', 'Destek Programları', 'KDU mali destek programı uygulama ve izleme',
+(13, 'KDU502', 'KDU', 'Destek Programları', 'KDU mali destek programı uygulama ve izleme',
  'Proje izleme ziyaretleri', 2.0, 6),
-(14, 'KDU501', 'KDU', 'Destek Programları', 'KDU mali destek programı uygulama ve izleme',
+(14, 'KDU502', 'KDU', 'Destek Programları', 'KDU mali destek programı uygulama ve izleme',
  'Ödeme talepleri inceleme ve onay', 3.0, 4),
 -- STU101
 (15, 'STU101', 'STU', 'Araştırma, Analiz ve Raporlama', 'Bölge turizm potansiyeli araştırma ve envanter çalışmaları',
@@ -285,27 +285,27 @@ INSERT INTO alt_faaliyetler (sno, fkod, sop, kategori, faaliyet, alt_faaliyet, p
 (16, 'STU101', 'STU', 'Araştırma, Analiz ve Raporlama', 'Bölge turizm potansiyeli araştırma ve envanter çalışmaları',
  'Turizm talep ve beklenti araştırması', 3.0, 1),
 -- STU103
-(17, 'STU103', 'STU', 'İşbirliği ve Koordinasyon Faaliyetleri', 'Turizm paydaş toplantıları ve platform etkinlikleri',
+(17, 'STU201', 'STU', 'İşbirliği ve Koordinasyon Faaliyetleri', 'Turizm paydaş toplantıları ve platform etkinlikleri',
  'Turizm paydaş platformu toplantısı', 2.0, 4),
-(18, 'STU103', 'STU', 'İşbirliği ve Koordinasyon Faaliyetleri', 'Turizm paydaş toplantıları ve platform etkinlikleri',
+(18, 'STU201', 'STU', 'İşbirliği ve Koordinasyon Faaliyetleri', 'Turizm paydaş toplantıları ve platform etkinlikleri',
  'Turizm sektörü değerlendirme toplantısı', 1.0, 4),
 -- STU104
-(19, 'STU104', 'STU', 'İşbirliği ve Koordinasyon Faaliyetleri', 'Kültür-turizm entegrasyon projeleri koordinasyon',
+(19, 'STU202', 'STU', 'İşbirliği ve Koordinasyon Faaliyetleri', 'Kültür-turizm entegrasyon projeleri koordinasyon',
  'Kültür bakanlığı ile koordinasyon toplantısı', 1.0, 4),
-(20, 'STU104', 'STU', 'İşbirliği ve Koordinasyon Faaliyetleri', 'Kültür-turizm entegrasyon projeleri koordinasyon',
+(20, 'STU202', 'STU', 'İşbirliği ve Koordinasyon Faaliyetleri', 'Kültür-turizm entegrasyon projeleri koordinasyon',
  'Entegre turizm ürün geliştirme çalıştayı', 2.0, 2),
 -- STU201
-(21, 'STU201', 'STU', 'Kapasite Geliştirme Faaliyetleri', 'Turizm işletmeciliği eğitim programları',
+(21, 'STU301', 'STU', 'Kapasite Geliştirme Faaliyetleri', 'Turizm işletmeciliği eğitim programları',
  'Konaklama işletmeciliği eğitimi', 3.0, 2),
-(22, 'STU201', 'STU', 'Kapasite Geliştirme Faaliyetleri', 'Turizm işletmeciliği eğitim programları',
+(22, 'STU301', 'STU', 'Kapasite Geliştirme Faaliyetleri', 'Turizm işletmeciliği eğitim programları',
  'Rehberlik ve misafirperverllik eğitimi', 2.0, 3),
 -- STU301
-(23, 'STU301', 'STU', 'Kapasite Geliştirme Faaliyetleri', 'Gastronomi turizmi ürün geliştirme',
+(23, 'STU302', 'STU', 'Kapasite Geliştirme Faaliyetleri', 'Gastronomi turizmi ürün geliştirme',
  'Yöresel lezzetler gastronomi rotası oluşturma', 3.0, 1),
 -- STU302
-(24, 'STU302', 'STU', 'Kapasite Geliştirme Faaliyetleri', 'Ekoturizm rotaları geliştirme çalışmaları',
+(24, 'STU303', 'STU', 'Kapasite Geliştirme Faaliyetleri', 'Ekoturizm rotaları geliştirme çalışmaları',
  'Ekoturizm güzergah belirleme ve işaretleme', 4.0, 1),
-(25, 'STU302', 'STU', 'Kapasite Geliştirme Faaliyetleri', 'Ekoturizm rotaları geliştirme çalışmaları',
+(25, 'STU303', 'STU', 'Kapasite Geliştirme Faaliyetleri', 'Ekoturizm rotaları geliştirme çalışmaları',
  'Doğa turizmi rehber eğitimi', 2.0, 2),
 -- STU401
 (26, 'STU401', 'STU', 'Tanıtım ve Yatırım Destek Faaliyetleri', 'Bölgesel turizm tanıtım kampanyaları',
@@ -324,61 +324,61 @@ INSERT INTO alt_faaliyetler (sno, fkod, sop, kategori, faaliyet, alt_faaliyet, p
 (31, 'STU404', 'STU', 'Tanıtım ve Yatırım Destek Faaliyetleri', 'Yabancı tur operatörü inceleme gezileri',
  'Tur operatörü tanıtım gezisi organizasyonu', 3.0, 2),
 -- STU501
-(32, 'STU501', 'STU', 'Destek Programları', 'STU mali destek programı uygulama ve izleme',
+(32, 'STU502', 'STU', 'Destek Programları', 'STU mali destek programı uygulama ve izleme',
  'Proje izleme ziyaretleri ve ara değerlendirme', 2.0, 6),
-(33, 'STU501', 'STU', 'Destek Programları', 'STU mali destek programı uygulama ve izleme',
+(33, 'STU502', 'STU', 'Destek Programları', 'STU mali destek programı uygulama ve izleme',
  'Nihai değerlendirme ve rapor hazırlama', 3.0, 2),
 -- SOG001
-(34, 'SOG001', 'SOG', 'Proje Uygulama Faaliyetleri', 'SoGreen interreg projesi uygulama ve koordinasyon',
+(34, 'SOG301', 'SOG', 'Proje Uygulama Faaliyetleri', 'SoGreen interreg projesi uygulama ve koordinasyon',
  'Proje yönetim kurulu toplantısı organizasyonu', 2.0, 4),
-(35, 'SOG001', 'SOG', 'Proje Uygulama Faaliyetleri', 'SoGreen interreg projesi uygulama ve koordinasyon',
+(35, 'SOG301', 'SOG', 'Proje Uygulama Faaliyetleri', 'SoGreen interreg projesi uygulama ve koordinasyon',
  'İş paketi faaliyetleri uygulama ve raporlama', 3.0, 4),
-(36, 'SOG001', 'SOG', 'Proje Uygulama Faaliyetleri', 'SoGreen interreg projesi uygulama ve koordinasyon',
+(36, 'SOG301', 'SOG', 'Proje Uygulama Faaliyetleri', 'SoGreen interreg projesi uygulama ve koordinasyon',
  'Proje pilot uygulama alanı çalışmaları', 4.0, 2),
-(37, 'SOG001', 'SOG', 'Proje Uygulama Faaliyetleri', 'SoGreen interreg projesi uygulama ve koordinasyon',
+(37, 'SOG301', 'SOG', 'Proje Uygulama Faaliyetleri', 'SoGreen interreg projesi uygulama ve koordinasyon',
  'Uluslararası ortak ziyaretler ve teknik incelemeler', 3.0, 2),
 -- AB0001
-(38, 'AB0001', 'AB',   'Araştırma, Analiz ve Raporlama', 'AB projesi teknik çalışmaları ve raporlama',
+(38, 'AB0101', 'AB',   'Araştırma, Analiz ve Raporlama', 'AB projesi teknik çalışmaları ve raporlama',
  'AB proje teknik rapor hazırlama', 2.0, 4),
-(39, 'AB0001', 'AB',   'Araştırma, Analiz ve Raporlama', 'AB projesi teknik çalışmaları ve raporlama',
+(39, 'AB0101', 'AB',   'Araştırma, Analiz ve Raporlama', 'AB projesi teknik çalışmaları ve raporlama',
  'AB finansal rapor ve belgeleme', 2.0, 2),
 -- BAK001
-(40, 'BAK001', 'BAK',  'İşbirliği ve Koordinasyon Faaliyetleri', 'Bakanlık talep ve yazışma koordinasyonu',
+(40, 'BAK201', 'BAK',  'İşbirliği ve Koordinasyon Faaliyetleri', 'Bakanlık talep ve yazışma koordinasyonu',
  'Bakanlık veri talepleri yanıtlama', 1.0, 12),
-(41, 'BAK001', 'BAK',  'İşbirliği ve Koordinasyon Faaliyetleri', 'Bakanlık talep ve yazışma koordinasyonu',
+(41, 'BAK201', 'BAK',  'İşbirliği ve Koordinasyon Faaliyetleri', 'Bakanlık talep ve yazışma koordinasyonu',
  'Bakanlık toplantılarına katılım ve temsil', 1.0, 8),
 -- SOPD01
-(42, 'SOPD01', 'SOPD', 'İşbirliği ve Koordinasyon Faaliyetleri', 'SOP dışı kurumsal görevler ve koordinasyon',
+(42, 'SOP201', 'SOPD', 'İşbirliği ve Koordinasyon Faaliyetleri', 'SOP dışı kurumsal görevler ve koordinasyon',
  'Yönetim kurulu toplantısı hazırlık ve katılım', 1.0, 8),
-(43, 'SOPD01', 'SOPD', 'İşbirliği ve Koordinasyon Faaliyetleri', 'SOP dışı kurumsal görevler ve koordinasyon',
+(43, 'SOP201', 'SOPD', 'İşbirliği ve Koordinasyon Faaliyetleri', 'SOP dışı kurumsal görevler ve koordinasyon',
  'Kurum içi koordinasyon toplantıları', 0.5, 12),
-(44, 'SOPD01', 'SOPD', 'İşbirliği ve Koordinasyon Faaliyetleri', 'SOP dışı kurumsal görevler ve koordinasyon',
+(44, 'SOP201', 'SOPD', 'İşbirliği ve Koordinasyon Faaliyetleri', 'SOP dışı kurumsal görevler ve koordinasyon',
  'Yıllık iç değerlendirme raporu hazırlama', 3.0, 1),
 -- KDU205
-(45, 'KDU205', 'KDU', 'İşbirliği ve Koordinasyon Faaliyetleri', 'Uluslararası işbirliği ve platform katılımları',
+(45, 'KDU202', 'KDU', 'İşbirliği ve Koordinasyon Faaliyetleri', 'Uluslararası işbirliği ve platform katılımları',
  'Uluslararası kalkınma platformu katılımı', 2.0, 3),
 -- KDU302
 (46, 'KDU302', 'KDU', 'Kapasite Geliştirme Faaliyetleri', 'Ürün geliştirme ve tasarım atölyeleri',
  'Yerel ürün tasarım ve ambalaj atölyesi', 2.0, 2),
 -- KDU407
-(47, 'KDU407', 'KDU', 'Tanıtım ve Yatırım Destek Faaliyetleri', 'Yatırım ortamı iyileştirme faaliyetleri',
+(47, 'KDU402', 'KDU', 'Tanıtım ve Yatırım Destek Faaliyetleri', 'Yatırım ortamı iyileştirme faaliyetleri',
  'Yatırım ortamı değerlendirme raporu', 3.0, 1),
 -- KDU305
-(48, 'KDU305', 'KDU', 'Kapasite Geliştirme Faaliyetleri', 'Dijitalleşme ve e-ticaret kapasitesi',
+(48, 'KDU304', 'KDU', 'Kapasite Geliştirme Faaliyetleri', 'Dijitalleşme ve e-ticaret kapasitesi',
  'E-ticaret platformu kurulum rehberi hazırlama', 2.0, 1),
-(49, 'KDU305', 'KDU', 'Kapasite Geliştirme Faaliyetleri', 'Dijitalleşme ve e-ticaret kapasitesi',
+(49, 'KDU304', 'KDU', 'Kapasite Geliştirme Faaliyetleri', 'Dijitalleşme ve e-ticaret kapasitesi',
  'Dijitalleşme temel eğitim programı', 2.0, 2),
 -- STU102
 (50, 'STU102', 'STU', 'Araştırma, Analiz ve Raporlama', 'Turizm veri tabanı ve istatistik yönetimi',
  'Turizm istatistikleri derleme ve raporlama', 2.0, 6),
 -- STU405
-(51, 'STU405', 'STU', 'Destek Programları', 'Turizm altyapı ve destinasyon geliştirme desteği',
+(51, 'STU501', 'STU', 'Destek Programları', 'Turizm altyapı ve destinasyon geliştirme desteği',
  'Destinasyon altyapı proje teknik desteği', 3.0, 2),
 -- STU502
-(52, 'STU502', 'STU', 'Destek Programları', 'STU küçük ölçekli destek program çağrısı',
+(52, 'STU503', 'STU', 'Destek Programları', 'STU küçük ölçekli destek program çağrısı',
  'Küçük ölçekli destek çağrısı ilan ve yönetimi', 4.0, 1),
 -- KDU106
-(53, 'KDU204', 'KDU', 'İşbirliği ve Koordinasyon Faaliyetleri', 'Sektörel işbirliği toplantıları ve koordinasyon',
+(53, 'KDU201', 'KDU', 'İşbirliği ve Koordinasyon Faaliyetleri', 'Sektörel işbirliği toplantıları ve koordinasyon',
  'Sektörel koordinasyon protokolü hazırlama', 2.0, 1);
 
 -- ============================================================

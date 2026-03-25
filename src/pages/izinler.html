@@ -1,0 +1,726 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>İzinler & Saha — TR90 Sprint Kanban</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="../css/app.css" />
+  <style>
+    /* Tab styles */
+    .tab-bar {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 20px;
+    }
+    .tab-btn {
+      padding: 8px 20px;
+      border: 2px solid var(--navy);
+      border-radius: 6px;
+      font-size: 0.875rem;
+      font-weight: 600;
+      cursor: pointer;
+      background: transparent;
+      color: var(--navy);
+      transition: background 0.15s, color 0.15s;
+    }
+    .tab-btn.active {
+      background: var(--navy);
+      color: var(--gold);
+    }
+    .tab-btn:not(.active):hover {
+      background: #f1f5f9;
+    }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
+    /* Sprint özet kutusu */
+    .sprint-ozet-box {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 16px 20px;
+      margin-bottom: 20px;
+    }
+    .sprint-ozet-box h4 {
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--navy);
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    /* Modal */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.45);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+    }
+    .modal-overlay.open {
+      display: flex;
+    }
+    .modal-box {
+      background: #fff;
+      border-radius: 12px;
+      padding: 28px 32px;
+      min-width: 380px;
+      max-width: 480px;
+      width: 100%;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+      position: relative;
+    }
+    .modal-box h3 {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--navy);
+      margin-bottom: 20px;
+    }
+    .modal-close {
+      position: absolute;
+      top: 14px;
+      right: 16px;
+      background: none;
+      border: none;
+      font-size: 1.3rem;
+      cursor: pointer;
+      color: #94a3b8;
+      line-height: 1;
+    }
+    .modal-close:hover { color: var(--navy); }
+
+    .modal-actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 20px;
+      justify-content: flex-end;
+    }
+    .btn-ghost {
+      padding: 8px 16px;
+      border: 1px solid #cbd5e1;
+      background: transparent;
+      border-radius: 6px;
+      font-size: 0.875rem;
+      cursor: pointer;
+      color: #64748b;
+    }
+    .btn-ghost:hover { background: #f1f5f9; }
+
+    .btn-danger {
+      padding: 4px 12px;
+      background: #fee2e2;
+      color: #dc2626;
+      border: none;
+      border-radius: 5px;
+      font-size: 0.78rem;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    .btn-danger:hover { background: #fecaca; }
+
+    /* 81 il datalist input */
+    datalist option { font-size: 0.875rem; }
+  </style>
+</head>
+<body>
+<div class="app-layout">
+
+  <!-- Sidebar -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <h1>TR90 Kalkınma Ajansı</h1>
+      <p>Sprint Kanban Sistemi</p>
+    </div>
+    <nav>
+      <a href="../index.html"><span class="icon">📋</span> Kanban Board</a>
+      <a href="sprint-ozet.html"><span class="icon">📊</span> Sprint Özet</a>
+      <a href="faaliyetler.html"><span class="icon">📁</span> Faaliyetler</a>
+      <a href="retro.html"><span class="icon">🔁</span> Retrospektif</a>
+      <a href="performans.html"><span class="icon">🎯</span> Performans</a>
+      <a href="harcamalar.html"><span class="icon">💰</span> Harcamalar</a>
+      <a href="izinler.html" class="active"><span class="icon">🗓️</span> İzinler & Saha</a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="user-info"><strong id="user-name">Yükleniyor...</strong>Ekip Üyesi</div>
+      <button class="btn-logout" id="logout-btn">⇐ Çıkış Yap</button>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <div class="main-content">
+    <div class="page-header">
+      <h2>İzinler & Saha Görevleri</h2>
+    </div>
+
+    <div class="page-body">
+
+      <!-- Tab Bar -->
+      <div class="tab-bar">
+        <button class="tab-btn active" id="tab-izinler-btn">🗓️ İzinler</button>
+        <button class="tab-btn" id="tab-saha-btn">🗺️ Saha Görevleri</button>
+      </div>
+
+      <!-- ────────────────── TAB: İZİNLER ────────────────── -->
+      <div class="tab-content active" id="tab-izinler">
+
+        <!-- Sprint Özet Kutusu -->
+        <div class="sprint-ozet-box">
+          <h4>
+            Sprint Bazlı İzin Özeti
+            <select id="sprint-select-izin" class="form-control" style="min-width:280px;font-size:0.8rem;padding:4px 10px;">
+              <option value="">Sprint seçin...</option>
+            </select>
+            <button class="btn-gold" id="ozet-hesapla-btn" style="padding:5px 14px;font-size:0.8rem;">Özet Hesapla</button>
+          </h4>
+          <div id="sprint-ozet-container">
+            <p style="font-size:0.8rem;color:#94a3b8;">Sprint seçerek izin özetini görüntüleyin.</p>
+          </div>
+        </div>
+
+        <!-- İzinler Tablo Başlığı -->
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+          <h3 style="font-size:0.95rem;font-weight:700;color:var(--navy);margin:0;">Tüm İzin Kayıtları</h3>
+          <button class="btn-gold" id="yeni-izin-btn">+ Yeni İzin</button>
+        </div>
+
+        <div style="overflow-x:auto;">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Personel</th>
+                <th>Başlangıç</th>
+                <th>Bitiş</th>
+                <th>Tür</th>
+                <th>Açıklama</th>
+                <th style="text-align:center;">İşlemler</th>
+              </tr>
+            </thead>
+            <tbody id="izinler-tbody">
+              <tr><td colspan="6" style="text-align:center;color:#94a3b8;padding:24px;">Yükleniyor...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ────────────────── TAB: SAHA GÖREVLERİ ────────────────── -->
+      <div class="tab-content" id="tab-saha">
+
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+          <h3 style="font-size:0.95rem;font-weight:700;color:var(--navy);margin:0;">Saha Görevleri</h3>
+          <button class="btn-gold" id="yeni-saha-btn">+ Yeni Saha Görevi</button>
+        </div>
+
+        <div style="overflow-x:auto;">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Personel</th>
+                <th>Tarih</th>
+                <th>İl</th>
+                <th>Açıklama</th>
+                <th style="text-align:center;">İşlemler</th>
+              </tr>
+            </thead>
+            <tbody id="saha-tbody">
+              <tr><td colspan="5" style="text-align:center;color:#94a3b8;padding:24px;">Yükleniyor...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ────────────────── MODAL: YENİ İZİN ────────────────── -->
+<div class="modal-overlay" id="izin-modal">
+  <div class="modal-box">
+    <button class="modal-close" id="izin-modal-close">✕</button>
+    <h3>Yeni İzin Ekle</h3>
+    <form id="izin-form">
+      <div class="form-group">
+        <label for="izin-personel">Personel</label>
+        <select id="izin-personel" class="form-control" required></select>
+      </div>
+      <div class="form-group">
+        <label for="izin-baslangic">Başlangıç Tarihi</label>
+        <input type="date" id="izin-baslangic" class="form-control" required />
+      </div>
+      <div class="form-group">
+        <label for="izin-bitis">Bitiş Tarihi</label>
+        <input type="date" id="izin-bitis" class="form-control" required />
+      </div>
+      <div class="form-group">
+        <label for="izin-tur">İzin Türü</label>
+        <select id="izin-tur" class="form-control" required>
+          <option value="">Seçin...</option>
+          <option value="Yıllık">Yıllık</option>
+          <option value="Hastalık">Hastalık</option>
+          <option value="Ücretsiz">Ücretsiz</option>
+          <option value="Diğer">Diğer</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="izin-aciklama">Açıklama <span style="font-weight:400;color:#94a3b8;">(opsiyonel)</span></label>
+        <textarea id="izin-aciklama" class="form-control" rows="2" style="resize:vertical;"></textarea>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn-ghost" id="izin-modal-iptal">İptal</button>
+        <button type="submit" class="btn-gold" id="izin-kaydet-btn">Kaydet</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ────────────────── MODAL: YENİ SAHA GÖREVİ ────────────────── -->
+<div class="modal-overlay" id="saha-modal">
+  <div class="modal-box">
+    <button class="modal-close" id="saha-modal-close">✕</button>
+    <h3>Yeni Saha Görevi Ekle</h3>
+    <form id="saha-form">
+      <div class="form-group">
+        <label for="saha-personel">Personel</label>
+        <select id="saha-personel" class="form-control" required></select>
+      </div>
+      <div class="form-group">
+        <label for="saha-tarih">Tarih</label>
+        <input type="date" id="saha-tarih" class="form-control" required />
+      </div>
+      <div class="form-group">
+        <label for="saha-il">İl</label>
+        <input type="text" id="saha-il" class="form-control" list="iller-datalist"
+          placeholder="İl giriniz..." required autocomplete="off" />
+        <datalist id="iller-datalist">
+          <option value="Adana"><option value="Adıyaman"><option value="Afyonkarahisar">
+          <option value="Ağrı"><option value="Amasya"><option value="Ankara">
+          <option value="Antalya"><option value="Artvin"><option value="Aydın">
+          <option value="Balıkesir"><option value="Bilecik"><option value="Bingöl">
+          <option value="Bitlis"><option value="Bolu"><option value="Burdur">
+          <option value="Bursa"><option value="Çanakkale"><option value="Çankırı">
+          <option value="Çorum"><option value="Denizli"><option value="Diyarbakır">
+          <option value="Edirne"><option value="Elazığ"><option value="Erzincan">
+          <option value="Erzurum"><option value="Eskişehir"><option value="Gaziantep">
+          <option value="Giresun"><option value="Gümüşhane"><option value="Hakkari">
+          <option value="Hatay"><option value="Isparta"><option value="Mersin">
+          <option value="İstanbul"><option value="İzmir"><option value="Kars">
+          <option value="Kastamonu"><option value="Kayseri"><option value="Kırklareli">
+          <option value="Kırşehir"><option value="Kocaeli"><option value="Konya">
+          <option value="Kütahya"><option value="Malatya"><option value="Manisa">
+          <option value="Kahramanmaraş"><option value="Mardin"><option value="Muğla">
+          <option value="Muş"><option value="Nevşehir"><option value="Niğde">
+          <option value="Ordu"><option value="Rize"><option value="Sakarya">
+          <option value="Samsun"><option value="Siirt"><option value="Sinop">
+          <option value="Sivas"><option value="Tekirdağ"><option value="Tokat">
+          <option value="Trabzon"><option value="Tunceli"><option value="Şanlıurfa">
+          <option value="Uşak"><option value="Van"><option value="Yozgat">
+          <option value="Zonguldak"><option value="Aksaray"><option value="Bayburt">
+          <option value="Karaman"><option value="Kırıkkale"><option value="Batman">
+          <option value="Şırnak"><option value="Bartın"><option value="Ardahan">
+          <option value="Iğdır"><option value="Yalova"><option value="Karabük">
+          <option value="Kilis"><option value="Osmaniye"><option value="Düzce">
+        </datalist>
+      </div>
+      <div class="form-group">
+        <label for="saha-aciklama">Açıklama <span style="font-weight:400;color:#94a3b8;">(opsiyonel)</span></label>
+        <textarea id="saha-aciklama" class="form-control" rows="2" style="resize:vertical;"></textarea>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn-ghost" id="saha-modal-iptal">İptal</button>
+        <button type="submit" class="btn-gold" id="saha-kaydet-btn">Kaydet</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script type="module">
+  import { supabase } from '../js/supabase.js'
+  import { requireAuth, signOut } from '../js/auth.js'
+  import { formatDate, getPersonel, renderUserInfo, populateSprintDropdown, showToast, todayISO } from '../js/utils.js'
+
+  // ── Auth ─────────────────────────────────────────────────────────
+  const session = await requireAuth()
+  const personel = await getPersonel(supabase, session.user.id)
+  if (personel) renderUserInfo(personel.ad, personel.soyad)
+  const isFatih = personel?.ad === 'Fatih'
+
+  document.getElementById('logout-btn').addEventListener('click', () => signOut())
+
+  // ── Sprint Verileri ───────────────────────────────────────────────
+  const { data: sprintler } = await supabase
+    .from('sprint_veri')
+    .select('*')
+    .order('sprint_donem', { ascending: false })
+
+  const sprintSelectIzin = document.getElementById('sprint-select-izin')
+  if (sprintler && sprintler.length > 0) {
+    populateSprintDropdown(sprintSelectIzin, sprintler)
+    // başa boş seçenek ekle
+    const emptyOpt = document.createElement('option')
+    emptyOpt.value = ''
+    emptyOpt.textContent = 'Sprint seçin...'
+    sprintSelectIzin.insertBefore(emptyOpt, sprintSelectIzin.firstChild)
+    sprintSelectIzin.value = ''
+  }
+
+  // ── Personel Listesi ──────────────────────────────────────────────
+  const { data: personelListesi } = await supabase
+    .from('personel')
+    .select('ad, soyad')
+    .order('ad')
+
+  function personelOpsHTML() {
+    if (!personelListesi || personelListesi.length === 0) return '<option value="">Personel bulunamadı</option>'
+    return '<option value="">Seçin...</option>' +
+      personelListesi.map(p => `<option value="${p.ad} ${p.soyad}">${p.ad} ${p.soyad}</option>`).join('')
+  }
+
+  document.getElementById('izin-personel').innerHTML = personelOpsHTML()
+  document.getElementById('saha-personel').innerHTML = personelOpsHTML()
+
+  // ── Tab Toggle ────────────────────────────────────────────────────
+  const tabIzinlerBtn = document.getElementById('tab-izinler-btn')
+  const tabSahaBtn    = document.getElementById('tab-saha-btn')
+  const tabIzinler    = document.getElementById('tab-izinler')
+  const tabSaha       = document.getElementById('tab-saha')
+
+  tabIzinlerBtn.addEventListener('click', () => {
+    tabIzinlerBtn.classList.add('active')
+    tabSahaBtn.classList.remove('active')
+    tabIzinler.classList.add('active')
+    tabSaha.classList.remove('active')
+  })
+
+  tabSahaBtn.addEventListener('click', () => {
+    tabSahaBtn.classList.add('active')
+    tabIzinlerBtn.classList.remove('active')
+    tabSaha.classList.add('active')
+    tabIzinler.classList.remove('active')
+  })
+
+  // ── Modal Helpers ─────────────────────────────────────────────────
+  function openModal(id)  { document.getElementById(id).classList.add('open') }
+  function closeModal(id) { document.getElementById(id).classList.remove('open') }
+
+  document.getElementById('yeni-izin-btn').addEventListener('click', () => {
+    document.getElementById('izin-form').reset()
+    openModal('izin-modal')
+  })
+  document.getElementById('izin-modal-close').addEventListener('click', () => closeModal('izin-modal'))
+  document.getElementById('izin-modal-iptal').addEventListener('click', () => closeModal('izin-modal'))
+  document.getElementById('izin-modal').addEventListener('click', (e) => {
+    if (e.target === e.currentTarget) closeModal('izin-modal')
+  })
+
+  document.getElementById('yeni-saha-btn').addEventListener('click', () => {
+    document.getElementById('saha-form').reset()
+    openModal('saha-modal')
+  })
+  document.getElementById('saha-modal-close').addEventListener('click', () => closeModal('saha-modal'))
+  document.getElementById('saha-modal-iptal').addEventListener('click', () => closeModal('saha-modal'))
+  document.getElementById('saha-modal').addEventListener('click', (e) => {
+    if (e.target === e.currentTarget) closeModal('saha-modal')
+  })
+
+  // ── İzinler Tablosu ───────────────────────────────────────────────
+  async function loadIzinler() {
+    const { data, error } = await supabase
+      .from('izinler')
+      .select('*')
+      .order('baslangic_tarih', { ascending: false })
+
+    const tbody = document.getElementById('izinler-tbody')
+
+    if (error || !data || data.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#94a3b8;padding:24px;">Kayıt bulunamadı.</td></tr>'
+      return
+    }
+
+    tbody.innerHTML = data.map(r => {
+      const silBtn = isFatih
+        ? `<button class="btn-danger" data-id="${r.id}" data-table="izinler">Sil</button>`
+        : '—'
+      return `
+        <tr>
+          <td>${r.personel_ad ?? '—'}</td>
+          <td>${formatDate(r.baslangic_tarih)}</td>
+          <td>${formatDate(r.bitis_tarih)}</td>
+          <td>
+            <span style="display:inline-block;padding:2px 10px;border-radius:9999px;font-size:0.75rem;font-weight:600;
+              background:${turRenk(r.tur)};color:#fff;">
+              ${r.tur ?? '—'}
+            </span>
+          </td>
+          <td style="max-width:220px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${r.aciklama ?? '—'}</td>
+          <td style="text-align:center;">${silBtn}</td>
+        </tr>
+      `
+    }).join('')
+  }
+
+  function turRenk(tur) {
+    switch (tur) {
+      case 'Yıllık':   return '#3b82f6'
+      case 'Hastalık': return '#ef4444'
+      case 'Ücretsiz': return '#f59e0b'
+      default:         return '#64748b'
+    }
+  }
+
+  await loadIzinler()
+
+  // ── Saha Görevleri Tablosu ────────────────────────────────────────
+  async function loadSahaGorevleri() {
+    const { data, error } = await supabase
+      .from('saha_gorevleri')
+      .select('*')
+      .order('tarih', { ascending: false })
+
+    const tbody = document.getElementById('saha-tbody')
+
+    if (error || !data || data.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#94a3b8;padding:24px;">Kayıt bulunamadı.</td></tr>'
+      return
+    }
+
+    tbody.innerHTML = data.map(r => {
+      const silBtn = isFatih
+        ? `<button class="btn-danger" data-id="${r.id}" data-table="saha_gorevleri">Sil</button>`
+        : '—'
+      return `
+        <tr>
+          <td>${r.personel_ad ?? '—'}</td>
+          <td>${formatDate(r.tarih)}</td>
+          <td>${r.il ?? '—'}</td>
+          <td style="max-width:280px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${r.aciklama ?? '—'}</td>
+          <td style="text-align:center;">${silBtn}</td>
+        </tr>
+      `
+    }).join('')
+  }
+
+  await loadSahaGorevleri()
+
+  // ── Sil (event delegation) ────────────────────────────────────────
+  document.addEventListener('click', async (e) => {
+    const btn = e.target.closest('.btn-danger[data-table]')
+    if (!btn) return
+    const id    = btn.dataset.id
+    const table = btn.dataset.table
+    if (!confirm('Bu kaydı silmek istediğinize emin misiniz?')) return
+
+    const { error } = await supabase.from(table).delete().eq('id', id)
+    if (error) {
+      showToast('Silme hatası: ' + error.message, 'error')
+      return
+    }
+    showToast('Kayıt silindi.', 'success')
+    if (table === 'izinler') await loadIzinler()
+    else await loadSahaGorevleri()
+  })
+
+  // ── İzin Form Submit ──────────────────────────────────────────────
+  document.getElementById('izin-form').addEventListener('submit', async (e) => {
+    e.preventDefault()
+    const personelAd    = document.getElementById('izin-personel').value
+    const baslangic     = document.getElementById('izin-baslangic').value
+    const bitis         = document.getElementById('izin-bitis').value
+    const tur           = document.getElementById('izin-tur').value
+    const aciklama      = document.getElementById('izin-aciklama').value.trim()
+
+    if (!personelAd || !baslangic || !bitis || !tur) {
+      showToast('Lütfen zorunlu alanları doldurun.', 'warning')
+      return
+    }
+    if (bitis < baslangic) {
+      showToast('Bitiş tarihi başlangıçtan önce olamaz.', 'warning')
+      return
+    }
+
+    const btn = document.getElementById('izin-kaydet-btn')
+    btn.disabled = true
+    btn.textContent = 'Kaydediliyor...'
+
+    const { error } = await supabase.from('izinler').insert({
+      personel_ad:     personelAd,
+      baslangic_tarih: baslangic,
+      bitis_tarih:     bitis,
+      tur:             tur,
+      aciklama:        aciklama || null
+    })
+
+    btn.disabled = false
+    btn.textContent = 'Kaydet'
+
+    if (error) {
+      showToast('Kayıt sırasında hata: ' + error.message, 'error')
+      return
+    }
+
+    showToast('İzin başarıyla eklendi.', 'success')
+    closeModal('izin-modal')
+    await loadIzinler()
+  })
+
+  // ── Saha Görevi Form Submit ───────────────────────────────────────
+  document.getElementById('saha-form').addEventListener('submit', async (e) => {
+    e.preventDefault()
+    const personelAd = document.getElementById('saha-personel').value
+    const tarih      = document.getElementById('saha-tarih').value
+    const il         = document.getElementById('saha-il').value.trim()
+    const aciklama   = document.getElementById('saha-aciklama').value.trim()
+
+    if (!personelAd || !tarih || !il) {
+      showToast('Lütfen zorunlu alanları doldurun.', 'warning')
+      return
+    }
+
+    const btn = document.getElementById('saha-kaydet-btn')
+    btn.disabled = true
+    btn.textContent = 'Kaydediliyor...'
+
+    const { error } = await supabase.from('saha_gorevleri').insert({
+      personel_ad: personelAd,
+      tarih:       tarih,
+      il:          il,
+      aciklama:    aciklama || null
+    })
+
+    btn.disabled = false
+    btn.textContent = 'Kaydet'
+
+    if (error) {
+      showToast('Kayıt sırasında hata: ' + error.message, 'error')
+      return
+    }
+
+    showToast('Saha görevi başarıyla eklendi.', 'success')
+    closeModal('saha-modal')
+    await loadSahaGorevleri()
+  })
+
+  // ── Sprint Bazlı Özet Hesapla ─────────────────────────────────────
+  async function hesaplaSprintOzet() {
+    const selectedSprint = sprintSelectIzin.value
+    if (!selectedSprint) {
+      showToast('Lütfen bir sprint seçin.', 'warning')
+      return
+    }
+
+    const sprint = sprintler.find(s => String(s.sprint_donem) === String(selectedSprint))
+    if (!sprint || !sprint.baslangic || !sprint.bitis) {
+      showToast('Seçili sprint için tarih bilgisi bulunamadı.', 'error')
+      return
+    }
+
+    const sprintBas  = new Date(sprint.baslangic)
+    const sprintBit  = new Date(sprint.bitis)
+    sprintBas.setHours(0, 0, 0, 0)
+    sprintBit.setHours(0, 0, 0, 0)
+
+    // İzinleri çek
+    const { data: tumIzinler, error: izinErr } = await supabase
+      .from('izinler')
+      .select('personel_ad, baslangic_tarih, bitis_tarih')
+
+    if (izinErr) {
+      showToast('İzinler alınamadı: ' + izinErr.message, 'error')
+      return
+    }
+
+    // Kesiştiren izinleri filtrele ve gün hesapla
+    const personelGunMap = {}
+    let totalIzin = 0
+
+    for (const izin of (tumIzinler || [])) {
+      const iBas = new Date(izin.baslangic_tarih)
+      const iBit = new Date(izin.bitis_tarih)
+      iBas.setHours(0, 0, 0, 0)
+      iBit.setHours(0, 0, 0, 0)
+
+      // Örtüşme kontrolü
+      if (iBas > sprintBit || iBit < sprintBas) continue
+
+      // Kesişen aralık
+      const kesisBas = iBas > sprintBas ? iBas : sprintBas
+      const kesisBit = iBit < sprintBit ? iBit : sprintBit
+      const gun = Math.max(0, (kesisBit - kesisBas) / 86400000 + 1)
+
+      if (gun <= 0) continue
+      totalIzin += gun
+
+      const ad = izin.personel_ad || 'Bilinmiyor'
+      personelGunMap[ad] = (personelGunMap[ad] || 0) + gun
+    }
+
+    // Saha görevlerini say
+    const { data: tumSaha, error: sahaErr } = await supabase
+      .from('saha_gorevleri')
+      .select('tarih')
+      .gte('tarih', sprint.baslangic)
+      .lte('tarih', sprint.bitis)
+
+    const totalSaha = tumSaha ? tumSaha.length : 0
+
+    // Özet tablosunu render et
+    const container = document.getElementById('sprint-ozet-container')
+    const entries = Object.entries(personelGunMap)
+
+    if (entries.length === 0) {
+      container.innerHTML = `
+        <p style="font-size:0.8rem;color:#94a3b8;">
+          Bu sprint (${sprint.baslangic} – ${sprint.bitis}) için izin kaydı bulunamadı.
+        </p>`
+    } else {
+      container.innerHTML = `
+        <div style="overflow-x:auto;max-width:400px;">
+          <table class="data-table" style="font-size:0.82rem;">
+            <thead>
+              <tr>
+                <th>Personel</th>
+                <th style="text-align:center;">İzin Günleri</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${entries.map(([ad, gun]) => `
+                <tr>
+                  <td>${ad}</td>
+                  <td style="text-align:center;font-weight:700;color:var(--navy);">${gun}</td>
+                </tr>
+              `).join('')}
+              <tr style="background:#f1f5f9;">
+                <td style="font-weight:700;">Toplam</td>
+                <td style="text-align:center;font-weight:800;color:var(--gold);">${totalIzin}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p style="font-size:0.78rem;color:#64748b;margin-top:8px;">
+          Bu sprintteki saha görevi sayısı: <strong>${totalSaha}</strong>
+        </p>
+      `
+    }
+
+    // sprint_veri güncelle
+    const { error: updateErr } = await supabase
+      .from('sprint_veri')
+      .update({ izin: totalIzin, saha: totalSaha })
+      .eq('sprint_donem', selectedSprint)
+
+    if (updateErr) {
+      showToast('sprint_veri güncellenemedi: ' + updateErr.message, 'error')
+      return
+    }
+
+    showToast(`sprint_veri güncellendi — İzin: ${totalIzin} gün, Saha: ${totalSaha}`, 'success')
+  }
+
+  document.getElementById('ozet-hesapla-btn').addEventListener('click', hesaplaSprintOzet)
+  sprintSelectIzin.addEventListener('change', hesaplaSprintOzet)
+</script>
+</body>
+</html>

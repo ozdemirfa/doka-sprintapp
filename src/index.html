@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kanban Board — TR90 Sprint Kanban</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+<div class="app-layout">
+
+  <!-- Sidebar -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <h1>TR90 Kalkınma Ajansı</h1>
+      <p>Sprint Kanban Sistemi</p>
+    </div>
+    <nav>
+      <a href="index.html" class="active">
+        <span class="icon">📋</span> Kanban Board
+      </a>
+      <a href="pages/sprint-ozet.html">
+        <span class="icon">📊</span> Sprint Özet
+      </a>
+      <a href="pages/faaliyetler.html">
+        <span class="icon">📁</span> Faaliyetler
+      </a>
+      <a href="pages/retro.html">
+        <span class="icon">🔁</span> Retrospektif
+      </a>
+      <a href="pages/performans.html">
+        <span class="icon">🎯</span> Performans
+      </a>
+      <a href="pages/harcamalar.html">
+        <span class="icon">💰</span> Harcamalar
+      </a>
+      <a href="pages/izinler.html">
+        <span class="icon">🗓️</span> İzinler & Saha
+      </a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="user-info">
+        <strong id="user-name">Yükleniyor...</strong>
+        Ekip Üyesi
+      </div>
+      <button class="btn-logout" id="logout-btn">⇐ Çıkış Yap</button>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="main-content">
+    <div class="page-header">
+      <h2>📋 Kanban Board</h2>
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+        <select id="filter-sprint" class="form-control" style="width:auto;min-width:180px;">
+          <option value="">Tüm Sprintler</option>
+        </select>
+        <select id="filter-ekip" class="form-control" style="width:auto;min-width:150px;">
+          <option value="">Tüm Üyeler</option>
+        </select>
+        <button class="btn-gold" id="btn-yeni-gorev" style="white-space:nowrap;">+ Yeni Görev</button>
+      </div>
+    </div>
+
+    <div class="page-body">
+      <!-- Kanban Board -->
+      <div class="kanban-board" id="kanban-board">
+        <!-- Backlog -->
+        <div class="kanban-column col-backlog">
+          <div class="kanban-col-header">
+            <span>Backlog</span>
+            <span class="badge" id="badge-backlog">0</span>
+          </div>
+          <div class="kanban-cards" id="col-backlog" data-durum=""></div>
+        </div>
+
+        <!-- Devam Ediyor -->
+        <div class="kanban-column col-devam">
+          <div class="kanban-col-header">
+            <span>Devam Ediyor</span>
+            <span class="badge" id="badge-devam">0</span>
+          </div>
+          <div class="kanban-cards" id="col-devam" data-durum="Başladı"></div>
+        </div>
+
+        <!-- İncelemede -->
+        <div class="kanban-column col-inceleme">
+          <div class="kanban-col-header">
+            <span>İncelemede</span>
+            <span class="badge" id="badge-inceleme">0</span>
+          </div>
+          <div class="kanban-cards" id="col-inceleme" data-durum="İncelemede"></div>
+        </div>
+
+        <!-- Tamamlandı -->
+        <div class="kanban-column col-tamamlandi">
+          <div class="kanban-col-header">
+            <span>Tamamlandı</span>
+            <span class="badge" id="badge-tamamlandi">0</span>
+          </div>
+          <div class="kanban-cards" id="col-tamamlandi" data-durum="Tamamlandı"></div>
+        </div>
+      </div>
+
+      <div id="board-empty" class="hidden" style="text-align:center;padding:60px;color:#94a3b8;">
+        <div style="font-size:2.5rem;margin-bottom:12px;">📭</div>
+        <p>Bu filtreye ait görev bulunamadı.</p>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- ── Yeni/Düzenle Görev Modal ─────────────────────── -->
+<div class="modal-overlay hidden" id="modal-overlay">
+  <div class="modal-box">
+    <h3 id="modal-title">Yeni Görev</h3>
+    <form id="gorev-form">
+      <input type="hidden" id="gorev-id">
+
+      <div class="form-group">
+        <label>Sprint Dönemi *</label>
+        <select id="g-sprint" class="form-control" required></select>
+      </div>
+
+      <div class="form-group">
+        <label>Faaliyet Açıklaması *</label>
+        <textarea id="g-faaliyetleri" class="form-control" rows="3" required
+          placeholder="Görev/faaliyet açıklaması..."></textarea>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div class="form-group">
+          <label>S.No (Alt Faaliyet)</label>
+          <select id="g-sno" class="form-control"></select>
+        </div>
+        <div class="form-group">
+          <label>Plan Süre (gün)</label>
+          <input type="number" id="g-plansure" class="form-control" min="0.5" step="0.5" value="1">
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div class="form-group">
+          <label>Ekip Üyesi</label>
+          <select id="g-ekip" class="form-control">
+            <option value="">Seçiniz...</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Durum</label>
+          <select id="g-durum" class="form-control">
+            <option value="">Backlog</option>
+            <option value="Başladı">Devam Ediyor</option>
+            <option value="İncelemede">İncelemede</option>
+            <option value="Tamamlandı">Tamamlandı</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Harcanan Bütçe (₺)</label>
+        <input type="number" id="g-butce" class="form-control" min="0" step="0.01" placeholder="0.00">
+      </div>
+
+      <div id="modal-error" class="hidden" style="background:#fee2e2;border:1px solid #fca5a5;border-radius:6px;padding:10px;margin-bottom:14px;color:#b91c1c;font-size:0.825rem;"></div>
+
+      <div style="display:flex;gap:10px;justify-content:flex-end;">
+        <button type="button" class="btn-secondary" id="modal-cancel">İptal</button>
+        <button type="button" class="btn-danger hidden" id="btn-sil">Sil</button>
+        <button type="submit" class="btn-primary" id="modal-save">Kaydet</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script type="module" src="js/kanban.js"></script>
+</body>
+</html>

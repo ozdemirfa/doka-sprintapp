@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sprint Özet — TR90 Sprint Kanban</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="../css/app.css">
+</head>
+<body>
+<div class="app-layout">
+
+  <!-- Sidebar -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <h1>TR90 Kalkınma Ajansı</h1>
+      <p>Sprint Kanban Sistemi</p>
+    </div>
+    <nav>
+      <a href="../index.html">
+        <span class="icon">📋</span> Kanban Board
+      </a>
+      <a href="sprint-ozet.html" class="active">
+        <span class="icon">📊</span> Sprint Özet
+      </a>
+      <a href="faaliyetler.html">
+        <span class="icon">📁</span> Faaliyetler
+      </a>
+      <a href="retro.html">
+        <span class="icon">🔁</span> Retrospektif
+      </a>
+      <a href="performans.html">
+        <span class="icon">🎯</span> Performans
+      </a>
+      <a href="harcamalar.html">
+        <span class="icon">💰</span> Harcamalar
+      </a>
+      <a href="izinler.html">
+        <span class="icon">🗓️</span> İzinler & Saha
+      </a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="user-info">
+        <strong id="user-name">Yükleniyor...</strong>
+        Ekip Üyesi
+      </div>
+      <button class="btn-logout" id="logout-btn">⇐ Çıkış Yap</button>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="main-content">
+    <div class="page-header">
+      <h2>📊 Sprint Özet</h2>
+      <div style="display:flex;gap:10px;align-items:center;">
+        <select id="filter-sprint" class="form-control" style="width:auto;min-width:220px;"></select>
+      </div>
+    </div>
+
+    <div class="page-body">
+
+      <!-- Metrik Kartları -->
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px;">
+        <div class="metric-card">
+          <div class="metric-value" id="metric-gki">—</div>
+          <div class="metric-label">GKİ (%)</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-value" id="metric-hepiniss">—</div>
+          <div class="metric-label">Hepiniss (G.ort)</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-value" id="metric-plan">—</div>
+          <div class="metric-label">Plan Toplam (gün)</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-value" id="metric-tskor">—</div>
+          <div class="metric-label">T.Skor</div>
+        </div>
+      </div>
+
+      <!-- Grafik Grid (2x2) -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px;">
+        <div class="metric-card" style="padding:16px;">
+          <canvas id="chart-gki" height="200"></canvas>
+        </div>
+        <div class="metric-card" style="padding:16px;">
+          <canvas id="chart-hepiniss" height="200"></canvas>
+        </div>
+        <div class="metric-card" style="padding:16px;">
+          <canvas id="chart-plan" height="200"></canvas>
+        </div>
+        <div class="metric-card" style="padding:16px;">
+          <canvas id="chart-org" height="200"></canvas>
+        </div>
+      </div>
+
+      <!-- Sprint Detay Tablosu -->
+      <div class="metric-card" style="padding:0;overflow:auto;">
+        <table class="data-table" id="sprint-table">
+          <thead>
+            <tr>
+              <th>Dönem</th>
+              <th>Sprint Adı</th>
+              <th>Başlangıç</th>
+              <th>Bitiş</th>
+              <th>T.Skor</th>
+              <th>GKİ (%)</th>
+              <th>Hepiniss</th>
+              <th>Org. Puanı</th>
+              <th>Plan Toplam</th>
+              <th>Gerçekleşme</th>
+            </tr>
+          </thead>
+          <tbody id="sprint-tbody">
+            <tr>
+              <td colspan="10" style="text-align:center;color:#94a3b8;padding:32px;">Veriler yükleniyor...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+    </div><!-- /page-body -->
+  </main>
+</div>
+
+<script type="module">
+  import { requireAuth, signOut } from '../js/auth.js'
+  import { getPersonel, renderUserInfo, populateSprintDropdown, formatPercent, formatDate, showToast } from '../js/utils.js'
+  import { renderGkiTrend, renderHepinissTrend, renderPlanGerceklesme, renderOrgPuan } from '../js/charts.js'
+  import { supabase } from '../js/supabase.js'
+
+  // ── State ─────────────────────────────────────────────
+  let allData = []
+  let selectedDonem = null
+
+  // ── Auth guard ────────────────────────────────────────
+  let session
+  try {
+    session = await requireAuth()
+  } catch (e) {
+    // requireAuth yönlendirdi
+  }
+
+  // ── Kullanıcı bilgisi ─────────────────────────────────
+  if (session) {
+    const personel = await getPersonel(supabase, session.user.id)
+    if (personel) renderUserInfo(personel.ad, personel.soyad)
+  }
+
+  // ── Çıkış butonu ─────────────────────────────────────
+  document.getElementById('logout-btn').addEventListener('click', signOut)
+
+  // ── Veri çekme ────────────────────────────────────────
+  async function loadData() {
+    const { data, error } = await supabase
+      .from('v_sprint_ozet')
+      .select('*')
+      .order('sprint_donem')
+
+    if (error) {
+      showToast('Sprint verileri yüklenemedi: ' + error.message, 'error')
+      return
+    }
+
+    allData = data || []
+
+    if (allData.length === 0) {
+      showToast('Gösterilecek sprint verisi bulunamadı.', 'warning')
+      renderTable([])
+      return
+    }
+
+    // Sprint dropdown'ı doldur — en son dönem seçili gelsin
+    const maxDonem = allData[allData.length - 1].sprint_donem
+    populateSprintDropdown(
+      document.getElementById('filter-sprint'),
+      allData,
+      maxDonem
+    )
+    selectedDonem = String(maxDonem)
+
+    // Grafikleri tüm veriyle çiz (bir kez)
+    renderAllCharts(allData)
+
+    // Metrik kartlarını ve tabloyu güncelle
+    updateMetrics(selectedDonem)
+    renderTable(allData)
+  }
+
+  // ── Grafikleri çiz ────────────────────────────────────
+  function renderAllCharts(rows) {
+    const labels = rows.map(r => String(r.sprint_donem))
+    renderGkiTrend('chart-gki', labels, rows.map(r => r.gki ?? 0))
+    renderHepinissTrend('chart-hepiniss', labels, rows.map(r => r.hepiniss ?? 0))
+    renderPlanGerceklesme(
+      'chart-plan',
+      labels,
+      rows.map(r => r.plan_toplam ?? 0),
+      rows.map(r => r.gerceklesme ?? 0)
+    )
+    renderOrgPuan('chart-org', labels, rows.map(r => r.org_puan ?? 0))
+  }
+
+  // ── Metrik kartlarını güncelle ────────────────────────
+  function updateMetrics(donem) {
+    const row = allData.find(r => String(r.sprint_donem) === String(donem))
+    if (!row) return
+
+    document.getElementById('metric-gki').textContent = formatPercent(row.gki, 2)
+    document.getElementById('metric-hepiniss').textContent =
+      row.hepiniss != null ? Number(row.hepiniss).toFixed(2) : '—'
+    document.getElementById('metric-plan').textContent =
+      row.plan_toplam != null ? row.plan_toplam : '—'
+    document.getElementById('metric-tskor').textContent =
+      row.t_skor != null ? row.t_skor : '—'
+  }
+
+  // ── Tabloyu render et ─────────────────────────────────
+  function renderTable(rows) {
+    const tbody = document.getElementById('sprint-tbody')
+    if (rows.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;color:#94a3b8;padding:32px;">Veri bulunamadı.</td></tr>'
+      return
+    }
+    tbody.innerHTML = rows.map(r => `
+      <tr>
+        <td>${r.sprint_donem ?? '—'}</td>
+        <td>${r.sprint_adi ?? '—'}</td>
+        <td>${formatDate(r.baslangic)}</td>
+        <td>${formatDate(r.bitis)}</td>
+        <td>${r.t_skor ?? '—'}</td>
+        <td>${formatPercent(r.gki, 2)}</td>
+        <td>${r.hepiniss != null ? Number(r.hepiniss).toFixed(2) : '—'}</td>
+        <td>${r.org_puan != null ? Number(r.org_puan).toFixed(2) : '—'}</td>
+        <td>${r.plan_toplam ?? '—'}</td>
+        <td>${r.gerceklesme ?? '—'}</td>
+      </tr>
+    `).join('')
+  }
+
+  // ── Sprint filtre değişikliği (sadece metrik kartları) ─
+  document.getElementById('filter-sprint').addEventListener('change', (e) => {
+    selectedDonem = e.target.value
+    updateMetrics(selectedDonem)
+  })
+
+  // ── Başlat ────────────────────────────────────────────
+  await loadData()
+</script>
+</body>
+</html>

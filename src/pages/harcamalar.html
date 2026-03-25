@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Harcamalar — TR90 Sprint Kanban</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="../css/app.css">
+</head>
+<body>
+<div class="app-layout">
+
+  <!-- Sidebar -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <h1>TR90 Kalkınma Ajansı</h1>
+      <p>Sprint Kanban Sistemi</p>
+    </div>
+    <nav>
+      <a href="../index.html">
+        <span class="icon">📋</span> Kanban Board
+      </a>
+      <a href="sprint-ozet.html">
+        <span class="icon">📊</span> Sprint Özet
+      </a>
+      <a href="faaliyetler.html">
+        <span class="icon">📁</span> Faaliyetler
+      </a>
+      <a href="retro.html">
+        <span class="icon">🔁</span> Retrospektif
+      </a>
+      <a href="performans.html">
+        <span class="icon">🎯</span> Performans
+      </a>
+      <a href="harcamalar.html" class="active">
+        <span class="icon">💰</span> Harcamalar
+      </a>
+      <a href="izinler.html">
+        <span class="icon">🗓️</span> İzinler & Saha
+      </a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="user-info">
+        <strong id="user-name">Yükleniyor...</strong>
+        Ekip Üyesi
+      </div>
+      <button class="btn-logout" id="logout-btn">⇐ Çıkış Yap</button>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="main-content">
+    <div class="page-header">
+      <h2>💰 Harcamalar</h2>
+      <button class="btn-gold" id="btn-yeni-harcama">+ Yeni Harcama</button>
+    </div>
+
+    <div class="page-body">
+
+      <!-- Özet Metrik Kartları -->
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:24px;">
+        <div class="metric-card">
+          <div class="metric-value" id="metric-toplam-harcama">—</div>
+          <div class="metric-label">Toplam Harcama</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-value" id="metric-is-plani-butce">—</div>
+          <div class="metric-label">Sprint İş Planı Bütçe</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-value" id="metric-fark">—</div>
+          <div class="metric-label">Fark (Bütçe − Harcama)</div>
+        </div>
+      </div>
+
+      <!-- Filtreler -->
+      <div style="display:flex;gap:12px;margin-bottom:16px;align-items:center;flex-wrap:wrap;">
+        <select id="filter-sprint" class="form-control" style="width:auto;min-width:220px;">
+          <option value="">Tüm Sprintler</option>
+        </select>
+        <select id="filter-durum" class="form-control" style="width:auto;min-width:140px;">
+          <option value="">Tüm Durumlar</option>
+          <option value="Bekliyor">Bekliyor</option>
+          <option value="Ödendi">Ödendi</option>
+          <option value="İptal">İptal</option>
+        </select>
+      </div>
+
+      <!-- Harcamalar Tablosu -->
+      <div class="metric-card" style="padding:0;overflow:auto;margin-bottom:24px;">
+        <table class="data-table" id="harcamalar-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Sprint</th>
+              <th>S.No</th>
+              <th>Açıklama</th>
+              <th style="text-align:right;">KDV'li Tutar</th>
+              <th>Ödeme Dönemi</th>
+              <th>Durum</th>
+              <th>Son Güncelleme</th>
+              <th>Güncelleyen</th>
+            </tr>
+          </thead>
+          <tbody id="harcamalar-tbody">
+            <tr>
+              <td colspan="9" style="text-align:center;color:#94a3b8;padding:32px;">Veriler yükleniyor...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Ödeme Dönemi Özet Tablosu -->
+      <div class="metric-card" style="padding:0;overflow:auto;">
+        <div style="padding:14px 16px;background:#f8fafc;border-bottom:1px solid #e2e8f0;">
+          <strong style="color:#1a2744;font-size:0.9rem;">Ödeme Dönemi Özeti</strong>
+        </div>
+        <table class="data-table" id="odeme-ozet-table">
+          <thead>
+            <tr>
+              <th>Ödeme Dönemi</th>
+              <th style="text-align:right;">Toplam Tutar</th>
+            </tr>
+          </thead>
+          <tbody id="odeme-ozet-tbody">
+            <tr>
+              <td colspan="2" style="text-align:center;color:#94a3b8;padding:24px;">Veriler yükleniyor...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+    </div><!-- /page-body -->
+  </main>
+</div>
+
+<!-- Yeni Harcama Modalı -->
+<div class="modal-overlay hidden" id="modal-harcama">
+  <div class="modal-box">
+    <h3>Yeni Harcama</h3>
+    <form id="form-harcama">
+
+      <div class="form-group">
+        <label for="hir-sprint">Sprint Dönemi</label>
+        <select id="hir-sprint" class="form-control" required></select>
+      </div>
+
+      <div class="form-group">
+        <label for="hir-sno">Alt Faaliyet (S.No)</label>
+        <select id="hir-sno" class="form-control" required>
+          <option value="">Seçiniz...</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="hir-aciklama">Açıklama</label>
+        <textarea id="hir-aciklama" class="form-control" rows="3" placeholder="Harcama açıklaması..." required></textarea>
+      </div>
+
+      <div class="form-group">
+        <label for="hir-tutar">KDV'li Tutar (₺)</label>
+        <input type="number" id="hir-tutar" class="form-control" placeholder="0.00" step="0.01" min="0" required>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div class="form-group">
+          <label for="hir-odeme-donemi">Ödeme Dönemi</label>
+          <input type="text" id="hir-odeme-donemi" class="form-control" placeholder="2026/1" required>
+        </div>
+        <div class="form-group">
+          <label for="hir-durum">Durum</label>
+          <select id="hir-durum" class="form-control" required>
+            <option value="Bekliyor">Bekliyor</option>
+            <option value="Ödendi">Ödendi</option>
+            <option value="İptal">İptal</option>
+          </select>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:8px;">
+        <button type="button" class="btn-secondary" id="btn-modal-kapat">İptal</button>
+        <button type="submit" class="btn-gold">Kaydet</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script type="module">
+  import { requireAuth, signOut } from '../js/auth.js'
+  import { getPersonel, renderUserInfo, populateSprintDropdown, formatCurrency, formatDate, showToast, todayISO } from '../js/utils.js'
+  import { supabase } from '../js/supabase.js'
+
+  // ── Auth guard ────────────────────────────────────────
+  let session
+  try {
+    session = await requireAuth()
+  } catch (e) {
+    // requireAuth yönlendirdi
+  }
+
+  // ── Kullanıcı bilgisi ─────────────────────────────────
+  if (session) {
+    const personel = await getPersonel(supabase, session.user.id)
+    if (personel) renderUserInfo(personel.ad, personel.soyad)
+  }
+
+  // ── Çıkış butonu ─────────────────────────────────────
+  document.getElementById('logout-btn').addEventListener('click', signOut)
+
+  // ── State ─────────────────────────────────────────────
+  let allHarcamalar = []
+  let sprintler = []
+
+  // ── Veri çekme ────────────────────────────────────────
+  async function loadData() {
+    // Sprint listesi
+    const { data: sprintData } = await supabase
+      .from('sprint_veri')
+      .select('sprint_donem, sprint_adi, baslangic, bitis')
+      .order('sprint_donem')
+    sprintler = sprintData || []
+
+    // Sprint filtre dropdown
+    const filterSprint = document.getElementById('filter-sprint')
+    filterSprint.innerHTML = '<option value="">Tüm Sprintler</option>'
+    sprintler.forEach(s => {
+      const opt = document.createElement('option')
+      opt.value = s.sprint_donem
+      opt.textContent = `${s.sprint_donem} — ${s.sprint_adi || ''}`
+      filterSprint.appendChild(opt)
+    })
+
+    // Harcamalar
+    const { data: hData, error: hErr } = await supabase
+      .from('harcamalar')
+      .select('*')
+      .order('id')
+
+    if (hErr) {
+      showToast('Harcamalar yüklenemedi: ' + hErr.message, 'error')
+      return
+    }
+    allHarcamalar = hData || []
+
+    // Sprint iş planı bütçe toplamı
+    const { data: ipData } = await supabase
+      .from('sprint_is_plani')
+      .select('harcanan_butce')
+
+    const totalIsPlani = (ipData || []).reduce((s, r) => s + (r.harcanan_butce ?? 0), 0)
+    const totalHarcama = allHarcamalar.reduce((s, r) => s + (r.odenecek_kdvli ?? 0), 0)
+    const fark = totalIsPlani - totalHarcama
+
+    // Metrik kartları
+    document.getElementById('metric-toplam-harcama').textContent = formatCurrency(totalHarcama)
+    document.getElementById('metric-is-plani-butce').textContent = formatCurrency(totalIsPlani)
+    const farkEl = document.getElementById('metric-fark')
+    farkEl.textContent = formatCurrency(fark)
+    farkEl.style.color = fark >= 0 ? '#16a34a' : '#dc2626'
+
+    renderTable(allHarcamalar)
+    renderOdemeDonemiOzet(allHarcamalar)
+  }
+
+  // ── Tablo render ──────────────────────────────────────
+  function renderTable(rows) {
+    const tbody = document.getElementById('harcamalar-tbody')
+    if (!rows.length) {
+      tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;color:#94a3b8;padding:32px;">Veri bulunamadı.</td></tr>'
+      return
+    }
+
+    tbody.innerHTML = rows.map(r => {
+      const durumBadge = getDurumBadge(r.durum)
+      return `
+        <tr>
+          <td style="color:#64748b;font-size:0.75rem;">${r.id ?? '—'}</td>
+          <td>${r.sprint_donem ?? '—'}</td>
+          <td><span class="badge-sno">${r.sno ?? '—'}</span></td>
+          <td style="max-width:240px;">${r.aciklama ?? '—'}</td>
+          <td style="text-align:right;font-weight:600;">${formatCurrency(r.odenecek_kdvli)}</td>
+          <td>${r.odeme_donemi ?? '—'}</td>
+          <td>${durumBadge}</td>
+          <td style="font-size:0.75rem;color:#64748b;">${formatDate(r.guncel_tarih)}</td>
+          <td style="font-size:0.75rem;color:#64748b;">${r.guncelleyen ?? '—'}</td>
+        </tr>
+      `
+    }).join('')
+  }
+
+  function getDurumBadge(durum) {
+    if (!durum) return '—'
+    if (durum === 'Ödendi') {
+      return `<span style="background:#dcfce7;color:#15803d;border-radius:9999px;padding:2px 10px;font-size:0.72rem;font-weight:600;">Ödendi</span>`
+    }
+    if (durum === 'İptal') {
+      return `<span style="background:#fee2e2;color:#b91c1c;border-radius:9999px;padding:2px 10px;font-size:0.72rem;font-weight:600;">İptal</span>`
+    }
+    // Bekliyor (default)
+    return `<span style="background:#fef3c7;color:#92400e;border-radius:9999px;padding:2px 10px;font-size:0.72rem;font-weight:600;">Bekliyor</span>`
+  }
+
+  // ── Ödeme Dönemi Özet Tablosu ─────────────────────────
+  function renderOdemeDonemiOzet(rows) {
+    const tbody = document.getElementById('odeme-ozet-tbody')
+    const grouped = {}
+    rows.forEach(r => {
+      const donem = r.odeme_donemi || 'Belirsiz'
+      grouped[donem] = (grouped[donem] || 0) + (r.odenecek_kdvli ?? 0)
+    })
+
+    const entries = Object.entries(grouped).sort((a, b) => a[0].localeCompare(b[0]))
+    if (!entries.length) {
+      tbody.innerHTML = '<tr><td colspan="2" style="text-align:center;color:#94a3b8;padding:24px;">Veri bulunamadı.</td></tr>'
+      return
+    }
+
+    tbody.innerHTML = entries.map(([donem, toplam]) => `
+      <tr>
+        <td>${donem}</td>
+        <td style="text-align:right;font-weight:600;">${formatCurrency(toplam)}</td>
+      </tr>
+    `).join('')
+  }
+
+  // ── Filtreler ─────────────────────────────────────────
+  function applyFilters() {
+    const sprintVal = document.getElementById('filter-sprint').value
+    const durumVal = document.getElementById('filter-durum').value
+    let filtered = allHarcamalar
+
+    if (sprintVal) {
+      filtered = filtered.filter(r => String(r.sprint_donem) === String(sprintVal))
+    }
+    if (durumVal) {
+      filtered = filtered.filter(r => r.durum === durumVal)
+    }
+
+    renderTable(filtered)
+    renderOdemeDonemiOzet(filtered)
+  }
+
+  document.getElementById('filter-sprint').addEventListener('change', applyFilters)
+  document.getElementById('filter-durum').addEventListener('change', applyFilters)
+
+  // ── Modal: Yeni Harcama ───────────────────────────────
+  async function loadModalDropdowns() {
+    // Sprint dropdown (modal)
+    const modalSprint = document.getElementById('hir-sprint')
+    modalSprint.innerHTML = ''
+    populateSprintDropdown(modalSprint, sprintler)
+
+    // Alt faaliyet (sno) dropdown
+    const snoSel = document.getElementById('hir-sno')
+    snoSel.innerHTML = '<option value="">Seçiniz...</option>'
+    const { data: altFaal } = await supabase
+      .from('alt_faaliyetler')
+      .select('sno, aciklama')
+      .order('sno')
+    if (altFaal) {
+      altFaal.forEach(r => {
+        const opt = document.createElement('option')
+        opt.value = r.sno
+        opt.textContent = `${r.sno} — ${r.aciklama || ''}`
+        snoSel.appendChild(opt)
+      })
+    }
+  }
+
+  document.getElementById('btn-yeni-harcama').addEventListener('click', async () => {
+    await loadModalDropdowns()
+    document.getElementById('modal-harcama').classList.remove('hidden')
+  })
+
+  document.getElementById('btn-modal-kapat').addEventListener('click', () => {
+    document.getElementById('modal-harcama').classList.add('hidden')
+    document.getElementById('form-harcama').reset()
+  })
+
+  document.getElementById('modal-harcama').addEventListener('click', (e) => {
+    if (e.target === e.currentTarget) {
+      e.currentTarget.classList.add('hidden')
+      document.getElementById('form-harcama').reset()
+    }
+  })
+
+  document.getElementById('form-harcama').addEventListener('submit', async (e) => {
+    e.preventDefault()
+    const sprintDonem = document.getElementById('hir-sprint').value
+    const sno = document.getElementById('hir-sno').value
+    const aciklama = document.getElementById('hir-aciklama').value.trim()
+    const odenecekKdvli = parseFloat(document.getElementById('hir-tutar').value)
+    const odemeDonemi = document.getElementById('hir-odeme-donemi').value.trim()
+    const durum = document.getElementById('hir-durum').value
+
+    if (!sprintDonem || !sno || !aciklama || isNaN(odenecekKdvli) || !odemeDonemi || !durum) {
+      showToast('Lütfen tüm alanları doldurun.', 'error')
+      return
+    }
+
+    let guncelleyen = null
+    if (session) {
+      const personel = await getPersonel(supabase, session.user.id)
+      if (personel) guncelleyen = `${personel.ad} ${personel.soyad}`
+    }
+
+    const { error } = await supabase
+      .from('harcamalar')
+      .insert([{
+        sprint_donem: sprintDonem,
+        sno,
+        aciklama,
+        odenecek_kdvli: odenecekKdvli,
+        odeme_donemi: odemeDonemi,
+        durum,
+        guncel_tarih: todayISO(),
+        guncelleyen
+      }])
+
+    if (error) {
+      showToast('Kayıt başarısız: ' + error.message, 'error')
+      return
+    }
+
+    showToast('Harcama kaydedildi.', 'success')
+    document.getElementById('modal-harcama').classList.add('hidden')
+    document.getElementById('form-harcama').reset()
+    // State ve metrikleri yenile
+    allHarcamalar = []
+    document.getElementById('filter-sprint').value = ''
+    document.getElementById('filter-durum').value = ''
+    await loadData()
+  })
+
+  // ── Başlat ────────────────────────────────────────────
+  await loadData()
+</script>
+</body>
+</html>
