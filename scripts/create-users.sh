@@ -67,13 +67,14 @@ for user_line in "${USERS[@]}"; do
 
   RESPONSE=$(curl -s -X POST "$AUTH_URL" \
     -H "Authorization: Bearer $SERVICE_JWT" \
+    -H "apikey: $SERVICE_JWT" \
     -H "Content-Type: application/json" \
     -d "{\"email\":\"$email\",\"password\":\"$DEFAULT_PASS\",\"email_confirm\":true}")
 
-  UUID=$(echo "$RESPONSE" | grep -o '"id":"[^"]*"' | head -1 | sed 's/"id":"//;s/"//')
+  UUID=$(echo "$RESPONSE" | grep -o '"id":"[^"]*"' | head -1 | sed 's/"id":"//;s/"//' || true)
 
   if [ -z "$UUID" ]; then
-    MSG=$(echo "$RESPONSE" | grep -o '"message":"[^"]*"' | head -1 | sed 's/"message":"//;s/"//')
+    MSG=$(echo "$RESPONSE" | grep -o '"message":"[^"]*"' | head -1 | sed 's/"message":"//;s/"//' || true)
     warn "[$pkod] $email → HATA: $MSG"
     UPDATE_SQL+="-- [$pkod] $ad $soyad — oluşturulamadı: $MSG\n"
     ERRORS=$((ERRORS + 1))

@@ -1,0 +1,24 @@
+{
+  "name": "developer-agent-team",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ozdemirfa/developer-agent-team.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/ozdemirfa/developer-agent-team/issues"
+  },
+  "homepage": "https://github.com/ozdemirfa/developer-agent-team#readme",
+  "dependencies": {
+    "pg": "^8.20.0"
+  }
+}
