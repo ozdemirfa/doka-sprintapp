@@ -141,7 +141,8 @@
       <a href="sprint-ozet.html"><span class="icon">📊</span> Sprint Özet</a>
       <a href="faaliyetler.html"><span class="icon">📁</span> Faaliyetler</a>
       <a href="retro.html"><span class="icon">🔁</span> Retrospektif</a>
-      <a href="performans.html"><span class="icon">🎯</span> Performans</a>
+      <a href="performans.html"><span class="icon">🎯</span> Perf. Özeti</a>
+      <a href="sprint-perf-gos.html"><span class="icon">📈</span> Perf. Gerçekleşmeleri</a>
       <a href="harcamalar.html"><span class="icon">💰</span> Harcamalar</a>
       <a href="izinler.html" class="active"><span class="icon">🗓️</span> İzinler & Saha</a>
     </nav>
@@ -293,37 +294,15 @@
       </div>
       <div class="form-group">
         <label for="saha-il">İl</label>
-        <input type="text" id="saha-il" class="form-control" list="iller-datalist"
-          placeholder="İl giriniz..." required autocomplete="off" />
-        <datalist id="iller-datalist">
-          <option value="Adana"><option value="Adıyaman"><option value="Afyonkarahisar">
-          <option value="Ağrı"><option value="Amasya"><option value="Ankara">
-          <option value="Antalya"><option value="Artvin"><option value="Aydın">
-          <option value="Balıkesir"><option value="Bilecik"><option value="Bingöl">
-          <option value="Bitlis"><option value="Bolu"><option value="Burdur">
-          <option value="Bursa"><option value="Çanakkale"><option value="Çankırı">
-          <option value="Çorum"><option value="Denizli"><option value="Diyarbakır">
-          <option value="Edirne"><option value="Elazığ"><option value="Erzincan">
-          <option value="Erzurum"><option value="Eskişehir"><option value="Gaziantep">
-          <option value="Giresun"><option value="Gümüşhane"><option value="Hakkari">
-          <option value="Hatay"><option value="Isparta"><option value="Mersin">
-          <option value="İstanbul"><option value="İzmir"><option value="Kars">
-          <option value="Kastamonu"><option value="Kayseri"><option value="Kırklareli">
-          <option value="Kırşehir"><option value="Kocaeli"><option value="Konya">
-          <option value="Kütahya"><option value="Malatya"><option value="Manisa">
-          <option value="Kahramanmaraş"><option value="Mardin"><option value="Muğla">
-          <option value="Muş"><option value="Nevşehir"><option value="Niğde">
-          <option value="Ordu"><option value="Rize"><option value="Sakarya">
-          <option value="Samsun"><option value="Siirt"><option value="Sinop">
-          <option value="Sivas"><option value="Tekirdağ"><option value="Tokat">
-          <option value="Trabzon"><option value="Tunceli"><option value="Şanlıurfa">
-          <option value="Uşak"><option value="Van"><option value="Yozgat">
-          <option value="Zonguldak"><option value="Aksaray"><option value="Bayburt">
-          <option value="Karaman"><option value="Kırıkkale"><option value="Batman">
-          <option value="Şırnak"><option value="Bartın"><option value="Ardahan">
-          <option value="Iğdır"><option value="Yalova"><option value="Karabük">
-          <option value="Kilis"><option value="Osmaniye"><option value="Düzce">
-        </datalist>
+        <select id="saha-il" class="form-control" required>
+          <option value="">Seçin...</option>
+          <option value="Artvin">Artvin</option>
+          <option value="Giresun">Giresun</option>
+          <option value="Gümüşhane">Gümüşhane</option>
+          <option value="Ordu">Ordu</option>
+          <option value="Rize">Rize</option>
+          <option value="Trabzon">Trabzon</option>
+        </select>
       </div>
       <div class="form-group">
         <label for="saha-aciklama">Açıklama <span style="font-weight:400;color:#94a3b8;">(opsiyonel)</span></label>
@@ -431,7 +410,7 @@
     const { data, error } = await supabase
       .from('izinler')
       .select('*')
-      .order('baslangic_tarih', { ascending: false })
+      .order('izin_basl', { ascending: false })
 
     const tbody = document.getElementById('izinler-tbody')
 
@@ -446,9 +425,9 @@
         : '—'
       return `
         <tr>
-          <td>${r.personel_ad ?? '—'}</td>
-          <td>${formatDate(r.baslangic_tarih)}</td>
-          <td>${formatDate(r.bitis_tarih)}</td>
+          <td>${r.personel ?? '—'}</td>
+          <td>${formatDate(r.izin_basl)}</td>
+          <td>${formatDate(r.izin_bitis)}</td>
           <td>
             <span style="display:inline-block;padding:2px 10px;border-radius:9999px;font-size:0.75rem;font-weight:600;
               background:${turRenk(r.tur)};color:#fff;">
@@ -493,9 +472,9 @@
         : '—'
       return `
         <tr>
-          <td>${r.personel_ad ?? '—'}</td>
+          <td>${r.personel ?? '—'}</td>
           <td>${formatDate(r.tarih)}</td>
-          <td>${r.il ?? '—'}</td>
+          <td>${r.gorevli_il ?? '—'}</td>
           <td style="max-width:280px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${r.aciklama ?? '—'}</td>
           <td style="text-align:center;">${silBtn}</td>
         </tr>
@@ -546,11 +525,11 @@
     btn.textContent = 'Kaydediliyor...'
 
     const { error } = await supabase.from('izinler').insert({
-      personel_ad:     personelAd,
-      baslangic_tarih: baslangic,
-      bitis_tarih:     bitis,
-      tur:             tur,
-      aciklama:        aciklama || null
+      personel:    personelAd,
+      izin_basl:   baslangic,
+      izin_bitis:  bitis,
+      tur:         tur,
+      aciklama:    aciklama || null
     })
 
     btn.disabled = false
@@ -585,9 +564,9 @@
     btn.textContent = 'Kaydediliyor...'
 
     const { error } = await supabase.from('saha_gorevleri').insert({
-      personel_ad: personelAd,
+      personel:    personelAd,
       tarih:       tarih,
-      il:          il,
+      gorevli_il:  il,
       aciklama:    aciklama || null
     })
 
@@ -627,7 +606,7 @@
     // İzinleri çek
     const { data: tumIzinler, error: izinErr } = await supabase
       .from('izinler')
-      .select('personel_ad, baslangic_tarih, bitis_tarih')
+      .select('personel, izin_basl, izin_bitis')
 
     if (izinErr) {
       showToast('İzinler alınamadı: ' + izinErr.message, 'error')
@@ -639,8 +618,8 @@
     let totalIzin = 0
 
     for (const izin of (tumIzinler || [])) {
-      const iBas = new Date(izin.baslangic_tarih)
-      const iBit = new Date(izin.bitis_tarih)
+      const iBas = new Date(izin.izin_basl)
+      const iBit = new Date(izin.izin_bitis)
       iBas.setHours(0, 0, 0, 0)
       iBit.setHours(0, 0, 0, 0)
 
@@ -655,7 +634,7 @@
       if (gun <= 0) continue
       totalIzin += gun
 
-      const ad = izin.personel_ad || 'Bilinmiyor'
+      const ad = izin.personel || 'Bilinmiyor'
       personelGunMap[ad] = (personelGunMap[ad] || 0) + gun
     }
 

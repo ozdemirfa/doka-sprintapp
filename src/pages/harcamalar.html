@@ -30,7 +30,10 @@
         <span class="icon">🔁</span> Retrospektif
       </a>
       <a href="performans.html">
-        <span class="icon">🎯</span> Performans
+        <span class="icon">🎯</span> Perf. Özeti
+      </a>
+      <a href="sprint-perf-gos.html">
+        <span class="icon">📈</span> Perf. Gerçekleşmeleri
       </a>
       <a href="harcamalar.html" class="active">
         <span class="icon">💰</span> Harcamalar
@@ -136,13 +139,18 @@
 
 <!-- Yeni Harcama Modalı -->
 <div class="modal-overlay hidden" id="modal-harcama">
-  <div class="modal-box">
+  <div class="modal-box" style="max-width:560px;">
     <h3>Yeni Harcama</h3>
     <form id="form-harcama">
 
       <div class="form-group">
         <label for="hir-sprint">Sprint Dönemi</label>
         <select id="hir-sprint" class="form-control" required></select>
+      </div>
+
+      <div class="form-group">
+        <label for="hir-faaliyet">Sprint Faaliyeti</label>
+        <input type="text" id="hir-faaliyet" class="form-control" placeholder="İlgili faaliyet adı (opsiyonel)">
       </div>
 
       <div class="form-group">
@@ -154,26 +162,32 @@
 
       <div class="form-group">
         <label for="hir-aciklama">Açıklama</label>
-        <textarea id="hir-aciklama" class="form-control" rows="3" placeholder="Harcama açıklaması..." required></textarea>
-      </div>
-
-      <div class="form-group">
-        <label for="hir-tutar">KDV'li Tutar (₺)</label>
-        <input type="number" id="hir-tutar" class="form-control" placeholder="0.00" step="0.01" min="0" required>
+        <textarea id="hir-aciklama" class="form-control" rows="2" placeholder="Harcama açıklaması..." required></textarea>
       </div>
 
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
         <div class="form-group">
-          <label for="hir-odeme-donemi">Ödeme Dönemi</label>
-          <input type="text" id="hir-odeme-donemi" class="form-control" placeholder="2026/1" required>
+          <label for="hir-onay-kodu">Harcama Onay Kodu</label>
+          <input type="text" id="hir-onay-kodu" class="form-control" placeholder="ör: ONY-2026-001">
         </div>
         <div class="form-group">
-          <label for="hir-durum">Durum</label>
-          <select id="hir-durum" class="form-control" required>
-            <option value="Bekliyor">Bekliyor</option>
-            <option value="Ödendi">Ödendi</option>
-            <option value="İptal">İptal</option>
-          </select>
+          <label for="hir-onay-tarihi">Onay Tarihi</label>
+          <input type="date" id="hir-onay-tarihi" class="form-control">
+        </div>
+      </div>
+
+      <!-- Çoklu Ödeme Dönemi -->
+      <div class="form-group">
+        <label style="display:flex;justify-content:space-between;align-items:center;">
+          Ödeme Dönemleri
+          <button type="button" id="btn-donem-ekle" class="btn-secondary" style="padding:3px 10px;font-size:0.78rem;">+ Dönem Ekle</button>
+        </label>
+        <div id="odeme-donemler-container">
+          <div class="odeme-donem-row" style="display:grid;grid-template-columns:1fr 1fr auto;gap:8px;margin-bottom:6px;">
+            <input type="text" class="form-control donem-donem" placeholder="2026/1" required>
+            <input type="number" class="form-control donem-tutar" placeholder="Tutar (₺)" step="0.01" min="0" required>
+            <button type="button" class="btn-danger donem-sil" style="padding:4px 8px;display:none;">✕</button>
+          </div>
         </div>
       </div>
 
@@ -282,7 +296,7 @@
           <td><span class="badge-sno">${r.sno ?? '—'}</span></td>
           <td style="max-width:240px;">${r.aciklama ?? '—'}</td>
           <td style="text-align:right;font-weight:600;">${formatCurrency(r.odenecek_kdvli)}</td>
-          <td>${r.odeme_donemi ?? '—'}</td>
+          <td>${r.odeme_donem ?? '—'}</td>
           <td>${durumBadge}</td>
           <td style="font-size:0.75rem;color:#64748b;">${formatDate(r.guncel_tarih)}</td>
           <td style="font-size:0.75rem;color:#64748b;">${r.guncelleyen ?? '—'}</td>
@@ -308,7 +322,7 @@
     const tbody = document.getElementById('odeme-ozet-tbody')
     const grouped = {}
     rows.forEach(r => {
-      const donem = r.odeme_donemi || 'Belirsiz'
+      const donem = r.odeme_donem || 'Belirsiz'
       grouped[donem] = (grouped[donem] || 0) + (r.odenecek_kdvli ?? 0)
     })
 
@@ -359,17 +373,35 @@
     snoSel.innerHTML = '<option value="">Seçiniz...</option>'
     const { data: altFaal } = await supabase
       .from('alt_faaliyetler')
-      .select('sno, aciklama')
+      .select('sno, alt_faaliyet')
       .order('sno')
     if (altFaal) {
       altFaal.forEach(r => {
         const opt = document.createElement('option')
         opt.value = r.sno
-        opt.textContent = `${r.sno} — ${r.aciklama || ''}`
+        opt.textContent = `${r.sno} — ${r.alt_faaliyet || ''}`
         snoSel.appendChild(opt)
       })
     }
   }
+
+  // Çoklu dönem satırı ekle/sil
+  document.getElementById('btn-donem-ekle').addEventListener('click', () => {
+    const container = document.getElementById('odeme-donemler-container')
+    const ilkRow = container.querySelector('.odeme-donem-row')
+    const newRow = ilkRow.cloneNode(true)
+    newRow.querySelectorAll('input').forEach(i => i.value = '')
+    const silBtn = newRow.querySelector('.donem-sil')
+    silBtn.style.display = ''
+    silBtn.addEventListener('click', () => newRow.remove())
+    container.appendChild(newRow)
+  })
+
+  document.getElementById('odeme-donemler-container').addEventListener('click', (e) => {
+    if (e.target.classList.contains('donem-sil')) {
+      e.target.closest('.odeme-donem-row').remove()
+    }
+  })
 
   document.getElementById('btn-yeni-harcama').addEventListener('click', async () => {
     await loadModalDropdowns()
@@ -391,16 +423,31 @@
   document.getElementById('form-harcama').addEventListener('submit', async (e) => {
     e.preventDefault()
     const sprintDonem = document.getElementById('hir-sprint').value
+    const sprintFaaliyet = document.getElementById('hir-faaliyet').value.trim()
     const sno = document.getElementById('hir-sno').value
     const aciklama = document.getElementById('hir-aciklama').value.trim()
-    const odenecekKdvli = parseFloat(document.getElementById('hir-tutar').value)
-    const odemeDonemi = document.getElementById('hir-odeme-donemi').value.trim()
-    const durum = document.getElementById('hir-durum').value
+    const onayKodu = document.getElementById('hir-onay-kodu').value.trim()
+    const onayTarihi = document.getElementById('hir-onay-tarihi').value || null
 
-    if (!sprintDonem || !sno || !aciklama || isNaN(odenecekKdvli) || !odemeDonemi || !durum) {
-      showToast('Lütfen tüm alanları doldurun.', 'error')
+    // Ödeme dönemleri
+    const donemRows = document.querySelectorAll('#odeme-donemler-container .odeme-donem-row')
+    const donemler = []
+    let valid = true
+    donemRows.forEach(row => {
+      const donem = row.querySelector('.donem-donem').value.trim()
+      const tutar = parseFloat(row.querySelector('.donem-tutar').value)
+      if (!donem || isNaN(tutar)) { valid = false; return }
+      donemler.push({ donem, tutar })
+    })
+
+    if (!sprintDonem || !sno || !aciklama || !valid || donemler.length === 0) {
+      showToast('Lütfen tüm zorunlu alanları doldurun.', 'error')
       return
     }
+
+    // İlk dönemin tutarını ana alana yaz (geriye dönük uyumluluk)
+    const ilkDonem = donemler[0]
+    const odenecekKdvli = donemler.reduce((s, d) => s + d.tutar, 0)
 
     let guncelleyen = null
     if (session) {
@@ -411,13 +458,16 @@
     const { error } = await supabase
       .from('harcamalar')
       .insert([{
-        sprint_donem: sprintDonem,
-        sno,
+        sprint_donem:       Number(sprintDonem),
+        sprint_faaliyet:    sprintFaaliyet || null,
+        sno:                Number(sno),
         aciklama,
-        odenecek_kdvli: odenecekKdvli,
-        odeme_donemi: odemeDonemi,
-        durum,
-        guncel_tarih: todayISO(),
+        harcama_onay_kodu:  onayKodu || null,
+        onay_tarihi:        onayTarihi,
+        odenecek_kdvli:     odenecekKdvli,
+        odeme_donem:        ilkDonem.donem,
+        odeme_kalemleri:    donemler.length > 1 ? donemler : null,
+        guncel_tarih:       todayISO(),
         guncelleyen
       }])
 

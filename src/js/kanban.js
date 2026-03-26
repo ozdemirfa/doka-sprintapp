@@ -41,15 +41,17 @@ try {
 // ── Veri Yükleme ─────────────────────────────────────────────
 
 async function loadReferenceData() {
-  const [sprintRes, personelRes, altFaalRes] = await Promise.all([
+  const [sprintRes, personelRes, altFaalRes, perfGosRes] = await Promise.all([
     supabase.from('sprint_veri').select('sprint_donem,sprint_adi,baslangic,bitis').order('sprint_donem', { ascending: false }),
-    supabase.from('personel').select('ad,soyad').order('ad'),
-    supabase.from('alt_faaliyetler').select('sno,fkod,aciklama').order('sno')
+    supabase.from('personel').select('ad,soyad,rol_kodu').order('ad'),
+    supabase.from('alt_faaliyetler').select('sno,fkod,sop,kategori,faaliyet,alt_faaliyet').order('sno'),
+    supabase.from('perf_gostergeler').select('cg_kod,cikti_gostergesi').order('cg_kod')
   ])
 
   sprints = sprintRes.data || []
   personeller = personelRes.data || []
   altFaaliyetler = altFaalRes.data || []
+  window._perfGostergeler = perfGosRes.data || []
 
   // Sprint filtre dropdown
   const sprintFilter = document.getElementById('filter-sprint')
@@ -60,9 +62,11 @@ async function loadReferenceData() {
     sprintFilter.appendChild(opt)
   })
 
-  // Aktif sprinti varsayılan seç (en son aktif)
+  // Güncel sprinti tarihe göre seç
   if (sprints.length > 0) {
-    currentSprint = sprints[0].sprint_donem
+    const today = new Date().toISOString().slice(0, 10)
+    const current = sprints.find(s => s.baslangic <= today && s.bitis >= today)
+    currentSprint = current ? current.sprint_donem : sprints[0].sprint_donem
     sprintFilter.value = currentSprint
   }
 
@@ -189,6 +193,14 @@ async function handleDragEnd(evt) {
   const eskiDurum = gorev.is_durum || null
   if (eskiDurum === newDurum) return
 
+  // Standart kullanıcı yalnızca kendi görevini taşıyabilir
+  const isYonetici = currentPersonel?.rol_kodu === 'yönetici'
+  if (!isYonetici && gorev.ekip_uyesi !== currentPersonel?.ad) {
+    showToast('Sadece yönetici başkasının görevini taşıyabilir.', 'error')
+    await loadBoard()
+    return
+  }
+
   // Tarih ve audit güncellemeleri
   const updates = {
     is_durum: newDurum || null,
@@ -311,24 +323,32 @@ function initModal() {
   const gSprint = document.getElementById('g-sprint')
   populateSprintDropdown(gSprint, sprints)
 
-  // Alt faaliyet dropdown
-  const gSno = document.getElementById('g-sno')
-  gSno.innerHTML = '<option value="">Seçiniz...</option>'
-  altFaaliyetler.forEach(af => {
-    const opt = document.createElement('option')
-    opt.value = af.sno
-    opt.textContent = `${af.sno} — ${af.aciklama ? af.aciklama.substring(0, 50) : ''}`
-    gSno.appendChild(opt)
-  })
+  // Alt faaliyet arama butonu
+  document.getElementById('btn-alt-faaliyet-ara').addEventListener('click', () => openAltFaaliyetModal())
 
-  // Ekip üyesi dropdown
+  // Ekip üyesi dropdown — standart kullanıcı sadece kendini seçebilir
   const gEkip = document.getElementById('g-ekip')
+  const isYonetici = currentPersonel?.rol_kodu === 'yönetici'
   personeller.forEach(p => {
     const opt = document.createElement('option')
     opt.value = p.ad
     opt.textContent = `${p.ad} ${p.soyad}`
+    if (!isYonetici && currentPersonel && p.ad !== currentPersonel.ad) {
+      opt.disabled = true
+    }
     gEkip.appendChild(opt)
   })
+
+  // Performans göstergesi dropdown
+  const gPerfGos = document.getElementById('g-perf-gostergeler')
+  if (gPerfGos) {
+    ;(window._perfGostergeler || []).forEach(pg => {
+      const opt = document.createElement('option')
+      opt.value = pg.cg_kod
+      opt.textContent = `${pg.cg_kod} — ${pg.cikti_gostergesi ? pg.cikti_gostergesi.substring(0, 60) : ''}`
+      gPerfGos.appendChild(opt)
+    })
+  }
 
   // Yeni görev butonu
   document.getElementById('btn-yeni-gorev').addEventListener('click', () => openNewModal())
@@ -348,15 +368,24 @@ function openNewModal() {
   document.getElementById('modal-title').textContent = 'Yeni Görev'
   document.getElementById('gorev-id').value = ''
   document.getElementById('gorev-form').reset()
+  document.getElementById('g-sno-hidden').value = ''
+  document.getElementById('g-sno-display').value = ''
   document.getElementById('btn-sil').classList.add('hidden')
   document.getElementById('modal-error').classList.add('hidden')
 
-  // Seçili sprinti varsayılan yap
+  // Seçili sprinti varsayılan yap (bugünün dönemi)
   const sprintVal = document.getElementById('filter-sprint').value
   if (sprintVal) document.getElementById('g-sprint').value = sprintVal
 
   // Kendi adını varsayılan yap
   if (currentPersonel) document.getElementById('g-ekip').value = currentPersonel.ad
+
+  // Perf göstergeler seçimini temizle
+  const gPerfGos = document.getElementById('g-perf-gostergeler')
+  if (gPerfGos) Array.from(gPerfGos.options).forEach(o => o.selected = false)
+
+  const perfBtn = document.getElementById('btn-perf-giris')
+  if (perfBtn) perfBtn.classList.add('hidden')
 
   document.getElementById('modal-overlay').classList.remove('hidden')
 }
@@ -366,16 +395,37 @@ function openEditModal(g) {
   document.getElementById('gorev-id').value = g.id
   document.getElementById('g-sprint').value = g.sprint_donem || ''
   document.getElementById('g-faaliyetleri').value = g.sprint_faaliyetleri || ''
-  document.getElementById('g-sno').value = g.sno || ''
+  // Alt faaliyet göster
+  const af = altFaaliyetler.find(a => a.sno === g.sno)
+  document.getElementById('g-sno-display').value = g.sno ? `S.${g.sno} — ${af?.alt_faaliyet || ''}` : ''
+  document.getElementById('g-sno-hidden').value = g.sno || ''
   document.getElementById('g-plansure').value = g.plan_sure || ''
   document.getElementById('g-ekip').value = g.ekip_uyesi || ''
   document.getElementById('g-durum').value = g.is_durum || ''
   document.getElementById('g-butce').value = g.harcanan_butce || ''
   document.getElementById('modal-error').classList.add('hidden')
 
+  // Performans göstergelerini seç
+  const gPerfGos = document.getElementById('g-perf-gostergeler')
+  if (gPerfGos && g.performans_gostergeler) {
+    const secilenler = g.performans_gostergeler.split(',').map(s => s.trim())
+    Array.from(gPerfGos.options).forEach(opt => {
+      opt.selected = secilenler.includes(opt.value)
+    })
+  }
+
   // Sadece yönetici silebilir
   const isFatih = currentPersonel?.rol_kodu === 'yönetici'
   document.getElementById('btn-sil').classList.toggle('hidden', !isFatih)
+
+  // Perf. Giriş butonu — URL'e faaliyet ve sno ekle
+  const perfBtn = document.getElementById('btn-perf-giris')
+  if (perfBtn) {
+    const faaliyet = encodeURIComponent(g.sprint_faaliyetleri || '')
+    const sno = g.sno || ''
+    perfBtn.href = `pages/sprint-perf-gos.html?faaliyet=${faaliyet}&sno=${sno}`
+    perfBtn.classList.remove('hidden')
+  }
 
   document.getElementById('modal-overlay').classList.remove('hidden')
 }
@@ -391,14 +441,19 @@ async function handleSave(e) {
   saveBtn.textContent = 'Kaydediliyor...'
 
   const id = document.getElementById('gorev-id').value
+  const gPerfGos = document.getElementById('g-perf-gostergeler')
+  const secilenPerfGos = gPerfGos
+    ? Array.from(gPerfGos.selectedOptions).map(o => o.value).join(',') || null
+    : null
   const payload = {
     sprint_donem: Number(document.getElementById('g-sprint').value),
     sprint_faaliyetleri: document.getElementById('g-faaliyetleri').value.trim(),
-    sno: document.getElementById('g-sno').value || null,
+    sno: Number(document.getElementById('g-sno-hidden').value) || null,
     plan_sure: parseFloat(document.getElementById('g-plansure').value) || null,
     ekip_uyesi: document.getElementById('g-ekip').value || null,
     is_durum: document.getElementById('g-durum').value || null,
-    harcanan_butce: parseFloat(document.getElementById('g-butce').value) || null
+    harcanan_butce: parseFloat(document.getElementById('g-butce').value) || null,
+    performans_gostergeler: secilenPerfGos
   }
 
   let error
@@ -445,3 +500,69 @@ async function handleSil() {
   showToast('Görev silindi.', 'warning')
   await loadBoard()
 }
+
+// ── Alt Faaliyet Arama Modalı ─────────────────────────────────
+
+function openAltFaaliyetModal() {
+  const modal = document.getElementById('af-search-modal')
+  if (!modal) return
+
+  // Dropdown'ları doldur
+  const sopSet = [...new Set(altFaaliyetler.map(a => a.sop).filter(Boolean))]
+  const katSet = [...new Set(altFaaliyetler.map(a => a.kategori).filter(Boolean))]
+
+  const sopSel = document.getElementById('af-filter-sop')
+  sopSel.innerHTML = '<option value="">Tüm SOPlar</option>'
+  sopSet.forEach(s => { const o = document.createElement('option'); o.value = s; o.textContent = s; sopSel.appendChild(o) })
+
+  const katSel = document.getElementById('af-filter-kategori')
+  katSel.innerHTML = '<option value="">Tüm Kategoriler</option>'
+  katSet.forEach(k => { const o = document.createElement('option'); o.value = k; o.textContent = k; katSel.appendChild(o) })
+
+  document.getElementById('af-filter-metin').value = ''
+  renderAltFaaliyetList()
+  modal.classList.remove('hidden')
+}
+
+function renderAltFaaliyetList() {
+  const sop = document.getElementById('af-filter-sop').value
+  const kat = document.getElementById('af-filter-kategori').value
+  const metin = document.getElementById('af-filter-metin').value.toLowerCase()
+
+  const filtered = altFaaliyetler.filter(af => {
+    if (sop && af.sop !== sop) return false
+    if (kat && af.kategori !== kat) return false
+    if (metin && !af.alt_faaliyet?.toLowerCase().includes(metin) && !String(af.sno).includes(metin) && !af.faaliyet?.toLowerCase().includes(metin)) return false
+    return true
+  })
+
+  const tbody = document.getElementById('af-list-tbody')
+  if (filtered.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:#94a3b8;padding:16px;">Sonuç bulunamadı.</td></tr>'
+    return
+  }
+
+  tbody.innerHTML = filtered.slice(0, 100).map(af => `
+    <tr style="cursor:pointer;" data-sno="${af.sno}" data-alt="${escHtml(af.alt_faaliyet || '')}">
+      <td><span class="badge-sno">${af.sno}</span></td>
+      <td style="font-size:0.78rem;color:#64748b;">${escHtml(af.sop || '')}</td>
+      <td style="font-size:0.78rem;">${escHtml(af.faaliyet || '')}</td>
+      <td style="font-size:0.78rem;">${escHtml(af.alt_faaliyet || '')}</td>
+    </tr>
+  `).join('')
+
+  tbody.querySelectorAll('tr[data-sno]').forEach(row => {
+    row.addEventListener('click', () => {
+      document.getElementById('g-sno-hidden').value = row.dataset.sno
+      document.getElementById('g-sno-display').value = `S.${row.dataset.sno} — ${row.dataset.alt}`
+      document.getElementById('af-search-modal').classList.add('hidden')
+    })
+  })
+}
+
+document.getElementById('af-filter-sop')?.addEventListener('change', renderAltFaaliyetList)
+document.getElementById('af-filter-kategori')?.addEventListener('change', renderAltFaaliyetList)
+document.getElementById('af-filter-metin')?.addEventListener('input', renderAltFaaliyetList)
+document.getElementById('af-modal-kapat')?.addEventListener('click', () => {
+  document.getElementById('af-search-modal').classList.add('hidden')
+})

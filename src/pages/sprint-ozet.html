@@ -31,7 +31,10 @@
         <span class="icon">🔁</span> Retrospektif
       </a>
       <a href="performans.html">
-        <span class="icon">🎯</span> Performans
+        <span class="icon">🎯</span> Perf. Özeti
+      </a>
+      <a href="sprint-perf-gos.html">
+        <span class="icon">📈</span> Perf. Gerçekleşmeleri
       </a>
       <a href="harcamalar.html">
         <span class="icon">💰</span> Harcamalar
@@ -172,14 +175,18 @@
       return
     }
 
-    // Sprint dropdown'ı doldur — en son dönem seçili gelsin
-    const maxDonem = allData[allData.length - 1].sprint_donem
+    // Sprint dropdown'ı doldur — güncel dönem (tarihe göre) seçili gelsin
+    const today = new Date().toISOString().slice(0, 10)
+    const currentSprint = allData.find(r => r.baslangic <= today && r.bitis >= today)
+    const defaultDonem = currentSprint
+      ? currentSprint.sprint_donem
+      : allData[allData.length - 1].sprint_donem
     populateSprintDropdown(
       document.getElementById('filter-sprint'),
       allData,
-      maxDonem
+      defaultDonem
     )
-    selectedDonem = String(maxDonem)
+    selectedDonem = String(defaultDonem)
 
     // Grafikleri tüm veriyle çiz (bir kez)
     renderAllCharts(allData)

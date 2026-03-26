@@ -15,7 +15,7 @@
     <!-- Sidebar -->
     <aside class="sidebar" id="sidebar">
       <div class="sidebar-logo">
-        <h1>Doğu Karadeniz Kalkınma Ajansı</h1>
+        <h1>DOKA</h1>
         <p>Sprint Kanban Sistemi</p>
       </div>
       <nav>
@@ -23,7 +23,8 @@
         <a href="sprint-ozet.html"><span class="icon">📊</span> Sprint Özet</a>
         <a href="faaliyetler.html" class="active"><span class="icon">📁</span> Faaliyetler</a>
         <a href="retro.html"><span class="icon">🔁</span> Retrospektif</a>
-        <a href="performans.html"><span class="icon">🎯</span> Performans</a>
+        <a href="performans.html"><span class="icon">🎯</span> Perf. Özeti</a>
+        <a href="sprint-perf-gos.html"><span class="icon">📈</span> Perf. Gerçekleşmeleri</a>
         <a href="harcamalar.html"><span class="icon">💰</span> Harcamalar</a>
         <a href="izinler.html"><span class="icon">🗓️</span> İzinler & Saha</a>
       </nav>
@@ -37,7 +38,15 @@
     <div class="main-content">
       <div class="page-header">
         <h2>Faaliyetler</h2>
-        <button class="btn-gold" id="yeni-faaliyet-btn">+ Yeni Faaliyet</button>
+        <div style="display:flex;gap:10px;align-items:center;">
+          <select id="filter-yil" class="form-control" style="width:auto;min-width:120px;">
+            <option value="">Tüm Yıllar</option>
+            <option value="2024">2024</option>
+            <option value="2025">2025</option>
+            <option value="2026">2026</option>
+          </select>
+          <button class="btn-gold" id="yeni-faaliyet-btn">+ Yeni Faaliyet</button>
+        </div>
       </div>
 
       <div class="page-body">
@@ -49,10 +58,89 @@
 
   </div>
 
+  <!-- Yeni Faaliyet Modalı -->
+  <div class="modal-overlay hidden" id="modal-faaliyet">
+    <div class="modal-box" style="max-width:520px;">
+      <h3 id="modal-faaliyet-title">Yeni Faaliyet</h3>
+      <form id="form-faaliyet">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div class="form-group">
+            <label for="f-fkod">Faaliyet Kodu *</label>
+            <input type="text" id="f-fkod" class="form-control" placeholder="ör: STU-01" required>
+          </div>
+          <div class="form-group">
+            <label for="f-sop">SOP *</label>
+            <select id="f-sop" class="form-control" required></select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="f-faaliyet">Faaliyet Adı *</label>
+          <input type="text" id="f-faaliyet" class="form-control" required placeholder="Faaliyet açıklaması...">
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;">
+          <div class="form-group">
+            <label for="f-yil">Yıl *</label>
+            <select id="f-yil" class="form-control" required>
+              <option value="2024">2024</option>
+              <option value="2025">2025</option>
+              <option value="2026" selected>2026</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="f-butce">Bütçe (₺)</label>
+            <input type="number" id="f-butce" class="form-control" step="0.01" min="0" placeholder="0.00">
+          </div>
+          <div class="form-group">
+            <label for="f-kategori">Kategori</label>
+            <input type="text" id="f-kategori" class="form-control" placeholder="Kategori kodu">
+          </div>
+        </div>
+        <div id="modal-faaliyet-error" class="hidden" style="background:#fee2e2;border:1px solid #fca5a5;border-radius:6px;padding:10px;margin-bottom:12px;color:#b91c1c;font-size:0.825rem;"></div>
+        <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:8px;">
+          <button type="button" class="btn-secondary" id="btn-faaliyet-kapat">İptal</button>
+          <button type="submit" class="btn-gold">Kaydet</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Yeni Alt Faaliyet Modalı -->
+  <div class="modal-overlay hidden" id="modal-alt-faaliyet">
+    <div class="modal-box" style="max-width:500px;">
+      <h3>Yeni Alt Faaliyet Ekle</h3>
+      <form id="form-alt-faaliyet">
+        <input type="hidden" id="af-fkod">
+        <div class="form-group">
+          <label>Bağlı Faaliyet</label>
+          <input type="text" id="af-fkod-display" class="form-control" readonly style="background:#f8fafc;">
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div class="form-group">
+            <label for="af-sno">S.No *</label>
+            <input type="number" id="af-sno" class="form-control" required placeholder="ör: 101">
+          </div>
+          <div class="form-group">
+            <label for="af-psure">Plan Süre (gün)</label>
+            <input type="number" id="af-psure" class="form-control" step="0.5" min="0.5" placeholder="1">
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="af-altfaaliyet">Alt Faaliyet Adı *</label>
+          <textarea id="af-altfaaliyet" class="form-control" rows="3" required placeholder="Alt faaliyet açıklaması..."></textarea>
+        </div>
+        <div id="modal-af-error" class="hidden" style="background:#fee2e2;border:1px solid #fca5a5;border-radius:6px;padding:10px;margin-bottom:12px;color:#b91c1c;font-size:0.825rem;"></div>
+        <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:8px;">
+          <button type="button" class="btn-secondary" id="btn-af-kapat">İptal</button>
+          <button type="submit" class="btn-gold">Kaydet</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <script type="module">
     import { supabase } from '../js/supabase.js'
     import { requireAuth, signOut } from '../js/auth.js'
-    import { formatCurrency, formatPercent, getPersonel, renderUserInfo, AY_KEYS, AY_LABELS } from '../js/utils.js'
+    import { formatCurrency, formatPercent, getPersonel, renderUserInfo, showToast, AY_KEYS, AY_LABELS } from '../js/utils.js'
 
     // ── Auth ─────────────────────────────────────────────────────────
     const session = await requireAuth()
@@ -60,9 +148,87 @@
     if (personel) renderUserInfo(personel.ad, personel.soyad)
 
     document.getElementById('logout-btn').addEventListener('click', () => signOut())
-    document.getElementById('yeni-faaliyet-btn').addEventListener('click', () => {
-      alert('Yapım aşamasında')
+
+    // ── SOP Listesi Yükle ─────────────────────────────────────────────
+    const { data: sopListesi } = await supabase.from('soplar').select('kisa').order('kisa')
+    const fSop = document.getElementById('f-sop')
+    fSop.innerHTML = '<option value="">Seçin...</option>'
+    ;(sopListesi || []).forEach(s => {
+      const opt = document.createElement('option')
+      opt.value = s.kisa
+      opt.textContent = s.kisa
+      fSop.appendChild(opt)
     })
+
+    // ── Yeni Faaliyet Modal ───────────────────────────────────────────
+    document.getElementById('yeni-faaliyet-btn').addEventListener('click', () => {
+      document.getElementById('form-faaliyet').reset()
+      document.getElementById('modal-faaliyet-error').classList.add('hidden')
+      document.getElementById('modal-faaliyet').classList.remove('hidden')
+    })
+    document.getElementById('btn-faaliyet-kapat').addEventListener('click', () => {
+      document.getElementById('modal-faaliyet').classList.add('hidden')
+    })
+    document.getElementById('form-faaliyet').addEventListener('submit', async (e) => {
+      e.preventDefault()
+      const fkod = document.getElementById('f-fkod').value.trim()
+      const sop = document.getElementById('f-sop').value
+      const faaliyet = document.getElementById('f-faaliyet').value.trim()
+      const yil = parseInt(document.getElementById('f-yil').value)
+      const butce = parseFloat(document.getElementById('f-butce').value) || null
+      const errEl = document.getElementById('modal-faaliyet-error')
+      errEl.classList.add('hidden')
+
+      const { error } = await supabase.from('faaliyetler').insert({ fkod, sop, faaliyet, yil, butce_2026: butce })
+      if (error) {
+        errEl.textContent = error.message
+        errEl.classList.remove('hidden')
+        return
+      }
+      document.getElementById('modal-faaliyet').classList.add('hidden')
+      showToast('Faaliyet eklendi.', 'success')
+      await renderPage()
+    })
+
+    // ── Alt Faaliyet Modal ────────────────────────────────────────────
+    document.addEventListener('click', async (e) => {
+      const btn = e.target.closest('.btn-alt-faaliyet-ekle')
+      if (!btn) return
+      const fkod = btn.dataset.fkod
+      const fad = btn.dataset.fad || fkod
+      document.getElementById('af-fkod').value = fkod
+      document.getElementById('af-fkod-display').value = `${fkod} — ${fad}`
+      document.getElementById('form-alt-faaliyet').reset()
+      document.getElementById('af-fkod').value = fkod
+      document.getElementById('af-fkod-display').value = `${fkod} — ${fad}`
+      document.getElementById('modal-af-error').classList.add('hidden')
+      document.getElementById('modal-alt-faaliyet').classList.remove('hidden')
+    })
+    document.getElementById('btn-af-kapat').addEventListener('click', () => {
+      document.getElementById('modal-alt-faaliyet').classList.add('hidden')
+    })
+    document.getElementById('form-alt-faaliyet').addEventListener('submit', async (e) => {
+      e.preventDefault()
+      const fkod = document.getElementById('af-fkod').value
+      const sno = parseInt(document.getElementById('af-sno').value)
+      const altFaaliyet = document.getElementById('af-altfaaliyet').value.trim()
+      const pSure = parseFloat(document.getElementById('af-psure').value) || null
+      const errEl = document.getElementById('modal-af-error')
+      errEl.classList.add('hidden')
+
+      const { error } = await supabase.from('alt_faaliyetler').insert({ sno, fkod, alt_faaliyet: altFaaliyet, p_sure: pSure })
+      if (error) {
+        errEl.textContent = error.message
+        errEl.classList.remove('hidden')
+        return
+      }
+      document.getElementById('modal-alt-faaliyet').classList.add('hidden')
+      showToast('Alt faaliyet eklendi.', 'success')
+      await renderPage()
+    })
+
+    // ── Yıl Filtresi ─────────────────────────────────────────────────
+    document.getElementById('filter-yil').addEventListener('change', renderPage)
 
     // ── Accordion Toggle ─────────────────────────────────────────────
     document.addEventListener('click', (e) => {
@@ -75,26 +241,36 @@
       }
     })
 
-    // ── Veri Yükle ───────────────────────────────────────────────────
-    const [
-      { data: faaliyetOzet },
-      { data: altFaaliyetOzet },
-      { data: anahtarSonuclar },
-      { data: faaliyetler }
-    ] = await Promise.all([
-      supabase.from('v_faaliyet_ozet').select('*'),
-      supabase.from('v_alt_faaliyet_ozet').select('*'),
-      supabase.from('anahtar_sonuclar').select('*'),
-      supabase.from('faaliyetler').select('fkod, sop, aylik_plan')
-    ])
+    // ── Veri Yükle & Render ───────────────────────────────────────────
+    async function renderPage() {
+      const yilFilter = document.getElementById('filter-yil').value
 
-    // ── Render ───────────────────────────────────────────────────────
-    const container = document.getElementById('faaliyetler-container')
+      let faaliyetQuery = supabase.from('v_faaliyet_ozet').select('*')
+      if (yilFilter) faaliyetQuery = faaliyetQuery.eq('yil', yilFilter)
 
-    if (!faaliyetOzet || faaliyetOzet.length === 0) {
-      container.innerHTML = '<p style="color:#64748b;font-size:0.875rem;">Kayıt bulunamadı.</p>'
-    }
-    const safeOzet = faaliyetOzet || []
+      let planQuery = supabase.from('faaliyetler').select('fkod, sop, aylik_plan, yil')
+      if (yilFilter) planQuery = planQuery.eq('yil', yilFilter)
+
+      const [
+        { data: faaliyetOzet },
+        { data: altFaaliyetOzet },
+        { data: anahtarSonuclar },
+        { data: faaliyetler }
+      ] = await Promise.all([
+        faaliyetQuery,
+        supabase.from('v_alt_faaliyet_ozet').select('*'),
+        supabase.from('anahtar_sonuclar').select('*'),
+        planQuery
+      ])
+
+      // ── Render ─────────────────────────────────────────────────────
+      const container = document.getElementById('faaliyetler-container')
+
+      if (!faaliyetOzet || faaliyetOzet.length === 0) {
+        container.innerHTML = '<p style="color:#64748b;font-size:0.875rem;">Kayıt bulunamadı.</p>'
+        return
+      }
+      const safeOzet = faaliyetOzet || []
 
     // SOP bazında grupla
     const sopMap = {}
@@ -127,12 +303,19 @@
     let html = ''
 
     for (const [sop, sopFaaliyetler] of Object.entries(sopMap)) {
+      // SOP bazında toplam hesapla
+      const sopToplamHarcama = sopFaaliyetler.reduce((s, f) => s + (f.harcanan_butce_toplam || 0), 0)
+      const sopToplamButce = sopFaaliyetler.reduce((s, f) => s + (f.butce_2026 || 0), 0)
+
       html += `
     <div class="mb-6">
       <div class="accordion-item" style="border-radius:10px;overflow:hidden;">
         <div class="accordion-header" style="background:var(--navy);color:#fff;border-radius:0;">
           <span style="font-weight:700;font-size:0.9rem;">SOP: ${sop}</span>
           <span style="background:rgba(255,255,255,0.2);border-radius:9999px;padding:2px 10px;font-size:0.75rem;">${sopFaaliyetler.length} faaliyet</span>
+          <span style="margin-left:auto;font-size:0.78rem;opacity:0.85;">
+            Toplam: ${formatCurrency(sopToplamHarcama)} / ${formatCurrency(sopToplamButce)}
+          </span>
         </div>
         <div class="accordion-body open" style="padding:0;background:#f8fafc;">
     `
@@ -154,7 +337,11 @@
                 <span style="font-size:0.75rem;color:#64748b;white-space:nowrap;">${pct}%</span>
               </div>
             </div>
-            <div style="text-align:right;margin-left:16px;flex-shrink:0;">
+            <div style="text-align:right;margin-left:16px;flex-shrink:0;display:flex;flex-direction:column;gap:4px;align-items:flex-end;">
+              <button class="btn-alt-faaliyet-ekle" data-fkod="${faaliyet.fkod}" data-fad="${(faaliyet.faaliyet || '').replace(/"/g,'')}"
+                style="padding:3px 10px;font-size:0.72rem;background:var(--gold);border:none;border-radius:4px;cursor:pointer;font-weight:600;color:var(--navy);">
+                + Alt Faaliyet
+              </button>
               <div style="font-size:0.72rem;color:#64748b;">Harcanan</div>
               <div style="font-size:0.8rem;font-weight:600;color:var(--navy);">${formatCurrency(faaliyet.harcanan_butce_toplam)}</div>
               <div style="font-size:0.68rem;color:#94a3b8;">/ ${formatCurrency(faaliyet.butce_2026)}</div>
@@ -262,7 +449,10 @@
     `
     }
 
-    if (html) container.innerHTML = html
+      if (html) container.innerHTML = html
+    } // end renderPage
+
+    await renderPage()
   </script>
 </body>
 

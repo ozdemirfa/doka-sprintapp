@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Perf. Gerçekleşmeleri — DOKA Sprint Kanban</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="../css/app.css" />
+</head>
+<body>
+<div class="app-layout">
+
+  <!-- Sidebar -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <h1>DOKA</h1>
+      <p>Sprint Kanban Sistemi</p>
+    </div>
+    <nav>
+      <a href="../index.html"><span class="icon">📋</span> Kanban Board</a>
+      <a href="sprint-ozet.html"><span class="icon">📊</span> Sprint Özet</a>
+      <a href="faaliyetler.html"><span class="icon">📁</span> Faaliyetler</a>
+      <a href="retro.html"><span class="icon">🔁</span> Retrospektif</a>
+      <a href="performans.html"><span class="icon">🎯</span> Perf. Özeti</a>
+      <a href="sprint-perf-gos.html" class="active"><span class="icon">📈</span> Perf. Gerçekleşmeleri</a>
+      <a href="harcamalar.html"><span class="icon">💰</span> Harcamalar</a>
+      <a href="izinler.html"><span class="icon">🗓️</span> İzinler & Saha</a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="user-info"><strong id="user-name">Yükleniyor...</strong>Ekip Üyesi</div>
+      <button class="btn-logout" id="logout-btn">⇐ Çıkış Yap</button>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="main-content">
+    <div class="page-header">
+      <h2>📈 Performans Gerçekleşmeleri</h2>
+      <button class="btn-gold" id="btn-yeni-gerceklesme">+ Yeni Gerçekleşme Gir</button>
+    </div>
+
+    <div class="page-body">
+
+      <!-- Filtreler -->
+      <div style="display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap;">
+        <select id="filter-sprint" class="form-control" style="width:auto;min-width:220px;">
+          <option value="">Tüm Sprintler</option>
+        </select>
+        <select id="filter-yil" class="form-control" style="width:auto;min-width:110px;">
+          <option value="">Tüm Yıllar</option>
+          <option value="2024">2024</option>
+          <option value="2025">2025</option>
+          <option value="2026">2026</option>
+        </select>
+      </div>
+
+      <!-- Tablo -->
+      <div class="metric-card" style="padding:0;overflow:auto;">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Sprint Faaliyeti</th>
+              <th>ÇG Kodu</th>
+              <th>Açıklama</th>
+              <th style="text-align:right;">Gerçekleşme</th>
+              <th>Tamamlanma Dönemi</th>
+              <th>Tarih</th>
+              <th style="text-align:center;">Yıl</th>
+              <th style="text-align:center;">İşlem</th>
+            </tr>
+          </thead>
+          <tbody id="perf-gos-tbody">
+            <tr><td colspan="8" style="text-align:center;color:#94a3b8;padding:32px;">Yükleniyor...</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+    </div>
+  </main>
+</div>
+
+<!-- Yeni Gerçekleşme Modalı -->
+<div class="modal-overlay hidden" id="modal-gerceklesme">
+  <div class="modal-box" style="max-width:520px;">
+    <h3>Performans Gerçekleşmesi Gir</h3>
+    <form id="form-gerceklesme">
+
+      <div class="form-group">
+        <label for="g-sprint-donem">Sprint Dönemi</label>
+        <select id="g-sprint-donem" class="form-control" required></select>
+      </div>
+
+      <div class="form-group">
+        <label for="g-faaliyet">Sprint Faaliyeti</label>
+        <input type="text" id="g-faaliyet" class="form-control" placeholder="İlgili faaliyet adı">
+      </div>
+
+      <div class="form-group">
+        <label for="g-cg-kod">ÇG Kodu *</label>
+        <select id="g-cg-kod" class="form-control" required>
+          <option value="">Seçin...</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="g-aciklama">Açıklama</label>
+        <textarea id="g-aciklama" class="form-control" rows="2" placeholder="Gerçekleşme açıklaması..."></textarea>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div class="form-group">
+          <label for="g-gerceklesme">Gerçekleşme Değeri *</label>
+          <input type="number" id="g-gerceklesme" class="form-control" step="0.01" min="0" required>
+        </div>
+        <div class="form-group">
+          <label for="g-yil">Yıl *</label>
+          <select id="g-yil" class="form-control" required>
+            <option value="2024">2024</option>
+            <option value="2025">2025</option>
+            <option value="2026" selected>2026</option>
+          </select>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div class="form-group">
+          <label for="g-tamamlanma-donemi">Tamamlanma Dönemi</label>
+          <input type="text" id="g-tamamlanma-donemi" class="form-control" placeholder="ör: 2026/1">
+        </div>
+        <div class="form-group">
+          <label for="g-tamamlanma-tarihi">Tamamlanma Tarihi</label>
+          <input type="date" id="g-tamamlanma-tarihi" class="form-control">
+        </div>
+      </div>
+
+      <div id="modal-gerceklesme-error" class="hidden" style="background:#fee2e2;border:1px solid #fca5a5;border-radius:6px;padding:10px;margin-bottom:12px;color:#b91c1c;font-size:0.825rem;"></div>
+
+      <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:8px;">
+        <button type="button" class="btn-secondary" id="btn-gerceklesme-kapat">İptal</button>
+        <button type="submit" class="btn-gold">Kaydet</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script type="module">
+  import { supabase } from '../js/supabase.js'
+  import { requireAuth, signOut } from '../js/auth.js'
+  import { formatDate, getPersonel, renderUserInfo, populateSprintDropdown, showToast } from '../js/utils.js'
+
+  // ── Auth ──────────────────────────────────────────────────────────
+  const session = await requireAuth()
+  const personel = await getPersonel(supabase, session.user.id)
+  if (personel) renderUserInfo(personel.ad, personel.soyad)
+  document.getElementById('logout-btn').addEventListener('click', () => signOut())
+
+  // ── Referans veriler ──────────────────────────────────────────────
+  const [{ data: sprintler }, { data: perfGostergeler }] = await Promise.all([
+    supabase.from('sprint_veri').select('sprint_donem,sprint_adi,baslangic,bitis').order('sprint_donem', { ascending: false }),
+    supabase.from('perf_gostergeler').select('cg_kod,cikti_gostergesi').order('cg_kod')
+  ])
+
+  // Sprint filtre dropdown
+  const filterSprint = document.getElementById('filter-sprint')
+  ;(sprintler || []).forEach(s => {
+    const opt = document.createElement('option')
+    opt.value = s.sprint_donem
+    opt.textContent = `${s.sprint_donem} — ${s.sprint_adi || ''}`
+    filterSprint.appendChild(opt)
+  })
+
+  // ── URL parametrelerinden ön doldurma ────────────────────────────
+  const params = new URLSearchParams(window.location.search)
+  const urlFaaliyet = params.get('faaliyet')
+  const urlSno = params.get('sno')
+  if (urlFaaliyet || urlSno) {
+    openModal()
+    if (urlFaaliyet) document.getElementById('g-faaliyet').value = urlFaaliyet
+  }
+
+  // ── Veri yükle ────────────────────────────────────────────────────
+  async function loadData() {
+    let query = supabase.from('sprint_perf_gos').select('*').order('id', { ascending: false })
+    const sv = filterSprint.value
+    const yv = document.getElementById('filter-yil').value
+    if (sv) query = query.eq('sprint_donem', sv)
+    if (yv) query = query.eq('yil', yv)
+
+    const { data, error } = await query
+    const tbody = document.getElementById('perf-gos-tbody')
+
+    if (error || !data || data.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;color:#94a3b8;padding:32px;">${error ? error.message : 'Kayıt bulunamadı.'}</td></tr>`
+      return
+    }
+
+    tbody.innerHTML = data.map(r => `
+      <tr>
+        <td style="max-width:220px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${r.sprint_faaliyet ?? '—'}</td>
+        <td><span class="badge-sno">${r.cg_kod ?? '—'}</span></td>
+        <td style="max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${r.aciklama ?? r.cikti_gostergesi ?? '—'}</td>
+        <td style="text-align:right;font-weight:600;color:var(--navy);">${r.gerceklesme ?? '—'}</td>
+        <td>${r.tamamlanma_donemi ?? '—'}</td>
+        <td>${formatDate(r.tamamlanma_tarihi)}</td>
+        <td style="text-align:center;">${r.yil ?? '—'}</td>
+        <td style="text-align:center;">
+          <button class="btn-danger" data-id="${r.id}" style="padding:3px 10px;">Sil</button>
+        </td>
+      </tr>
+    `).join('')
+  }
+
+  await loadData()
+
+  filterSprint.addEventListener('change', loadData)
+  document.getElementById('filter-yil').addEventListener('change', loadData)
+
+  // Silme
+  document.getElementById('perf-gos-tbody').addEventListener('click', async (e) => {
+    const btn = e.target.closest('.btn-danger[data-id]')
+    if (!btn) return
+    if (!confirm('Bu kaydı silmek istiyor musunuz?')) return
+    const { error } = await supabase.from('sprint_perf_gos').delete().eq('id', btn.dataset.id)
+    if (error) { showToast('Silme hatası: ' + error.message, 'error'); return }
+    showToast('Kayıt silindi.', 'success')
+    await loadData()
+  })
+
+  // ── Modal ─────────────────────────────────────────────────────────
+  function openModal() {
+    // Sprint dropdown
+    const modalSprint = document.getElementById('g-sprint-donem')
+    modalSprint.innerHTML = ''
+    const today = new Date().toISOString().slice(0, 10)
+    const current = (sprintler || []).find(s => s.baslangic <= today && s.bitis >= today)
+    const defaultDonem = current ? current.sprint_donem : (sprintler?.[0]?.sprint_donem)
+    populateSprintDropdown(modalSprint, [...(sprintler || [])].reverse(), defaultDonem)
+
+    // ÇG Kod dropdown
+    const cgKodSel = document.getElementById('g-cg-kod')
+    cgKodSel.innerHTML = '<option value="">Seçin...</option>'
+    ;(perfGostergeler || []).forEach(pg => {
+      const opt = document.createElement('option')
+      opt.value = pg.cg_kod
+      opt.textContent = `${pg.cg_kod} — ${pg.cikti_gostergesi?.substring(0, 50) || ''}`
+      cgKodSel.appendChild(opt)
+    })
+
+    document.getElementById('modal-gerceklesme-error').classList.add('hidden')
+    document.getElementById('modal-gerceklesme').classList.remove('hidden')
+  }
+
+  document.getElementById('btn-yeni-gerceklesme').addEventListener('click', () => {
+    document.getElementById('form-gerceklesme').reset()
+    openModal()
+  })
+
+  document.getElementById('btn-gerceklesme-kapat').addEventListener('click', () => {
+    document.getElementById('modal-gerceklesme').classList.add('hidden')
+  })
+
+  document.getElementById('form-gerceklesme').addEventListener('submit', async (e) => {
+    e.preventDefault()
+    const sprintDonem = document.getElementById('g-sprint-donem').value
+    const faaliyet = document.getElementById('g-faaliyet').value.trim()
+    const cgKod = document.getElementById('g-cg-kod').value
+    const aciklama = document.getElementById('g-aciklama').value.trim()
+    const gerceklesme = parseFloat(document.getElementById('g-gerceklesme').value)
+    const yil = parseInt(document.getElementById('g-yil').value)
+    const tamamlanmaDonemi = document.getElementById('g-tamamlanma-donemi').value.trim() || null
+    const tamamlanmaTarihi = document.getElementById('g-tamamlanma-tarihi').value || null
+    const errEl = document.getElementById('modal-gerceklesme-error')
+    errEl.classList.add('hidden')
+
+    if (!cgKod || isNaN(gerceklesme)) {
+      errEl.textContent = 'ÇG Kodu ve Gerçekleşme Değeri zorunludur.'
+      errEl.classList.remove('hidden')
+      return
+    }
+
+    const pg = (perfGostergeler || []).find(p => p.cg_kod === cgKod)
+
+    const { error } = await supabase.from('sprint_perf_gos').insert({
+      sprint_donem:        sprintDonem ? Number(sprintDonem) : null,
+      sprint_faaliyet:     faaliyet || null,
+      cg_kod:              cgKod,
+      cikti_gostergesi:    pg?.cikti_gostergesi || null,
+      aciklama:            aciklama || null,
+      gerceklesme,
+      yil,
+      tamamlanma_donemi:   tamamlanmaDonemi,
+      tamamlanma_tarihi:   tamamlanmaTarihi
+    })
+
+    if (error) {
+      errEl.textContent = error.message
+      errEl.classList.remove('hidden')
+      return
+    }
+
+    showToast('Gerçekleşme kaydedildi.', 'success')
+    document.getElementById('modal-gerceklesme').classList.add('hidden')
+    await loadData()
+  })
+</script>
+</body>
+</html>

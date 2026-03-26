@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Performans Özeti — DOKA Sprint Kanban</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="../css/app.css" />
+  <style>
+    .perf-table th, .perf-table td { font-size: 0.78rem; padding: 8px 10px; }
+    .perf-table th { white-space: nowrap; }
+  </style>
+</head>
+<body>
+<div class="app-layout">
+
+  <!-- Sidebar -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <h1>DOKA</h1>
+      <p>Sprint Kanban Sistemi</p>
+    </div>
+    <nav>
+      <a href="../index.html"><span class="icon">📋</span> Kanban Board</a>
+      <a href="sprint-ozet.html"><span class="icon">📊</span> Sprint Özet</a>
+      <a href="faaliyetler.html"><span class="icon">📁</span> Faaliyetler</a>
+      <a href="retro.html"><span class="icon">🔁</span> Retrospektif</a>
+      <a href="performans.html" class="active"><span class="icon">🎯</span> Perf. Özeti</a>
+      <a href="sprint-perf-gos.html"><span class="icon">📈</span> Perf. Gerçekleşmeleri</a>
+      <a href="harcamalar.html"><span class="icon">💰</span> Harcamalar</a>
+      <a href="izinler.html"><span class="icon">🗓️</span> İzinler & Saha</a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="user-info"><strong id="user-name">Yükleniyor...</strong>Ekip Üyesi</div>
+      <button class="btn-logout" id="logout-btn">⇐ Çıkış Yap</button>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="main-content">
+    <div class="page-header">
+      <h2>🎯 Performans Göstergeleri Özeti</h2>
+      <div style="display:flex;gap:10px;">
+        <select id="filter-sop" class="form-control" style="width:auto;min-width:130px;">
+          <option value="">Tüm SOPlar</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="page-body">
+      <div style="overflow-x:auto;">
+        <table class="data-table perf-table">
+          <thead>
+            <tr>
+              <th>ÇG Kodu</th>
+              <th>SOP</th>
+              <th>Bileşen Kodu</th>
+              <th>Bileşen Adı</th>
+              <th>Çıktı Göstergesi</th>
+              <th>Birim</th>
+              <th style="text-align:right;">Hedef</th>
+              <th>Tamam. Dönemi</th>
+              <th>Katkı Sonuç Gost.</th>
+              <th style="text-align:right;">H. 1.yıl</th>
+              <th style="text-align:right;">H. 2.yıl</th>
+              <th style="text-align:right;">H. 3.yıl</th>
+              <th style="text-align:right;">Küm. Gerç.</th>
+              <th style="text-align:right;">Gerç. 1.yıl</th>
+              <th style="text-align:right;">Gerç. 2.yıl</th>
+              <th style="text-align:right;">Gerç. 3.yıl</th>
+            </tr>
+          </thead>
+          <tbody id="perf-ozet-tbody">
+            <tr><td colspan="16" style="text-align:center;color:#94a3b8;padding:32px;">Yükleniyor...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script type="module">
+  import { supabase } from '../js/supabase.js'
+  import { requireAuth, signOut } from '../js/auth.js'
+  import { getPersonel, renderUserInfo, showToast } from '../js/utils.js'
+
+  // ── Auth ──────────────────────────────────────────────────────────
+  const session = await requireAuth()
+  const personel = await getPersonel(supabase, session.user.id)
+  if (personel) renderUserInfo(personel.ad, personel.soyad)
+  document.getElementById('logout-btn').addEventListener('click', () => signOut())
+
+  // ── Veri yükle ────────────────────────────────────────────────────
+  let allData = []
+
+  async function loadData() {
+    const { data, error } = await supabase
+      .from('perf_gostergeler')
+      .select('*')
+      .order('cg_kod')
+
+    if (error) {
+      showToast('Veriler yüklenemedi: ' + error.message, 'error')
+      return
+    }
+
+    allData = data || []
+
+    // SOP filtre dropdown
+    const sopSet = [...new Set(allData.map(r => r.sop).filter(Boolean))]
+    const filterSop = document.getElementById('filter-sop')
+    filterSop.innerHTML = '<option value="">Tüm SOPlar</option>'
+    sopSet.forEach(s => {
+      const opt = document.createElement('option')
+      opt.value = s
+      opt.textContent = s
+      filterSop.appendChild(opt)
+    })
+
+    renderTable()
+  }
+
+  function fmt(v) {
+    if (v == null) return '—'
+    return Number(v).toLocaleString('tr-TR', { minimumFractionDigits: 0, maximumFractionDigits: 2 })
+  }
+
+  function renderTable() {
+    const sopFilter = document.getElementById('filter-sop').value
+    const rows = sopFilter ? allData.filter(r => r.sop === sopFilter) : allData
+    const tbody = document.getElementById('perf-ozet-tbody')
+
+    if (!rows.length) {
+      tbody.innerHTML = '<tr><td colspan="16" style="text-align:center;color:#94a3b8;padding:32px;">Veri bulunamadı.</td></tr>'
+      return
+    }
+
+    // Kümülatif gerçekleşme = gerç. 2024 + 2025 + 2026
+    tbody.innerHTML = rows.map(r => {
+      const kumGerc = (r.gerceklesen_2024 || 0) + (r.gerceklesen_2025 || 0) + (r.gerceklesen_2026 || 0)
+      return `
+        <tr>
+          <td><strong>${r.cg_kod ?? '—'}</strong></td>
+          <td>${r.sop ?? '—'}</td>
+          <td>${r.bilesen_kodu ?? '—'}</td>
+          <td style="max-width:160px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${r.bilesen_adi ?? ''}">${r.bilesen_adi ?? '—'}</td>
+          <td style="max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${r.cikti_gostergesi ?? ''}">${r.cikti_gostergesi ?? '—'}</td>
+          <td>${r.birim ?? '—'}</td>
+          <td style="text-align:right;">${fmt(r.hedef)}</td>
+          <td>${r.tamamlanma_donemi ?? '—'}</td>
+          <td style="max-width:160px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${r.katki_sonuc_gostergesi ?? ''}">${r.katki_sonuc_gostergesi ?? '—'}</td>
+          <td style="text-align:right;">${fmt(r.hedef_2024)}</td>
+          <td style="text-align:right;">${fmt(r.hedef_2025)}</td>
+          <td style="text-align:right;">${fmt(r.hedef_2026)}</td>
+          <td style="text-align:right;font-weight:700;color:var(--navy);">${fmt(kumGerc || null)}</td>
+          <td style="text-align:right;">${fmt(r.gerceklesen_2024)}</td>
+          <td style="text-align:right;">${fmt(r.gerceklesen_2025)}</td>
+          <td style="text-align:right;">${fmt(r.gerceklesen_2026)}</td>
+        </tr>
+      `
+    }).join('')
+  }
+
+  document.getElementById('filter-sop').addEventListener('change', renderTable)
+
+  await loadData()
+</script>
+</body>
+</html>

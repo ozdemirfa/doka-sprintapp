@@ -21,7 +21,8 @@
       <a href="sprint-ozet.html"><span class="icon">📊</span> Sprint Özet</a>
       <a href="faaliyetler.html"><span class="icon">📁</span> Faaliyetler</a>
       <a href="retro.html" class="active"><span class="icon">🔁</span> Retrospektif</a>
-      <a href="performans.html"><span class="icon">🎯</span> Performans</a>
+      <a href="performans.html"><span class="icon">🎯</span> Perf. Özeti</a>
+      <a href="sprint-perf-gos.html"><span class="icon">📈</span> Perf. Gerçekleşmeleri</a>
       <a href="harcamalar.html"><span class="icon">💰</span> Harcamalar</a>
       <a href="izinler.html"><span class="icon">🗓️</span> İzinler & Saha</a>
     </nav>
@@ -157,7 +158,11 @@
 
   const sprintSelect = document.getElementById('sprint-select')
   if (sprintler && sprintler.length > 0) {
-    populateSprintDropdown(sprintSelect, sprintler)
+    // Güncel sprinti tarihe göre bul
+    const today = new Date().toISOString().slice(0, 10)
+    const currentSprint = sprintler.find(s => s.baslangic <= today && s.bitis >= today)
+    const selectedDonem = currentSprint ? currentSprint.sprint_donem : sprintler[0].sprint_donem
+    populateSprintDropdown(sprintSelect, [...sprintler].reverse(), selectedDonem)
   } else {
     sprintSelect.innerHTML = '<option value="">Sprint bulunamadı</option>'
   }
@@ -214,7 +219,7 @@
           <td style="text-align:center;">${r.ajanstaki_rolu ?? '—'}</td>
           <td style="text-align:center;">${r.ajans_hakkinda ?? '—'}</td>
           <td style="text-align:center;font-weight:700;color:var(--navy);">${gort.toFixed(2)}</td>
-          <td>${formatDate(r.olusturma_t)}</td>
+          <td>${formatDate(r.created_at)}</td>
         </tr>
       `
     }).join('')
