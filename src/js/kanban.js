@@ -13,23 +13,30 @@ let personeller = []
 let altFaaliyetler = []
 let currentSprint = null
 let currentUser = null
+let currentPersonel = null
 let realtimeChannel = null
 
 // ── Init ─────────────────────────────────────────────────────
-const session = await requireAuth()
-currentUser = session.user
+try {
+  const session = await requireAuth()
+  currentUser = session.user
 
-const personel = await getPersonel(supabase, currentUser.id)
-if (personel) renderUserInfo(personel.ad, personel.soyad)
+  currentPersonel = await getPersonel(supabase, currentUser.id)
+  if (currentPersonel) renderUserInfo(currentPersonel.ad, currentPersonel.soyad)
 
-document.getElementById('logout-btn').addEventListener('click', () => signOut())
+  document.getElementById('logout-btn').addEventListener('click', () => signOut())
 
-await loadReferenceData()
-await loadBoard()
-initSortable()
-initRealtime()
-initFilters()
-initModal()
+  await loadReferenceData()
+  await loadBoard()
+  initSortable()
+  initRealtime()
+  initFilters()
+  initModal()
+} catch (e) {
+  console.error('Başlatma hatası:', e)
+  const main = document.querySelector('main')
+  if (main) main.innerHTML = `<div style="padding:2rem;color:#dc2626;">Sayfa yüklenemedi: ${e.message}</div>`
+}
 
 // ── Veri Yükleme ─────────────────────────────────────────────
 
@@ -69,8 +76,8 @@ async function loadReferenceData() {
   })
 
   // Kendi adını varsayılan seç
-  if (personel) {
-    ekipFilter.value = personel.ad
+  if (currentPersonel) {
+    ekipFilter.value = currentPersonel.ad
   }
 }
 
@@ -182,8 +189,12 @@ async function handleDragEnd(evt) {
   const eskiDurum = gorev.is_durum || null
   if (eskiDurum === newDurum) return
 
-  // Tarih güncellemeleri
-  const updates = { is_durum: newDurum || null }
+  // Tarih ve audit güncellemeleri
+  const updates = {
+    is_durum: newDurum || null,
+    guncel_tarih: todayISO(),
+    guncelleyen: currentPersonel ? `${currentPersonel.ad}.${currentPersonel.soyad}`.toLowerCase() : ''
+  }
 
   if (!eskiDurum && newDurum === 'Başladı') {
     updates.baslama_t = todayISO()
@@ -345,7 +356,7 @@ function openNewModal() {
   if (sprintVal) document.getElementById('g-sprint').value = sprintVal
 
   // Kendi adını varsayılan yap
-  if (personel) document.getElementById('g-ekip').value = personel.ad
+  if (currentPersonel) document.getElementById('g-ekip').value = currentPersonel.ad
 
   document.getElementById('modal-overlay').classList.remove('hidden')
 }
@@ -362,8 +373,8 @@ function openEditModal(g) {
   document.getElementById('g-butce').value = g.harcanan_butce || ''
   document.getElementById('modal-error').classList.add('hidden')
 
-  // Sadece Fatih silebilir
-  const isFatih = personel && personel.ad === 'Fatih'
+  // Sadece yönetici silebilir
+  const isFatih = currentPersonel?.rol_kodu === 'yönetici'
   document.getElementById('btn-sil').classList.toggle('hidden', !isFatih)
 
   document.getElementById('modal-overlay').classList.remove('hidden')
@@ -392,8 +403,13 @@ async function handleSave(e) {
 
   let error
   if (id) {
-    // Güncelle
-    ;({ error } = await supabase.from('sprint_is_plani').update(payload).eq('id', id))
+    // Güncelle — audit sütunlarını ekle
+    const updatePayload = {
+      ...payload,
+      guncel_tarih: todayISO(),
+      guncelleyen: currentPersonel ? `${currentPersonel.ad}.${currentPersonel.soyad}`.toLowerCase() : ''
+    }
+    ;({ error } = await supabase.from('sprint_is_plani').update(updatePayload).eq('id', id))
   } else {
     // Ekle
     ;({ error } = await supabase.from('sprint_is_plani').insert(payload))

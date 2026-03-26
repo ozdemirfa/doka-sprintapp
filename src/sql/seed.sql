@@ -29,36 +29,36 @@ INSERT INTO soplar (skod, kisa, sop_adi, baslangic, bitis, bkod, durum) VALUES
 (8, 'SOG',  'SoGreen Programı',                            2024, 2026, 1, 'Aktif');
 
 -- ============================================================
--- 3. KATEGORİLER (~21 kayıt — 5 standart kategori × SOP bazlı)
+-- 3. KATEGORİ TİPLERİ (6 benzersiz kategori tanımı - normalize edilmiş)
 -- ============================================================
 
--- STU (skod=1)
-INSERT INTO kategoriler (skod, kkod, kategori_adi) VALUES
-(1, 1, 'Araştırma, Analiz ve Raporlama'),
-(1, 2, 'İşbirliği ve Koordinasyon Faaliyetleri'),
-(1, 3, 'Kapasite Geliştirme Faaliyetleri'),
-(1, 4, 'Tanıtım ve Yatırım Destek Faaliyetleri'),
-(1, 5, 'Destek Programları');
+INSERT INTO kategori_tipleri (kkod, kategori_adi) VALUES
+(1, 'Araştırma, Analiz ve Raporlama'),
+(2, 'İşbirliği ve Koordinasyon Faaliyetleri'),
+(3, 'Kapasite Geliştirme Faaliyetleri'),
+(4, 'Tanıtım ve Yatırım Destek Faaliyetleri'),
+(5, 'Destek Programları'),
+(6, 'Proje Uygulama Faaliyetleri');
 
--- KDU (skod=2)
-INSERT INTO kategoriler (skod, kkod, kategori_adi) VALUES
-(2, 1, 'Araştırma, Analiz ve Raporlama'),
-(2, 2, 'İşbirliği ve Koordinasyon Faaliyetleri'),
-(2, 3, 'Kapasite Geliştirme Faaliyetleri'),
-(2, 4, 'Tanıtım ve Yatırım Destek Faaliyetleri'),
-(2, 5, 'Destek Programları');
+-- ============================================================
+-- 3.1 KATEGORİLER - SOP İlişkileri (21→16 kayıt, normalize edilmiş)
+-- ============================================================
 
--- MEK (skod=3)
-INSERT INTO kategoriler (skod, kkod, kategori_adi) VALUES
-(3, 1, 'Araştırma, Analiz ve Raporlama'),
-(3, 2, 'İşbirliği ve Koordinasyon Faaliyetleri'),
-(3, 3, 'Kapasite Geliştirme Faaliyetleri');
+-- STU (skod=1) - 5 kategori
+INSERT INTO kategoriler (skod, kkod) VALUES
+(1, 1), (1, 2), (1, 3), (1, 4), (1, 5);
 
--- SOG (skod=8)
-INSERT INTO kategoriler (skod, kkod, kategori_adi) VALUES
-(8, 1, 'Araştırma, Analiz ve Raporlama'),
-(8, 2, 'İşbirliği ve Koordinasyon Faaliyetleri'),
-(8, 3, 'Proje Uygulama Faaliyetleri');
+-- KDU (skod=2) - 5 kategori
+INSERT INTO kategoriler (skod, kkod) VALUES
+(2, 1), (2, 2), (2, 3), (2, 4), (2, 5);
+
+-- MEK (skod=3) - 3 kategori
+INSERT INTO kategoriler (skod, kkod) VALUES
+(3, 1), (3, 2), (3, 3);
+
+-- SOG (skod=8) - 3 kategori (SOG için "Proje Uygulama Faaliyetleri" = kkod 6)
+INSERT INTO kategoriler (skod, kkod) VALUES
+(8, 1), (8, 2), (8, 6);
 
 -- ============================================================
 -- 3.5 KULLANICI ROLLERİ (2 kayıt)

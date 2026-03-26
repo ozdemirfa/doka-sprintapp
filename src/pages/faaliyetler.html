@@ -1,131 +1,133 @@
 <!DOCTYPE html>
 <html lang="tr">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Faaliyetler — TR90 Sprint Kanban</title>
+  <title>Faaliyetler — DOKA Sprint Kanban</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="../css/app.css" />
 </head>
+
 <body>
-<div class="app-layout">
+  <div class="app-layout">
 
-  <!-- Sidebar -->
-  <aside class="sidebar" id="sidebar">
-    <div class="sidebar-logo">
-      <h1>TR90 Kalkınma Ajansı</h1>
-      <p>Sprint Kanban Sistemi</p>
-    </div>
-    <nav>
-      <a href="../index.html"><span class="icon">📋</span> Kanban Board</a>
-      <a href="sprint-ozet.html"><span class="icon">📊</span> Sprint Özet</a>
-      <a href="faaliyetler.html" class="active"><span class="icon">📁</span> Faaliyetler</a>
-      <a href="retro.html"><span class="icon">🔁</span> Retrospektif</a>
-      <a href="performans.html"><span class="icon">🎯</span> Performans</a>
-      <a href="harcamalar.html"><span class="icon">💰</span> Harcamalar</a>
-      <a href="izinler.html"><span class="icon">🗓️</span> İzinler & Saha</a>
-    </nav>
-    <div class="sidebar-footer">
-      <div class="user-info"><strong id="user-name">Yükleniyor...</strong>Ekip Üyesi</div>
-      <button class="btn-logout" id="logout-btn">⇐ Çıkış Yap</button>
-    </div>
-  </aside>
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-logo">
+        <h1>Doğu Karadeniz Kalkınma Ajansı</h1>
+        <p>Sprint Kanban Sistemi</p>
+      </div>
+      <nav>
+        <a href="../index.html"><span class="icon">📋</span> Kanban Board</a>
+        <a href="sprint-ozet.html"><span class="icon">📊</span> Sprint Özet</a>
+        <a href="faaliyetler.html" class="active"><span class="icon">📁</span> Faaliyetler</a>
+        <a href="retro.html"><span class="icon">🔁</span> Retrospektif</a>
+        <a href="performans.html"><span class="icon">🎯</span> Performans</a>
+        <a href="harcamalar.html"><span class="icon">💰</span> Harcamalar</a>
+        <a href="izinler.html"><span class="icon">🗓️</span> İzinler & Saha</a>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="user-info"><strong id="user-name">Yükleniyor...</strong>Ekip Üyesi</div>
+        <button class="btn-logout" id="logout-btn">⇐ Çıkış Yap</button>
+      </div>
+    </aside>
 
-  <!-- Main Content -->
-  <div class="main-content">
-    <div class="page-header">
-      <h2>Faaliyetler</h2>
-      <button class="btn-gold" id="yeni-faaliyet-btn">+ Yeni Faaliyet</button>
-    </div>
+    <!-- Main Content -->
+    <div class="main-content">
+      <div class="page-header">
+        <h2>Faaliyetler</h2>
+        <button class="btn-gold" id="yeni-faaliyet-btn">+ Yeni Faaliyet</button>
+      </div>
 
-    <div class="page-body">
-      <div id="faaliyetler-container">
-        <p style="color:#64748b;font-size:0.875rem;">Yükleniyor...</p>
+      <div class="page-body">
+        <div id="faaliyetler-container">
+          <p style="color:#64748b;font-size:0.875rem;">Yükleniyor...</p>
+        </div>
       </div>
     </div>
+
   </div>
 
-</div>
+  <script type="module">
+    import { supabase } from '../js/supabase.js'
+    import { requireAuth, signOut } from '../js/auth.js'
+    import { formatCurrency, formatPercent, getPersonel, renderUserInfo, AY_KEYS, AY_LABELS } from '../js/utils.js'
 
-<script type="module">
-  import { supabase } from '../js/supabase.js'
-  import { requireAuth, signOut } from '../js/auth.js'
-  import { formatCurrency, formatPercent, getPersonel, renderUserInfo, AY_KEYS, AY_LABELS } from '../js/utils.js'
+    // ── Auth ─────────────────────────────────────────────────────────
+    const session = await requireAuth()
+    const personel = await getPersonel(supabase, session.user.id)
+    if (personel) renderUserInfo(personel.ad, personel.soyad)
 
-  // ── Auth ─────────────────────────────────────────────────────────
-  const session = await requireAuth()
-  const personel = await getPersonel(supabase, session.user.id)
-  if (personel) renderUserInfo(personel.ad, personel.soyad)
+    document.getElementById('logout-btn').addEventListener('click', () => signOut())
+    document.getElementById('yeni-faaliyet-btn').addEventListener('click', () => {
+      alert('Yapım aşamasında')
+    })
 
-  document.getElementById('logout-btn').addEventListener('click', () => signOut())
-  document.getElementById('yeni-faaliyet-btn').addEventListener('click', () => {
-    alert('Yapım aşamasında')
-  })
+    // ── Accordion Toggle ─────────────────────────────────────────────
+    document.addEventListener('click', (e) => {
+      const header = e.target.closest('.accordion-header')
+      if (!header) return
+      header.classList.toggle('open')
+      const body = header.nextElementSibling
+      if (body && body.classList.contains('accordion-body')) {
+        body.classList.toggle('open')
+      }
+    })
 
-  // ── Accordion Toggle ─────────────────────────────────────────────
-  document.addEventListener('click', (e) => {
-    const header = e.target.closest('.accordion-header')
-    if (!header) return
-    header.classList.toggle('open')
-    const body = header.nextElementSibling
-    if (body && body.classList.contains('accordion-body')) {
-      body.classList.toggle('open')
+    // ── Veri Yükle ───────────────────────────────────────────────────
+    const [
+      { data: faaliyetOzet },
+      { data: altFaaliyetOzet },
+      { data: anahtarSonuclar },
+      { data: faaliyetler }
+    ] = await Promise.all([
+      supabase.from('v_faaliyet_ozet').select('*'),
+      supabase.from('v_alt_faaliyet_ozet').select('*'),
+      supabase.from('anahtar_sonuclar').select('*'),
+      supabase.from('faaliyetler').select('fkod, sop, aylik_plan')
+    ])
+
+    // ── Render ───────────────────────────────────────────────────────
+    const container = document.getElementById('faaliyetler-container')
+
+    if (!faaliyetOzet || faaliyetOzet.length === 0) {
+      container.innerHTML = '<p style="color:#64748b;font-size:0.875rem;">Kayıt bulunamadı.</p>'
     }
-  })
+    const safeOzet = faaliyetOzet || []
 
-  // ── Veri Yükle ───────────────────────────────────────────────────
-  const [
-    { data: faaliyetOzet },
-    { data: altFaaliyetOzet },
-    { data: anahtarSonuclar },
-    { data: faaliyetler }
-  ] = await Promise.all([
-    supabase.from('v_faaliyet_ozet').select('*'),
-    supabase.from('v_alt_faaliyet_ozet').select('*'),
-    supabase.from('anahtar_sonuclar').select('*'),
-    supabase.from('faaliyetler').select('fkod, sop, aylik_plan')
-  ])
+    // SOP bazında grupla
+    const sopMap = {}
+    for (const f of safeOzet) {
+      const sop = f.sop || 'Diğer'
+      if (!sopMap[sop]) sopMap[sop] = []
+      sopMap[sop].push(f)
+    }
 
-  // ── Render ───────────────────────────────────────────────────────
-  const container = document.getElementById('faaliyetler-container')
+    // altFaaliyetleri fkod'a göre indexle
+    const altMap = {}
+    for (const af of (altFaaliyetOzet || [])) {
+      if (!altMap[af.fkod]) altMap[af.fkod] = []
+      altMap[af.fkod].push(af)
+    }
 
-  if (!faaliyetOzet || faaliyetOzet.length === 0) {
-    container.innerHTML = '<p style="color:#64748b;font-size:0.875rem;">Kayıt bulunamadı.</p>'
-    return
-  }
+    // anahtar sonuçları sno'ya göre indexle
+    const asMap = {}
+    for (const as_ of (anahtarSonuclar || [])) {
+      if (!asMap[as_.sno]) asMap[as_.sno] = []
+      asMap[as_.sno].push(as_)
+    }
 
-  // SOP bazında grupla
-  const sopMap = {}
-  for (const f of faaliyetOzet) {
-    const sop = f.sop || 'Diğer'
-    if (!sopMap[sop]) sopMap[sop] = []
-    sopMap[sop].push(f)
-  }
+    // faaliyetler aylik_plan'ı fkod'a göre indexle
+    const planMap = {}
+    for (const f of (faaliyetler || [])) {
+      planMap[f.fkod] = f.aylik_plan || {}
+    }
 
-  // altFaaliyetleri fkod'a göre indexle
-  const altMap = {}
-  for (const af of (altFaaliyetOzet || [])) {
-    if (!altMap[af.fkod]) altMap[af.fkod] = []
-    altMap[af.fkod].push(af)
-  }
+    let html = ''
 
-  // anahtar sonuçları sno'ya göre indexle
-  const asMap = {}
-  for (const as_ of (anahtarSonuclar || [])) {
-    if (!asMap[as_.sno]) asMap[as_.sno] = []
-    asMap[as_.sno].push(as_)
-  }
-
-  // faaliyetler aylik_plan'ı fkod'a göre indexle
-  const planMap = {}
-  for (const f of (faaliyetler || [])) {
-    planMap[f.fkod] = f.aylik_plan || {}
-  }
-
-  let html = ''
-
-  for (const [sop, sopFaaliyetler] of Object.entries(sopMap)) {
-    html += `
+    for (const [sop, sopFaaliyetler] of Object.entries(sopMap)) {
+      html += `
     <div class="mb-6">
       <div class="accordion-item" style="border-radius:10px;overflow:hidden;">
         <div class="accordion-header" style="background:var(--navy);color:#fff;border-radius:0;">
@@ -135,12 +137,12 @@
         <div class="accordion-body open" style="padding:0;background:#f8fafc;">
     `
 
-    for (const faaliyet of sopFaaliyetler) {
-      const pct = Math.round((faaliyet.is_durum_ort || 0) * 100)
-      const altler = altMap[faaliyet.fkod] || []
-      const plan = planMap[faaliyet.fkod] || {}
+      for (const faaliyet of sopFaaliyetler) {
+        const pct = Math.round((faaliyet.is_durum_ort || 0) * 100)
+        const altler = altMap[faaliyet.fkod] || []
+        const plan = planMap[faaliyet.fkod] || {}
 
-      html += `
+        html += `
         <div class="accordion-item" style="margin:12px;border-radius:8px;">
           <div class="accordion-header">
             <div style="flex:1;min-width:0;">
@@ -161,9 +163,9 @@
           <div class="accordion-body">
       `
 
-      // Alt faaliyetler tablosu
-      if (altler.length > 0) {
-        html += `
+        // Alt faaliyetler tablosu
+        if (altler.length > 0) {
+          html += `
             <div style="overflow-x:auto;margin-bottom:16px;">
               <table class="data-table">
                 <thead>
@@ -179,32 +181,32 @@
                 </thead>
                 <tbody>
         `
-        for (const af of altler) {
-          const gercPct = Math.round((af.is_durum_oran || 0) * 100)
-          const asList = asMap[af.sno] || []
+          for (const af of altler) {
+            const gercPct = Math.round((af.is_durum_oran || 0) * 100)
+            const asList = asMap[af.sno] || []
 
-          html += `
+            html += `
                   <tr>
                     <td><span class="badge-sno">${af.sno || '—'}</span></td>
                     <td>
                       <div>${af.alt_faaliyet || '—'}</div>
           `
 
-          if (asList.length > 0) {
-            html += `<div style="margin-top:6px;">`
-            for (const as_ of asList) {
-              html += `
+            if (asList.length > 0) {
+              html += `<div style="margin-top:6px;">`
+              for (const as_ of asList) {
+                html += `
                         <div style="font-size:0.7rem;color:#64748b;padding:2px 0;border-left:2px solid var(--gold);padding-left:6px;margin-bottom:2px;">
                           <strong style="color:var(--navy);">${as_.as_no}.</strong> ${as_.anahtar_sonuc || ''}
                           ${as_.hedef ? `<span style="color:#10b981;"> → Hedef: ${as_.hedef}</span>` : ''}
                           ${as_.olcum ? `<span style="color:#6366f1;"> | Ölçüm: ${as_.olcum}</span>` : ''}
                         </div>
               `
+              }
+              html += `</div>`
             }
-            html += `</div>`
-          }
 
-          html += `
+            html += `
                     </td>
                     <td style="text-align:center;">${af.p_sure ?? '—'}</td>
                     <td style="text-align:center;">${af.tekrar_sayisi ?? '—'}</td>
@@ -220,47 +222,48 @@
                     <td>${formatCurrency(af.harcanan_butce)}</td>
                   </tr>
           `
-        }
-        html += `
+          }
+          html += `
                 </tbody>
               </table>
             </div>
         `
-      } else {
-        html += `<p style="font-size:0.8rem;color:#94a3b8;margin-bottom:12px;">Alt faaliyet bulunamadı.</p>`
-      }
+        } else {
+          html += `<p style="font-size:0.8rem;color:#94a3b8;margin-bottom:12px;">Alt faaliyet bulunamadı.</p>`
+        }
 
-      // Gantt Grid
-      html += `
+        // Gantt Grid
+        html += `
             <div style="margin-top:4px;">
               <div style="font-size:0.75rem;font-weight:600;color:#374151;margin-bottom:6px;">Aylık Plan</div>
               <div class="gantt-grid" style="grid-template-columns: repeat(12, 1fr);">
       `
-      // Header row
-      for (const key of AY_KEYS) {
-        html += `<div class="gantt-header">${AY_LABELS[key]}</div>`
-      }
-      // Data row
-      for (const key of AY_KEYS) {
-        const isActive = plan[key] ? 'active' : ''
-        html += `<div class="gantt-cell ${isActive}" style="height:20px;"></div>`
-      }
-      html += `
+        // Header row
+        for (const key of AY_KEYS) {
+          html += `<div class="gantt-header">${AY_LABELS[key]}</div>`
+        }
+        // Data row
+        for (const key of AY_KEYS) {
+          const isActive = plan[key] ? 'active' : ''
+          html += `<div class="gantt-cell ${isActive}" style="height:20px;"></div>`
+        }
+        html += `
               </div>
             </div>
           </div>
         </div>
       `
-    }
+      }
 
-    html += `
+      html += `
         </div>
       </div>
     </div>
     `
-  }
+    }
 
-  container.innerHTML = html
-</script>
+    if (html) container.innerHTML = html
+  </script>
 </body>
+
 </html>

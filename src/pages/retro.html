@@ -260,6 +260,11 @@
     }
 
     showToast('Retro kaydı başarıyla eklendi.', 'success')
+    e.target.reset()
+    orgVal.textContent = '5'
+    rolVal.textContent = '5'
+    hakkindaVal.textContent = '5'
+    gortDisplay.textContent = calcGort(5, 5).toFixed(2)
     await loadRetroTable()
   })
 </script>

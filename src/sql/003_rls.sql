@@ -217,6 +217,20 @@ CREATE POLICY "anahtar_sonuclar_insert_fatih"
         (SELECT rol_kodu FROM personel WHERE auth_id = auth.uid()) = 'yönetici'
     );
 
+CREATE POLICY "anahtar_sonuclar_update_yonetici"
+    ON anahtar_sonuclar FOR UPDATE
+    TO authenticated
+    USING (
+        (SELECT rol_kodu FROM personel WHERE auth_id = auth.uid()) = 'yönetici'
+    );
+
+CREATE POLICY "anahtar_sonuclar_delete_yonetici"
+    ON anahtar_sonuclar FOR DELETE
+    TO authenticated
+    USING (
+        (SELECT rol_kodu FROM personel WHERE auth_id = auth.uid()) = 'yönetici'
+    );
+
 -- perf_gostergeler
 CREATE POLICY "perf_gostergeler_select"
     ON perf_gostergeler FOR SELECT
@@ -291,7 +305,7 @@ CREATE POLICY "sprint_is_plani_update"
     );
 
 COMMENT ON POLICY "sprint_is_plani_update" ON sprint_is_plani
-    IS 'Kullanıcı kendi görevini, Fatih ise tüm görevleri güncelleyebilir';
+    IS 'Kullanıcı kendi görevini, yönetici rolündeki kullanıcı (Scrum Master) tüm görevleri güncelleyebilir';
 
 CREATE POLICY "sprint_is_plani_delete"
     ON sprint_is_plani FOR DELETE

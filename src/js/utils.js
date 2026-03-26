@@ -133,10 +133,10 @@ export async function getPersonel(supabase, authId) {
   if (!authId) return null
   const { data } = await supabase
     .from('personel')
-    .select('ad, soyad, bkod')
+    .select('ad, soyad, bkod, rol_kodu')
     .eq('auth_id', authId)
-    .single()
-  return data
+    .limit(1)
+  return data?.[0] ?? null
 }
 
 /**

@@ -346,7 +346,7 @@
   const session = await requireAuth()
   const personel = await getPersonel(supabase, session.user.id)
   if (personel) renderUserInfo(personel.ad, personel.soyad)
-  const isFatih = personel?.ad === 'Fatih'
+  const isFatih = personel?.rol_kodu === 'yönetici'
 
   document.getElementById('logout-btn').addEventListener('click', () => signOut())
 
@@ -564,6 +564,7 @@
     showToast('İzin başarıyla eklendi.', 'success')
     closeModal('izin-modal')
     await loadIzinler()
+    if (sprintSelectIzin.value) await hesaplaSprintOzet()
   })
 
   // ── Saha Görevi Form Submit ───────────────────────────────────────
@@ -601,6 +602,7 @@
     showToast('Saha görevi başarıyla eklendi.', 'success')
     closeModal('saha-modal')
     await loadSahaGorevleri()
+    if (sprintSelectIzin.value) await hesaplaSprintOzet()
   })
 
   // ── Sprint Bazlı Özet Hesapla ─────────────────────────────────────

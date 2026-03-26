@@ -42,18 +42,26 @@ COMMENT ON COLUMN soplar.durum IS 'Aktif veya Pasif';
 
 CREATE INDEX IF NOT EXISTS idx_soplar_bkod ON soplar(bkod);
 
--- kategoriler: SOP-kategori composite PK
+-- kategori_tipleri: Master kategori tanımları (normalize edilmiş)
+CREATE TABLE IF NOT EXISTS kategori_tipleri (
+    kkod            INTEGER         PRIMARY KEY,
+    kategori_adi    VARCHAR(200)    NOT NULL UNIQUE
+);
+
+COMMENT ON TABLE kategori_tipleri IS 'Master kategori tanımları (normalize edilmiş)';
+COMMENT ON COLUMN kategori_tipleri.kkod IS 'Kategori kodu (PK)';
+COMMENT ON COLUMN kategori_tipleri.kategori_adi IS 'Kategori açıklaması (unique)';
+
+-- kategoriler: SOP-kategori ilişki tablosu (Many-to-Many)
 CREATE TABLE IF NOT EXISTS kategoriler (
     skod            INTEGER         REFERENCES soplar(skod),
-    kkod            INTEGER,
-    kategori_adi    VARCHAR(200)    NOT NULL,
+    kkod            INTEGER         REFERENCES kategori_tipleri(kkod),
     PRIMARY KEY (skod, kkod)
 );
 
-COMMENT ON TABLE kategoriler IS 'SOP bazlı faaliyet kategorileri';
+COMMENT ON TABLE kategoriler IS 'SOP ve kategori tipleri arasındaki ilişki tablosu';
 COMMENT ON COLUMN kategoriler.skod IS 'SOP kodu (PK, FK → soplar.skod)';
-COMMENT ON COLUMN kategoriler.kkod IS 'Kategori kodu (PK)';
-COMMENT ON COLUMN kategoriler.kategori_adi IS 'Kategori açıklaması';
+COMMENT ON COLUMN kategoriler.kkod IS 'Kategori kodu (PK, FK → kategori_tipleri.kkod)';
 
 -- kullanici_rolleri: Uygulama içi yetki seviyeleri (kategoriler)
 CREATE TABLE IF NOT EXISTS kullanici_rolleri (
@@ -179,7 +187,7 @@ COMMENT ON COLUMN sprint_veri.saha IS 'Sprint dönemindeki toplam saha görev g�
 CREATE TABLE IF NOT EXISTS sprint_is_plani (
     id                      SERIAL          PRIMARY KEY,
     sprint_donem            INTEGER         REFERENCES sprint_veri(sprint_donem),
-    bitis_donem             INTEGER,
+    bitis_donem             INTEGER         REFERENCES sprint_veri(sprint_donem),
     sprint_faaliyetleri     VARCHAR(500)    NOT NULL,
     sno                     INTEGER         REFERENCES alt_faaliyetler(sno),
     plan_sure               DECIMAL(5,1),
@@ -191,8 +199,8 @@ CREATE TABLE IF NOT EXISTS sprint_is_plani (
     gercek_sure             DECIMAL(5,1),
     harcanan_butce          DECIMAL(15,2),
     performans_gostergeler  TEXT,
-    guncel_tarih            DATE,
-    guncelleyen             VARCHAR(50),
+    guncel_tarih            DATE            DEFAULT NOW()::DATE,
+    guncelleyen             VARCHAR(50)     DEFAULT '',
     created_at              TIMESTAMPTZ     DEFAULT NOW()
 );
 

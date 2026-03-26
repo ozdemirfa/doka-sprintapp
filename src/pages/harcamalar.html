@@ -242,24 +242,27 @@
     }
     allHarcamalar = hData || []
 
-    // Sprint iş planı bütçe toplamı
-    const { data: ipData } = await supabase
-      .from('sprint_is_plani')
-      .select('harcanan_butce')
+    renderTable(allHarcamalar)
+    renderOdemeDonemiOzet(allHarcamalar)
+    await updateMetrics(allHarcamalar)
+  }
+
+  // ── Metrik Kartları ───────────────────────────────────
+  async function updateMetrics(filteredHarcamalar) {
+    const sprintVal = document.getElementById('filter-sprint').value
+    let ipQuery = supabase.from('sprint_is_plani').select('harcanan_butce')
+    if (sprintVal) ipQuery = ipQuery.eq('sprint_donem', sprintVal)
+    const { data: ipData } = await ipQuery
 
     const totalIsPlani = (ipData || []).reduce((s, r) => s + (r.harcanan_butce ?? 0), 0)
-    const totalHarcama = allHarcamalar.reduce((s, r) => s + (r.odenecek_kdvli ?? 0), 0)
+    const totalHarcama = filteredHarcamalar.reduce((s, r) => s + (r.odenecek_kdvli ?? 0), 0)
     const fark = totalIsPlani - totalHarcama
 
-    // Metrik kartları
     document.getElementById('metric-toplam-harcama').textContent = formatCurrency(totalHarcama)
     document.getElementById('metric-is-plani-butce').textContent = formatCurrency(totalIsPlani)
     const farkEl = document.getElementById('metric-fark')
     farkEl.textContent = formatCurrency(fark)
     farkEl.style.color = fark >= 0 ? '#16a34a' : '#dc2626'
-
-    renderTable(allHarcamalar)
-    renderOdemeDonemiOzet(allHarcamalar)
   }
 
   // ── Tablo render ──────────────────────────────────────
@@ -324,7 +327,7 @@
   }
 
   // ── Filtreler ─────────────────────────────────────────
-  function applyFilters() {
+  async function applyFilters() {
     const sprintVal = document.getElementById('filter-sprint').value
     const durumVal = document.getElementById('filter-durum').value
     let filtered = allHarcamalar
@@ -338,6 +341,7 @@
 
     renderTable(filtered)
     renderOdemeDonemiOzet(filtered)
+    await updateMetrics(filtered)
   }
 
   document.getElementById('filter-sprint').addEventListener('change', applyFilters)
