@@ -1,8 +1,6 @@
 # Ortam değişkenleri — asla git'e ekleme
 .env
 
-# Tarayıcı konfigürasyon dosyası — asla git'e ekleme
-js/config.js
 
 # OS
 .DS_Store
