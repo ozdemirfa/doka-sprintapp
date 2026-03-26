@@ -1,5 +1,5 @@
 -- UTF-8 | Sprint Kanban | Hesaplanan alan view'ları
--- TR90 Kalkınma Ajansı Sprint Kanban Projesi
+-- DOKA Sprint Kanban Projesi
 -- Oluşturma tarihi: 2026-03-25
 -- NOT: Excel formülleri birebir SQL'e çevrilmiştir (requirements.md bölüm 3)
 

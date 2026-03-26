@@ -6,7 +6,7 @@
 -- [1/5] TABLO ŞEMASI
 
 -- UTF-8 | Sprint Kanban | Tablo şeması — tüm CREATE TABLE ifadeleri
--- TR90 Kalkınma Ajansı Sprint Kanban Projesi
+-- DOKA Sprint Kanban Projesi
 -- Oluşturma tarihi: 2026-03-25
 
 -- ============================================================
@@ -21,7 +21,7 @@ CREATE TABLE IF NOT EXISTS birimler (
     durum       VARCHAR(10)     DEFAULT 'Aktif'
 );
 
-COMMENT ON TABLE birimler IS 'TR90 Kalkınma Ajansı birimlerinin lookup tablosu';
+COMMENT ON TABLE birimler IS 'DOKA birimlerinin lookup tablosu';
 COMMENT ON COLUMN birimler.bkod IS 'Birim kodu (PK)';
 COMMENT ON COLUMN birimler.birim_kisa IS 'Birim kısa adı (ör: SKB, MEKB)';
 COMMENT ON COLUMN birimler.birim_adi IS 'Birimin tam adı';
@@ -374,7 +374,7 @@ CREATE INDEX IF NOT EXISTS idx_saha_gorevleri_tarih ON saha_gorevleri(tarih);
 -- [2/5] VIEW'LAR
 
 -- UTF-8 | Sprint Kanban | Hesaplanan alan view'ları
--- TR90 Kalkınma Ajansı Sprint Kanban Projesi
+-- DOKA Sprint Kanban Projesi
 -- Oluşturma tarihi: 2026-03-25
 -- NOT: Excel formülleri birebir SQL'e çevrilmiştir (requirements.md bölüm 3)
 
@@ -557,7 +557,7 @@ COMMENT ON VIEW v_perf_gosterge_ozet IS 'Performans göstergesi bazlı kümülat
 -- [3/5] ROW LEVEL SECURITY
 
 -- UTF-8 | Sprint Kanban | Row Level Security politikaları
--- TR90 Kalkınma Ajansı Sprint Kanban Projesi
+-- DOKA Sprint Kanban Projesi
 -- Oluşturma tarihi: 2026-03-25
 
 -- ============================================================
@@ -970,7 +970,7 @@ CREATE POLICY "saha_gorevleri_update_fatih"
 -- [4/5] AUDIT TRIGGER'LAR
 
 -- UTF-8 | Sprint Kanban | Audit ve otomatik alan trigger'ları
--- TR90 Kalkınma Ajansı Sprint Kanban Projesi
+-- DOKA Sprint Kanban Projesi
 -- Oluşturma tarihi: 2026-03-25
 
 -- ============================================================
@@ -1031,7 +1031,7 @@ COMMENT ON TRIGGER trg_harcamalar_audit ON harcamalar IS
 -- [5/5] SEED VERİSİ
 
 -- UTF-8 | Sprint Kanban | Mevcut Excel verisi (INSERT ifadeleri)
--- TR90 Kalkınma Ajansı Sprint Kanban Projesi
+-- DOKA Sprint Kanban Projesi
 -- Oluşturma tarihi: 2026-03-25
 -- NOT: auth_id tüm personel kayıtlarında NULL — Supabase Auth kullanıcıları
 --      oluşturulduktan sonra UPDATE ile eşleştirilecek.

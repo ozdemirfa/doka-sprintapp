@@ -1,5 +1,5 @@
 -- UTF-8 | Sprint Kanban | Row Level Security politikaları
--- TR90 Kalkınma Ajansı Sprint Kanban Projesi
+-- DOKA Sprint Kanban Projesi
 -- Oluşturma tarihi: 2026-03-25
 
 -- ============================================================

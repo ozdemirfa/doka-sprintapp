@@ -1,5 +1,5 @@
 -- UTF-8 | Sprint Kanban | Mevcut Excel verisi (INSERT ifadeleri)
--- TR90 Kalkınma Ajansı Sprint Kanban Projesi
+-- DOKA Sprint Kanban Projesi
 -- Oluşturma tarihi: 2026-03-25
 -- NOT: auth_id tüm personel kayıtlarında NULL — Supabase Auth kullanıcıları
 --      oluşturulduktan sonra UPDATE ile eşleştirilecek.

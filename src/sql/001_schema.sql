@@ -1,5 +1,5 @@
 -- UTF-8 | Sprint Kanban | Tablo şeması — tüm CREATE TABLE ifadeleri
--- TR90 Kalkınma Ajansı Sprint Kanban Projesi
+-- DOKA Sprint Kanban Projesi
 -- Oluşturma tarihi: 2026-03-25
 
 -- ============================================================
@@ -14,7 +14,7 @@ CREATE TABLE IF NOT EXISTS birimler (
     durum       VARCHAR(10)     DEFAULT 'Aktif'
 );
 
-COMMENT ON TABLE birimler IS 'TR90 Kalkınma Ajansı birimlerinin lookup tablosu';
+COMMENT ON TABLE birimler IS 'DOKA birimlerinin lookup tablosu';
 COMMENT ON COLUMN birimler.bkod IS 'Birim kodu (PK)';
 COMMENT ON COLUMN birimler.birim_kisa IS 'Birim kısa adı (ör: SKB, MEKB)';
 COMMENT ON COLUMN birimler.birim_adi IS 'Birimin tam adı';

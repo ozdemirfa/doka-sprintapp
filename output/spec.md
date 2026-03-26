@@ -1,5 +1,5 @@
 Agent: PM
-Görev: TR90 Kalkınma Ajansı Sprint Kanban — Excel'den Supabase + Vanilla JS web uygulamasına geçiş için tam gereksinim spesifikasyonu
+Görev: DOKA Sprint Kanban — Excel'den Supabase + Vanilla JS web uygulamasına geçiş için tam gereksinim spesifikasyonu
 Durum: TAMAMLANDI
 Sonraki adım: SQL Agent bu spec.md'yi okuyarak `src/sql/` altına veritabanı dosyalarını yazsın (001_schema.sql, 002_views.sql, 003_rls.sql, 004_triggers.sql, seed.sql). SQL Agent tamamlandıktan sonra Frontend Agent sayfaları oluştursun.
 
@@ -7,7 +7,7 @@ Sonraki adım: SQL Agent bu spec.md'yi okuyarak `src/sql/` altına veritabanı d
 
 ## Proje Özeti
 
-TR90 Kalkınma Ajansı, SOP (Sonuç Odaklı Program) bazlı faaliyetlerini 3 haftalık sprint döngüleriyle Excel+VBA ile yönetmektedir. Bu proje, aynı iş mantığını çok kullanıcılı, gerçek zamanlı bir web uygulamasına taşır. Scrum Master Fatih sprint planlamasını yapar; 6 ekip üyesi (Zübeyde, Elifnaz, Mehmet, Oğuzhan, Nuray, Esen) görevlerini Kanban board üzerinde sürükleyerek günceller. Sprint sonunda retrospektif puanlar girilir, GKİ ve Hepiniss metrikleri otomatik hesaplanır.
+DOKA, SOP (Sonuç Odaklı Program) bazlı faaliyetlerini 3 haftalık sprint döngüleriyle Excel+VBA ile yönetmektedir. Bu proje, aynı iş mantığını çok kullanıcılı, gerçek zamanlı bir web uygulamasına taşır. Scrum Master Fatih sprint planlamasını yapar; 6 ekip üyesi (Zübeyde, Elifnaz, Mehmet, Oğuzhan, Nuray, Esen) görevlerini Kanban board üzerinde sürükleyerek günceller. Sprint sonunda retrospektif puanlar girilir, GKİ ve Hepiniss metrikleri otomatik hesaplanır.
 
 **Stack:** Vanilla HTML/CSS/JS + Supabase (PostgreSQL + Auth + Realtime) + Tailwind CSS (CDN) + SortableJS (CDN) + Chart.js (CDN). Backend yoktur — tüm veri erişimi Supabase JS client üzerinden doğrudan frontend'den yapılır.
 

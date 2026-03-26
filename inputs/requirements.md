@@ -7,7 +7,7 @@
 
 ## 1. PROJE ÖZETİ
 
-TR90 Kalkınma Ajansı, SOP (Sonuç Odaklı Program) bazlı faaliyetlerini 3 haftalık sprint döngüleriyle yönetiyor. Mevcut sistem bir Excel (.xlsm) dosyasında VBA makrolarıyla çalışıyor. Bu proje, sistemi çok kullanıcılı, gerçek zamanlı bir web uygulamasına taşıyacak.
+DOKA, SOP (Sonuç Odaklı Program) bazlı faaliyetlerini 3 haftalık sprint döngüleriyle yönetiyor. Mevcut sistem bir Excel (.xlsm) dosyasında VBA makrolarıyla çalışıyor. Bu proje, sistemi çok kullanıcılı, gerçek zamanlı bir web uygulamasına taşıyacak.
 
 ### 1.1 Temel Kullanıcı Hikayeleri
 
