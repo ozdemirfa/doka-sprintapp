@@ -189,6 +189,64 @@ test.describe('US-9: Harcamalar sayfası', () => {
   })
 })
 
+// ── Perf. Gerçekleşmeleri (sprint-perf-gos.html) ─────────────
+
+test.describe('sprint-perf-gos sayfası temel yüklenme', () => {
+  test('sayfa JS hatası olmadan yüklenmeli', async ({ page }) => {
+    const errors = collectConsoleErrors(page)
+    await mockSupabase(page)
+    await page.goto('/pages/sprint-perf-gos.html')
+    await page.waitForSelector('.main-content', { timeout: 10000 })
+    await page.waitForTimeout(1000)
+
+    const criticalErrors = errors.filter(e =>
+      !e.includes('WebSocket') && !e.includes('realtime') && !e.includes('net::ERR')
+    )
+    expect(criticalErrors).toHaveLength(0)
+  })
+
+  test('ana içerik alanı görünmeli', async ({ page }) => {
+    await mockSupabase(page)
+    await page.goto('/pages/sprint-perf-gos.html')
+    await expect(page.locator('.main-content')).toBeVisible()
+  })
+
+  test('"Yeni Gerçekleşme Gir" butonu görünmeli', async ({ page }) => {
+    await mockSupabase(page)
+    await page.goto('/pages/sprint-perf-gos.html')
+    await expect(page.locator('#btn-yeni-gerceklesme')).toBeVisible()
+  })
+})
+
+// ── Perf. Özeti (perf-ozet.html) ─────────────────────────────
+
+test.describe('perf-ozet sayfası temel yüklenme', () => {
+  test('sayfa JS hatası olmadan yüklenmeli', async ({ page }) => {
+    const errors = collectConsoleErrors(page)
+    await mockSupabase(page)
+    await page.goto('/pages/perf-ozet.html')
+    await page.waitForSelector('.main-content', { timeout: 10000 })
+    await page.waitForTimeout(1000)
+
+    const criticalErrors = errors.filter(e =>
+      !e.includes('WebSocket') && !e.includes('realtime') && !e.includes('net::ERR')
+    )
+    expect(criticalErrors).toHaveLength(0)
+  })
+
+  test('ana içerik alanı görünmeli', async ({ page }) => {
+    await mockSupabase(page)
+    await page.goto('/pages/perf-ozet.html')
+    await expect(page.locator('.main-content')).toBeVisible()
+  })
+
+  test('SOP filtre dropdown görünmeli', async ({ page }) => {
+    await mockSupabase(page)
+    await page.goto('/pages/perf-ozet.html')
+    await expect(page.locator('#filter-sop')).toBeVisible()
+  })
+})
+
 // ── US-10: İzinler & Saha ────────────────────────────────────
 
 test.describe('US-10: İzinler & Saha sayfası', () => {

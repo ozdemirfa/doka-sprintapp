@@ -272,35 +272,35 @@
       }
       const safeOzet = faaliyetOzet || []
 
-    // SOP bazında grupla
-    const sopMap = {}
-    for (const f of safeOzet) {
-      const sop = f.sop || 'Diğer'
-      if (!sopMap[sop]) sopMap[sop] = []
-      sopMap[sop].push(f)
-    }
+      // SOP bazında grupla
+      const sopMap = {}
+      for (const f of safeOzet) {
+        const sop = f.sop || 'Diğer'
+        if (!sopMap[sop]) sopMap[sop] = []
+        sopMap[sop].push(f)
+      }
 
-    // altFaaliyetleri fkod'a göre indexle
-    const altMap = {}
-    for (const af of (altFaaliyetOzet || [])) {
-      if (!altMap[af.fkod]) altMap[af.fkod] = []
-      altMap[af.fkod].push(af)
-    }
+      // altFaaliyetleri fkod'a göre indexle
+      const altMap = {}
+      for (const af of (altFaaliyetOzet || [])) {
+        if (!altMap[af.fkod]) altMap[af.fkod] = []
+        altMap[af.fkod].push(af)
+      }
 
-    // anahtar sonuçları sno'ya göre indexle
-    const asMap = {}
-    for (const as_ of (anahtarSonuclar || [])) {
-      if (!asMap[as_.sno]) asMap[as_.sno] = []
-      asMap[as_.sno].push(as_)
-    }
+      // anahtar sonuçları sno'ya göre indexle
+      const asMap = {}
+      for (const as_ of (anahtarSonuclar || [])) {
+        if (!asMap[as_.sno]) asMap[as_.sno] = []
+        asMap[as_.sno].push(as_)
+      }
 
-    // faaliyetler aylik_plan'ı fkod'a göre indexle
-    const planMap = {}
-    for (const f of (faaliyetler || [])) {
-      planMap[f.fkod] = f.aylik_plan || {}
-    }
+      // faaliyetler aylik_plan'ı fkod'a göre indexle
+      const planMap = {}
+      for (const f of (faaliyetler || [])) {
+        planMap[f.fkod] = f.aylik_plan || {}
+      }
 
-    let html = ''
+      let html = ''
 
     for (const [sop, sopFaaliyetler] of Object.entries(sopMap)) {
       // SOP bazında toplam hesapla

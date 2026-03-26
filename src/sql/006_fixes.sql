@@ -42,7 +42,16 @@ CREATE POLICY "sprint_is_plani_update"
         OR ekip_uyesi = (SELECT CONCAT(ad, ' ', soyad) FROM personel WHERE auth_id = auth.uid())
     );
 
--- 7. sprint_perf_gos için sprint_donem sütunu ekle (tarih bazlı filtre için)
+-- 7. izinler: tur sütunu ekle (Yıllık/Hastalık/Ücretsiz/Diğer)
+ALTER TABLE izinler ADD COLUMN IF NOT EXISTS tur VARCHAR(20);
+
+-- 8. faaliyetler: yil sütunu ekle (v_faaliyet_ozet view'ı için zorunlu)
+ALTER TABLE faaliyetler ADD COLUMN IF NOT EXISTS yil INTEGER DEFAULT 2026;
+
+-- 9. sprint_retro: eski organizasyon_puan verisini yeni org_puan sütununa kopyala
+UPDATE sprint_retro SET org_puan = organizasyon_puan WHERE org_puan IS NULL AND organizasyon_puan IS NOT NULL;
+
+-- 10. sprint_perf_gos için sprint_donem sütunu ekle (tarih bazlı filtre için)
 ALTER TABLE sprint_perf_gos ADD COLUMN IF NOT EXISTS sprint_donem INTEGER REFERENCES sprint_veri(sprint_donem);
 
 -- 8. v_sprint_ozet: retro_agg'i sprint_donem üzerinden birleştir

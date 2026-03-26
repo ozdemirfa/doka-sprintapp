@@ -174,8 +174,12 @@
   const urlFaaliyet = params.get('faaliyet')
   const urlSno = params.get('sno')
   if (urlFaaliyet || urlSno) {
-    openModal()
-    if (urlFaaliyet) document.getElementById('g-faaliyet').value = urlFaaliyet
+    if (!perfGostergeler || perfGostergeler.length === 0) {
+      showToast('Performans göstergeleri yüklenemedi. Lütfen sayfayı yenileyin.', 'error')
+    } else {
+      openModal()
+      if (urlFaaliyet) document.getElementById('g-faaliyet').value = urlFaaliyet
+    }
   }
 
   // ── Veri yükle ────────────────────────────────────────────────────

@@ -1,5 +1,5 @@
 {
-  "name": "developer-agent-team",
+  "name": "doka-sprintapp",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
@@ -10,16 +10,16 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/ozdemirfa/developer-agent-team.git"
+    "url": "git+https://github.com/ozdemirfa/doka-sprintapp.git"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "commonjs",
   "bugs": {
-    "url": "https://github.com/ozdemirfa/developer-agent-team/issues"
+    "url": "https://github.com/ozdemirfa/doka-sprintapp/issues"
   },
-  "homepage": "https://github.com/ozdemirfa/developer-agent-team#readme",
+  "homepage": "https://github.com/ozdemirfa/doka-sprintapp#readme",
   "dependencies": {
     "pg": "^8.20.0"
   },

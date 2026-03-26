@@ -322,8 +322,18 @@
     const tbody = document.getElementById('odeme-ozet-tbody')
     const grouped = {}
     rows.forEach(r => {
-      const donem = r.odeme_donem || 'Belirsiz'
-      grouped[donem] = (grouped[donem] || 0) + (r.odenecek_kdvli ?? 0)
+      if (r.odeme_kalemleri && Array.isArray(r.odeme_kalemleri)) {
+        // Çoklu ödeme dönemi JSONB array'i varsa her kalemi özete ekle
+        r.odeme_kalemleri.forEach(k => {
+          const donem = k.donem || 'Belirsiz'
+          grouped[donem] = (grouped[donem] || 0) + (Number(k.tutar) || 0)
+        })
+      } else if (r.odeme_donem) {
+        // Geriye dönük uyumluluk: tek dönem
+        grouped[r.odeme_donem] = (grouped[r.odeme_donem] || 0) + (r.odenecek_kdvli ?? 0)
+      } else {
+        grouped['Belirsiz'] = (grouped['Belirsiz'] || 0) + (r.odenecek_kdvli ?? 0)
+      }
     })
 
     const entries = Object.entries(grouped).sort((a, b) => a[0].localeCompare(b[0]))

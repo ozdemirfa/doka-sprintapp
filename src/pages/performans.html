@@ -376,22 +376,17 @@
     snoSel.innerHTML = '<option value="">Seçiniz...</option>'
     const { data: altFaal } = await supabase
       .from('alt_faaliyetler')
-      .select('sno, aciklama')
+      .select('sno, alt_faaliyet')
       .order('sno')
     if (altFaal) {
       altFaal.forEach(r => {
         const opt = document.createElement('option')
         opt.value = r.sno
-        opt.textContent = `${r.sno} — ${r.aciklama || ''}`
+        opt.textContent = `${r.sno} — ${r.alt_faaliyet || ''}`
         snoSel.appendChild(opt)
       })
     }
   }
-
-  document.getElementById('btn-gerceklesme-gir').addEventListener('click', async () => {
-    await loadModalDropdowns()
-    document.getElementById('modal-gerceklesme').classList.remove('hidden')
-  })
 
   document.getElementById('btn-modal-kapat').addEventListener('click', () => {
     document.getElementById('modal-gerceklesme').classList.add('hidden')
@@ -411,17 +406,17 @@
     const cgKod = document.getElementById('gir-cg-kod').value
     const sno = document.getElementById('gir-sno').value
     const yil = parseInt(document.getElementById('gir-yil').value)
-    const donem = parseInt(document.getElementById('gir-donem').value)
+    const tamamlanmaDonem = document.getElementById('gir-donem').value
     const gerceklesen = parseFloat(document.getElementById('gir-gerceklesen').value)
 
-    if (!sprintDonem || !cgKod || !sno || isNaN(yil) || isNaN(donem) || isNaN(gerceklesen)) {
+    if (!sprintDonem || !cgKod || !sno || isNaN(yil) || isNaN(gerceklesen)) {
       showToast('Lütfen tüm alanları doldurun.', 'error')
       return
     }
 
     const { error } = await supabase
       .from('sprint_perf_gos')
-      .insert([{ sprint_donem: sprintDonem, cg_kod: cgKod, sno, yil, donem, gerceklesen }])
+      .insert([{ sprint_donem: sprintDonem, cg_kod: cgKod, sno, yil, tamamlanma_donemi: tamamlanmaDonem || null, gerceklesen }])
 
     if (error) {
       showToast('Kayıt başarısız: ' + error.message, 'error')

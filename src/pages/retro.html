@@ -162,7 +162,7 @@
     const today = new Date().toISOString().slice(0, 10)
     const currentSprint = sprintler.find(s => s.baslangic <= today && s.bitis >= today)
     const selectedDonem = currentSprint ? currentSprint.sprint_donem : sprintler[0].sprint_donem
-    populateSprintDropdown(sprintSelect, [...sprintler].reverse(), selectedDonem)
+    populateSprintDropdown(sprintSelect, sprintler, selectedDonem)
   } else {
     sprintSelect.innerHTML = '<option value="">Sprint bulunamadı</option>'
   }

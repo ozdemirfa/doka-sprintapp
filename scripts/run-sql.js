@@ -1,4 +1,4 @@
-// SQL dosyalarını Supabase'e sırayla yükler
+,// SQL dosyalarını Supabase'e sırayla yükler
 // Kullanım: node scripts/run-sql.js
 
 const { Client } = require('pg');
