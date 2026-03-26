@@ -1,0 +1,6 @@
+{
+  "outputDirectory": "src",
+  "buildCommand": null,
+  "devCommand": "npx serve src -p 3000",
+  "cleanUrls": false
+}
