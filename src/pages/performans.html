@@ -58,7 +58,14 @@
   <main class="main-content">
     <div class="page-header">
       <h2>🎯 Performans Göstergeleri</h2>
-      <a href="sprint-perf-gos.html" class="btn-gold" style="text-decoration:none;">+ Gerçekleşme Gir</a>
+      <div style="display:flex;gap:10px;align-items:center;">
+        <select id="filter-sop" class="form-control" style="width:auto;min-width:130px;">
+          <option value="">Tüm SOPlar</option>
+        </select>
+        <select id="filter-yil" class="form-control" style="width:auto;min-width:90px;">
+          <option value="">Tüm Yıllar</option>
+        </select>
+      </div>
     </div>
 
     <div class="page-body">
@@ -102,7 +109,7 @@
 
 <script type="module">
   import { requireAuth, signOut } from '../js/auth.js'
-  import { getPersonel, renderUserInfo, formatPercent, showToast } from '../js/utils.js'
+  import { getPersonel, renderUserInfo, formatPercent, showToast, hideAyarlarForNonAdmin } from '../js/utils.js'
   import { supabase } from '../js/supabase.js'
   import Chart from 'https://cdn.jsdelivr.net/npm/chart.js/+esm'
 
@@ -110,30 +117,65 @@
   const session = await requireAuth()
   const personel = await getPersonel(supabase, session.user.id)
   if (personel) renderUserInfo(personel.ad, personel.soyad)
+  if (personel) hideAyarlarForNonAdmin(personel)
   document.getElementById('logout-btn').addEventListener('click', signOut)
 
   // ── State ─────────────────────────────────────────────
   let perfData = []
 
   // ── Veri çekme ────────────────────────────────────────
-  async function loadPerfData() {
-    const { data, error } = await supabase
-      .from('v_perf_gosterge_ozet')
-      .select('*')
-      .order('cg_kod')
+  async function loadData() {
+    const [perfRes, sopRes] = await Promise.all([
+      supabase.from('v_perf_gosterge_ozet').select('*').order('cg_kod'),
+      supabase.from('soplar').select('skod,kisa,baslangic,bitis').order('kisa')
+    ])
 
-    if (error) {
-      showToast('Performans verileri yüklenemedi: ' + error.message, 'error')
+    if (perfRes.error) {
+      showToast('Performans verileri yüklenemedi: ' + perfRes.error.message, 'error')
       return
     }
 
-    perfData = data || []
-    renderTable(perfData)
+    const soplar = sopRes.data || []
+    const sopMap = Object.fromEntries(soplar.map(s => [s.skod, s.kisa]))
+    perfData = (perfRes.data || []).map(r => ({ ...r, sop: sopMap[r.skod] ?? null }))
+
+    // SOP filtresi — perf_gostergeler'deki skod'ları kullan
+    const filterSop = document.getElementById('filter-sop')
+    filterSop.innerHTML = '<option value="">Tüm SOPlar</option>'
+    const sopSet = [...new Set(perfData.map(r => r.sop).filter(Boolean))].sort()
+    sopSet.forEach(s => {
+      const opt = document.createElement('option')
+      opt.value = s; opt.textContent = s
+      filterSop.appendChild(opt)
+    })
+
+    // Yıl filtresi — SOP geçerlilik yıllarından
+    const filterYil = document.getElementById('filter-yil')
+    filterYil.innerHTML = '<option value="">Tüm Yıllar</option>'
+    const yilSet = new Set()
+    soplar.forEach(s => {
+      if (s.baslangic) yilSet.add(s.baslangic)
+      if (s.bitis) yilSet.add(s.bitis)
+      if (s.baslangic && s.bitis) {
+        for (let y = s.baslangic; y <= s.bitis; y++) yilSet.add(y)
+      }
+    })
+    ;[...yilSet].sort().forEach(y => {
+      const opt = document.createElement('option')
+      opt.value = y; opt.textContent = y
+      filterYil.appendChild(opt)
+    })
+
+    renderTable()
     renderCharts(perfData)
   }
 
   // ── Tablo render (SOP bazında gruplandırılmış) ────────
-  function renderTable(rows) {
+  function renderTable() {
+    const sopFilter = document.getElementById('filter-sop').value
+    const yilFilter = parseInt(document.getElementById('filter-yil').value) || null
+    const rows = sopFilter ? perfData.filter(r => r.sop === sopFilter) : perfData
+
     const tbody = document.getElementById('perf-tbody')
     if (!rows.length) {
       tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#94a3b8;padding:32px;">Veri bulunamadı.</td></tr>'
@@ -159,7 +201,7 @@
         </tr>
       `
       items.forEach(r => {
-        const kumHedef = r.kumulatif_hedef ?? 0
+        const kumHedef = (r.hedef_2024 || 0) + (r.hedef_2025 || 0) + (r.hedef_2026 || 0)
         const kumGercek = r.kumulatif_gerceklesme ?? 0
         const pct = kumHedef > 0 ? Math.min((kumGercek / kumHedef) * 100, 100) : 0
 
@@ -189,8 +231,9 @@
 
   // ── Grafik render ─────────────────────────────────────
   function renderCharts(rows) {
+    const yilFilter = parseInt(document.getElementById('filter-yil').value) || null
+    const years = yilFilter ? [yilFilter] : [2024, 2025, 2026]
     // Bar chart: toplam hedef vs gerçekleşme yıl bazında
-    const years = [2024, 2025, 2026]
     const totalHedef = years.map(y => rows.reduce((s, r) => s + (r[`hedef_${y}`] ?? 0), 0))
     const totalGercek = years.map(y => rows.reduce((s, r) => s + (r[`gerceklesen_${y}`] ?? 0), 0))
 
@@ -247,7 +290,7 @@
     }
 
     // Doughnut chart: kümülatif ilerleme
-    const totalKumHedef = rows.reduce((s, r) => s + (r.kumulatif_hedef ?? 0), 0)
+    const totalKumHedef = rows.reduce((s, r) => s + ((r.hedef_2024 || 0) + (r.hedef_2025 || 0) + (r.hedef_2026 || 0)), 0)
     const totalKumGercek = rows.reduce((s, r) => s + (r.kumulatif_gerceklesme ?? 0), 0)
     const kalan = Math.max(totalKumHedef - totalKumGercek, 0)
     const doughnutPct = totalKumHedef > 0
@@ -288,8 +331,12 @@
     }
   }
 
+  // ── Event Listeners ───────────────────────────────────
+  document.getElementById('filter-sop').addEventListener('change', () => { renderTable(); renderCharts(perfData) })
+  document.getElementById('filter-yil').addEventListener('change', () => { renderTable(); renderCharts(perfData) })
+
   // ── Başlat ────────────────────────────────────────────
-  await loadPerfData()
+  await loadData()
 </script>
 </body>
 </html>

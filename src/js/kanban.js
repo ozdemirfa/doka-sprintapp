@@ -3,7 +3,7 @@
 // ============================================================
 import { supabase } from './supabase.js'
 import { requireAuth, signOut } from './auth.js'
-import { formatDate, formatCurrency, getPersonel, renderUserInfo, showToast, todayISO, populateSprintDropdown } from './utils.js'
+import { formatDate, formatCurrency, getPersonel, renderUserInfo, showToast, todayISO, populateSprintDropdown, hideAyarlarForNonAdmin } from './utils.js'
 import Sortable from 'https://cdn.jsdelivr.net/npm/sortablejs/+esm'
 
 // ── State ────────────────────────────────────────────────────
@@ -23,6 +23,7 @@ try {
 
   currentPersonel = await getPersonel(supabase, currentUser.id)
   if (currentPersonel) renderUserInfo(currentPersonel.ad, currentPersonel.soyad)
+  if (currentPersonel) hideAyarlarForNonAdmin(currentPersonel)
 
   document.getElementById('logout-btn').addEventListener('click', () => signOut())
 
@@ -41,19 +42,17 @@ try {
 // ── Veri Yükleme ─────────────────────────────────────────────
 
 async function loadReferenceData() {
-  const [sprintRes, personelRes, altFaalRes, perfGosRes] = await Promise.all([
+  const [sprintRes, personelRes, altFaalRes] = await Promise.all([
     supabase.from('sprint_veri').select('sprint_donem,sprint_adi,baslangic,bitis').order('sprint_donem', { ascending: false }),
     supabase.from('personel').select('pkod,ad,soyad,rol_kodu').order('ad'),
     supabase.from('alt_faaliyetler')
       .select('sno,fkod,alt_faaliyet,p_sure,faaliyetler(skod,kkod,faaliyet,soplar(kisa),kategori_tipleri(kategori_adi))')
-      .order('sno'),
-    supabase.from('perf_gostergeler').select('cg_kod,cikti_gostergesi').order('cg_kod')
+      .order('sno')
   ])
 
   sprints = sprintRes.data || []
   personeller = personelRes.data || []
   altFaaliyetler = altFaalRes.data || []
-  window._perfGostergeler = perfGosRes.data || []
 
   // Sprint filtre dropdown
   const sprintFilter = document.getElementById('filter-sprint')
@@ -341,17 +340,6 @@ function initModal() {
     gEkip.appendChild(opt)
   })
 
-  // Performans göstergesi dropdown
-  const gPerfGos = document.getElementById('g-perf-gostergeler')
-  if (gPerfGos) {
-    ;(window._perfGostergeler || []).forEach(pg => {
-      const opt = document.createElement('option')
-      opt.value = pg.cg_kod
-      opt.textContent = `${pg.cg_kod} — ${pg.cikti_gostergesi ? pg.cikti_gostergesi.substring(0, 60) : ''}`
-      gPerfGos.appendChild(opt)
-    })
-  }
-
   // Yeni görev butonu
   document.getElementById('btn-yeni-gorev').addEventListener('click', () => openNewModal())
 
@@ -382,10 +370,6 @@ function openNewModal() {
   // Kendi pkod'unu varsayılan yap
   if (currentPersonel) document.getElementById('g-ekip').value = currentPersonel.pkod
 
-  // Perf göstergeler seçimini temizle
-  const gPerfGos = document.getElementById('g-perf-gostergeler')
-  if (gPerfGos) Array.from(gPerfGos.options).forEach(o => o.selected = false)
-
   const perfBtn = document.getElementById('btn-perf-giris')
   if (perfBtn) perfBtn.classList.add('hidden')
 
@@ -405,15 +389,6 @@ function openEditModal(g) {
   document.getElementById('g-ekip').value = g.pkod || ''
   document.getElementById('g-durum').value = g.is_durum || ''
   document.getElementById('modal-error').classList.add('hidden')
-
-  // Performans göstergelerini seç
-  const gPerfGos = document.getElementById('g-perf-gostergeler')
-  if (gPerfGos && g.performans_gostergeler) {
-    const secilenler = g.performans_gostergeler.split(',').map(s => s.trim())
-    Array.from(gPerfGos.options).forEach(opt => {
-      opt.selected = secilenler.includes(opt.value)
-    })
-  }
 
   // Sadece yönetici silebilir
   const isFatih = currentPersonel?.rol_kodu === 'yönetici'
@@ -441,19 +416,24 @@ async function handleSave(e) {
   saveBtn.disabled = true
   saveBtn.textContent = 'Kaydediliyor...'
 
+  const snoVal = document.getElementById('g-sno-hidden').value
+  if (!snoVal) {
+    const errEl = document.getElementById('modal-error')
+    errEl.textContent = 'S.No (Alt Faaliyet) zorunlu alandır. Lütfen "Ara" butonuyla seçin.'
+    errEl.classList.remove('hidden')
+    saveBtn.disabled = false
+    saveBtn.textContent = 'Kaydet'
+    return
+  }
+
   const id = document.getElementById('gorev-id').value
-  const gPerfGos = document.getElementById('g-perf-gostergeler')
-  const secilenPerfGos = gPerfGos
-    ? Array.from(gPerfGos.selectedOptions).map(o => o.value).join(',') || null
-    : null
   const payload = {
     sprint_donem: Number(document.getElementById('g-sprint').value),
     sprint_faaliyetleri: document.getElementById('g-faaliyetleri').value.trim(),
-    sno: Number(document.getElementById('g-sno-hidden').value) || null,
+    sno: Number(snoVal) || null,
     plan_sure: parseFloat(document.getElementById('g-plansure').value) || null,
     pkod: Number(document.getElementById('g-ekip').value) || null,
-    is_durum: document.getElementById('g-durum').value || null,
-    performans_gostergeler: secilenPerfGos
+    is_durum: document.getElementById('g-durum').value || null
   }
 
   let error

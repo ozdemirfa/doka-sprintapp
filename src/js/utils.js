@@ -150,3 +150,15 @@ export function renderUserInfo(ad, soyad) {
   const el = document.getElementById('user-name')
   if (el) el.textContent = `${ad} ${soyad}`
 }
+
+/**
+ * Yönetici olmayan kullanıcılar için Ayarlar menü linkini gizler
+ * @param {object|null} personel
+ */
+export function hideAyarlarForNonAdmin(personel) {
+  if (personel?.rol_kodu !== 'yönetici') {
+    document.querySelectorAll('a[href*="ayarlar.html"]').forEach(el => {
+      el.style.display = 'none'
+    })
+  }
+}

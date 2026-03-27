@@ -59,6 +59,8 @@
         <button class="tab-btn" data-tab="perf-gostergeler">Perf. Göstergeleri</button>
         <button class="tab-btn" data-tab="personel">Personel</button>
         <button class="tab-btn" data-tab="sprint-donemler">Sprint Dönemleri</button>
+        <button class="tab-btn" data-tab="yil-butce">Yıllık Bütçeler</button>
+        <button class="tab-btn" data-tab="birimler">Birimler</button>
       </div>
 
       <!-- ───── SOP'lar ───── -->
@@ -153,9 +155,9 @@
         <div class="inline-form">
           <input type="text" id="p-ad" class="form-control" placeholder="Ad" style="max-width:140px;">
           <input type="text" id="p-soyad" class="form-control" placeholder="Soyad" style="max-width:140px;">
-          <input type="text" id="p-bkod" class="form-control" placeholder="Birim Kodu" style="max-width:110px;">
+          <select id="p-bkod" class="form-control" style="max-width:160px;"><option value="">Birim Seç...</option></select>
           <select id="p-rol" class="form-control" style="max-width:140px;">
-            <option value="uye">Ekip Üyesi</option>
+            <option value="standart">Standart</option>
             <option value="yönetici">Yönetici</option>
           </select>
           <button class="btn-gold" id="btn-p-ekle">+ Ekle</button>
@@ -191,6 +193,57 @@
         </div>
       </div>
 
+      <!-- ───── Yıllık Bütçeler ───── -->
+      <div class="tab-panel metric-card" id="tab-yil-butce"
+           style="border-radius:0 6px 6px 6px;padding:0;overflow:hidden;">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Sıra No</th>
+              <th>Faaliyet</th>
+              <th>Yıl</th>
+              <th style="text-align:right;">Bütçe (₺)</th>
+              <th style="text-align:center;">İşlem</th>
+            </tr>
+          </thead>
+          <tbody id="yilbutce-tbody">
+            <tr><td colspan="5" style="text-align:center;color:#94a3b8;padding:24px;">Yükleniyor...</td></tr>
+          </tbody>
+        </table>
+        <div class="inline-form">
+          <select id="yb-faaliyet-id" class="form-control" style="max-width:320px;">
+            <option value="">Faaliyet Seç...</option>
+          </select>
+          <input type="number" id="yb-yil" class="form-control" placeholder="Yıl (örn: 2026)"
+                 min="2020" max="2040" style="max-width:120px;">
+          <input type="number" id="yb-butce" class="form-control" placeholder="Bütçe (₺)"
+                 step="0.01" min="0" style="max-width:160px;">
+          <button class="btn-gold" id="btn-yb-ekle">+ Ekle</button>
+        </div>
+      </div>
+
+      <!-- ───── Birimler ───── -->
+      <div class="tab-panel metric-card" id="tab-birimler" style="border-radius:0 6px 6px 6px;padding:0;overflow:hidden;">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>B.Kod</th>
+              <th>Kısa Ad</th>
+              <th>Tam Ad</th>
+              <th style="text-align:center;">İşlem</th>
+            </tr>
+          </thead>
+          <tbody id="birimler-tbody">
+            <tr><td colspan="4" style="text-align:center;color:#94a3b8;padding:24px;">Yükleniyor...</td></tr>
+          </tbody>
+        </table>
+        <div class="inline-form">
+          <input type="text" id="bir-kisa" class="form-control" placeholder="Kısa Ad (ör: SKB)" style="max-width:100px;">
+          <input type="text" id="bir-adi" class="form-control" placeholder="Tam Birim Adı" style="max-width:280px;">
+          <button class="btn-gold" id="btn-bir-ekle">+ Ekle</button>
+        </div>
+      </div>
+
     </div><!-- /page-body -->
   </main>
 </div>
@@ -210,7 +263,7 @@
 <script type="module">
   import { supabase } from '../js/supabase.js'
   import { requireAuth, signOut } from '../js/auth.js'
-  import { getPersonel, renderUserInfo, showToast } from '../js/utils.js'
+  import { getPersonel, renderUserInfo, showToast, formatCurrency } from '../js/utils.js'
 
   // ── Auth + Yönetici kontrolü ────────────────────────────────────
   const session = await requireAuth()
@@ -235,15 +288,31 @@
   })
 
   // ── Referans verileri (ortak) ────────────────────────────────────
-  let soplar = [], kategoriler = []
+  let soplar = [], kategoriler = [], faaliyetler = [], birimler = []
 
   async function loadRefData() {
-    const [{ data: sData }, { data: kData }] = await Promise.all([
+    const [{ data: sData }, { data: kData }, { data: fData }, { data: bData }] = await Promise.all([
       supabase.from('soplar').select('skod,kisa,sop_adi,baslangic,bitis').order('skod'),
-      supabase.from('kategori_tipleri').select('kkod,kategori_adi').order('kkod')
+      supabase.from('kategori_tipleri').select('kkod,kategori_adi').order('kkod'),
+      supabase.from('faaliyetler').select('id,fkod,faaliyet').order('fkod'),
+      supabase.from('birimler').select('bkod,birim_kisa,birim_adi').order('bkod')
     ])
     soplar = sData || []
     kategoriler = kData || []
+    faaliyetler = fData || []
+    birimler = bData || []
+
+    // p-bkod dropdown güncelle
+    const pBkodSel = document.getElementById('p-bkod')
+    if (pBkodSel) {
+      pBkodSel.innerHTML = '<option value="">Birim Seç...</option>'
+      birimler.forEach(b => {
+        const opt = document.createElement('option')
+        opt.value = b.bkod
+        opt.textContent = `${b.birim_kisa} — ${b.birim_adi || ''}`
+        pBkodSel.appendChild(opt)
+      })
+    }
   }
 
   // ═══════════════════════════════════════════════════════
@@ -279,7 +348,11 @@
     if (!kisa || kisa.length !== 3 || !adi) {
       showToast('Kısa (3 harf) ve SOP Adı zorunludur.', 'error'); return
     }
-    const { error } = await supabase.from('soplar').insert({ kisa, sop_adi: adi, baslangic: bas, bitis: bit })
+    if (bas && bas <= 2024) { showToast('Başlangıç yılı 2024\'ten büyük olmalı.', 'error'); return }
+    if (bit && (bit <= 2024 || (bas && bit <= bas))) { showToast('Bitiş yılı 2024\'ten ve başlangıç yılından büyük olmalı.', 'error'); return }
+    const { data: maxSkodData } = await supabase.from('soplar').select('skod').order('skod', { ascending: false }).limit(1)
+    const skod = (maxSkodData?.[0]?.skod ?? 0) + 1
+    const { error } = await supabase.from('soplar').insert({ skod, kisa, sop_adi: adi, baslangic: bas, bitis: bit })
     if (error) { showToast(error.message, 'error'); return }
     showToast('SOP eklendi.', 'success')
     ;['sop-kisa','sop-adi','sop-bas','sop-bit'].forEach(id => document.getElementById(id).value = '')
@@ -312,7 +385,9 @@
   document.getElementById('btn-kat-ekle').addEventListener('click', async () => {
     const adi = document.getElementById('kat-adi').value.trim()
     if (!adi) { showToast('Kategori Adı zorunludur.', 'error'); return }
-    const { error } = await supabase.from('kategori_tipleri').insert({ kategori_adi: adi })
+    const { data: maxKkodData } = await supabase.from('kategori_tipleri').select('kkod').order('kkod', { ascending: false }).limit(1)
+    const kkod = (maxKkodData?.[0]?.kkod ?? 0) + 1
+    const { error } = await supabase.from('kategori_tipleri').insert({ kkod, kategori_adi: adi })
     if (error) { showToast(error.message, 'error'); return }
     showToast('Kategori eklendi.', 'success')
     document.getElementById('kat-adi').value = ''
@@ -346,7 +421,11 @@
       .from('perf_gostergeler')
       .select('id,cg_kod,skod,kkod,cikti_gostergesi,aciklama,soplar(kisa),kategori_tipleri(kategori_adi)')
       .order('cg_kod')
-    if (error || !data?.length) {
+    if (error) {
+      tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:#dc2626;padding:24px;">Hata: ${error.message}</td></tr>`
+      return
+    }
+    if (!data?.length) {
       tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#94a3b8;padding:24px;">Kayıt yok.</td></tr>'
       return
     }
@@ -392,12 +471,13 @@
       tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#94a3b8;padding:24px;">Kayıt yok.</td></tr>'
       return
     }
+    const birimMap = Object.fromEntries(birimler.map(b => [b.bkod, b.birim_kisa]))
     tbody.innerHTML = data.map(r => `
       <tr>
         <td style="color:#64748b;">${r.pkod}</td>
         <td>${r.ad}</td>
         <td>${r.soyad}</td>
-        <td>${r.bkod ?? '—'}</td>
+        <td>${birimMap[r.bkod] ?? (r.bkod ?? '—')}</td>
         <td><span style="background:${r.rol_kodu==='yönetici'?'#fef3c7':'#f0fdf4'};color:${r.rol_kodu==='yönetici'?'#92400e':'#166534'};border-radius:9999px;padding:2px 8px;font-size:0.72rem;">${r.rol_kodu ?? '—'}</span></td>
         <td style="text-align:center;">
           <button class="row-action row-edit" data-id="${r.pkod}" data-table="personel">Düzenle</button>
@@ -409,13 +489,14 @@
   document.getElementById('btn-p-ekle').addEventListener('click', async () => {
     const ad    = document.getElementById('p-ad').value.trim()
     const soyad = document.getElementById('p-soyad').value.trim()
-    const bkod  = document.getElementById('p-bkod').value.trim() || null
+    const bkod  = parseInt(document.getElementById('p-bkod').value) || null
     const rol   = document.getElementById('p-rol').value
     if (!ad || !soyad) { showToast('Ad ve Soyad zorunludur.', 'error'); return }
     const { error } = await supabase.from('personel').insert({ ad, soyad, bkod, rol_kodu: rol })
     if (error) { showToast(error.message, 'error'); return }
     showToast('Personel eklendi.', 'success')
-    ;['p-ad','p-soyad','p-bkod'].forEach(id => document.getElementById(id).value = '')
+    ;['p-ad','p-soyad'].forEach(id => document.getElementById(id).value = '')
+    document.getElementById('p-bkod').value = ''
     await loadPersonel()
   })
 
@@ -453,6 +534,16 @@
     const sure  = parseInt(document.getElementById('sv-sure').value) || null
     const ekip  = parseInt(document.getElementById('sv-ekip').value) || null
     if (!donem || !adi) { showToast('Dönem ve Sprint Adı zorunludur.', 'error'); return }
+    const { data: existing } = await supabase.from('sprint_veri').select('sprint_donem').eq('sprint_donem', donem)
+    if (existing?.length > 0) { showToast(`Sprint dönemi ${donem} zaten mevcut.`, 'error'); return }
+    if (bas && bit) {
+      const { data: overlapping } = await supabase.from('sprint_veri')
+        .select('sprint_donem,sprint_adi,baslangic,bitis')
+        .lt('baslangic', bit).gt('bitis', bas)
+      if (overlapping?.length > 0) {
+        showToast(`Tarih aralığı "${overlapping[0].sprint_adi}" dönemi ile çakışıyor.`, 'error'); return
+      }
+    }
     const { error } = await supabase.from('sprint_veri').insert({
       sprint_donem: donem, sprint_adi: adi, baslangic: bas, bitis: bit, sure_gun: sure, ekip
     })
@@ -460,6 +551,77 @@
     showToast('Sprint dönemi eklendi.', 'success')
     ;['sv-donem','sv-adi','sv-bas','sv-bit','sv-sure','sv-ekip'].forEach(id => document.getElementById(id).value = '')
     await loadSprintDonemler()
+  })
+
+  // ═══════════════════════════════════════════════════════
+  // Yıllık Bütçeler
+  // ═══════════════════════════════════════════════════════
+  function populateYilButceDropdown() {
+    const sel = document.getElementById('yb-faaliyet-id')
+    sel.innerHTML = '<option value="">Faaliyet Seç...</option>'
+    faaliyetler.forEach(f => {
+      const opt = document.createElement('option')
+      opt.value = f.id
+      opt.textContent = `${f.fkod} — ${f.faaliyet}`
+      sel.appendChild(opt)
+    })
+  }
+
+  async function loadYilButce() {
+    const tbody = document.getElementById('yilbutce-tbody')
+    const { data, error } = await supabase
+      .from('faaliyet_yil_butce')
+      .select('id,faaliyet_id,yil,butce,faaliyetler(fkod,faaliyet)')
+      .order('faaliyet_id')
+      .order('yil')
+    if (error || !data?.length) {
+      tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#94a3b8;padding:24px;">Kayıt yok.</td></tr>'
+      populateYilButceDropdown()
+      return
+    }
+    tbody.innerHTML = data.map(r => `
+      <tr>
+        <td style="color:#64748b;">${r.id}</td>
+        <td style="font-size:0.8rem;">${r.faaliyetler?.fkod ?? ''} — ${r.faaliyetler?.faaliyet ?? ''}</td>
+        <td><strong>${r.yil}</strong></td>
+        <td style="text-align:right;">${formatCurrency(r.butce)}</td>
+        <td style="text-align:center;">
+          <button class="row-action yb-guncelle"
+            style="background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;"
+            data-id="${r.id}" data-faid="${r.faaliyet_id}" data-yil="${r.yil}" data-butce="${r.butce}">
+            Güncelle
+          </button>
+          <button class="row-action row-del" data-id="${r.id}" data-table="yilbutce" style="margin-left:4px;">Sil</button>
+        </td>
+      </tr>
+    `).join('')
+    populateYilButceDropdown()
+    // Güncelle butonları click handler
+    document.querySelectorAll('.yb-guncelle').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.getElementById('yb-faaliyet-id').value = btn.dataset.faid
+        document.getElementById('yb-yil').value = btn.dataset.yil
+        document.getElementById('yb-butce').value = btn.dataset.butce
+      })
+    })
+  }
+
+  document.getElementById('btn-yb-ekle').addEventListener('click', async () => {
+    const faaliyetId = parseInt(document.getElementById('yb-faaliyet-id').value)
+    const yil        = parseInt(document.getElementById('yb-yil').value)
+    const butce      = parseFloat(document.getElementById('yb-butce').value)
+    if (!faaliyetId || !yil || isNaN(butce) || butce < 0) {
+      showToast('Faaliyet, Yıl ve Bütçe zorunludur.', 'error'); return
+    }
+    const { error } = await supabase
+      .from('faaliyet_yil_butce')
+      .upsert({ faaliyet_id: faaliyetId, yil, butce }, { onConflict: 'faaliyet_id,yil' })
+    if (error) { showToast(error.message, 'error'); return }
+    showToast('Bütçe kaydedildi.', 'success')
+    document.getElementById('yb-faaliyet-id').value = ''
+    document.getElementById('yb-yil').value = ''
+    document.getElementById('yb-butce').value = ''
+    await loadYilButce()
   })
 
   // ═══════════════════════════════════════════════════════
@@ -488,6 +650,12 @@
       } else if (table === 'sprint') {
         ({ error } = await supabase.from('sprint_veri').delete().eq('sprint_donem', id))
         if (!error) await loadSprintDonemler()
+      } else if (table === 'yilbutce') {
+        ;({ error } = await supabase.from('faaliyet_yil_butce').delete().eq('id', id))
+        if (!error) await loadYilButce()
+      } else if (table === 'birim') {
+        ;({ error } = await supabase.from('birimler').delete().eq('bkod', id))
+        if (!error) { await loadBirimler(); await loadRefData() }
       }
 
       if (error) showToast('Silme hatası: ' + error.message, 'error')
@@ -532,10 +700,15 @@
           <div class="form-group"><label>Ad</label><input id="edit-pad" class="form-control" value="${r.ad ?? ''}"></div>
           <div class="form-group"><label>Soyad</label><input id="edit-psoyad" class="form-control" value="${r.soyad ?? ''}"></div>
         </div>
-        <div class="form-group"><label>Birim Kodu</label><input id="edit-pbkod" class="form-control" value="${r.bkod ?? ''}"></div>
+        <div class="form-group"><label>Birim</label>
+          <select id="edit-pbkod" class="form-control">
+            <option value="">Seçin...</option>
+            ${birimler.map(b => `<option value="${b.bkod}" ${r.bkod===b.bkod?'selected':''}>${b.birim_kisa} — ${b.birim_adi||''}</option>`).join('')}
+          </select>
+        </div>
         <div class="form-group"><label>Rol</label>
           <select id="edit-prol" class="form-control">
-            <option value="uye" ${r.rol_kodu==='uye'?'selected':''}>Ekip Üyesi</option>
+            <option value="standart" ${r.rol_kodu==='standart'||r.rol_kodu==='uye'?'selected':''}>Standart</option>
             <option value="yönetici" ${r.rol_kodu==='yönetici'?'selected':''}>Yönetici</option>
           </select>
         </div>`
@@ -552,6 +725,12 @@
           <div class="form-group"><label>Süre (gün)</label><input id="edit-svsure" type="number" class="form-control" value="${r.sure_gun ?? ''}"></div>
           <div class="form-group"><label>Ekip</label><input id="edit-svekip" type="number" class="form-control" value="${r.ekip ?? ''}"></div>
         </div>`
+    } else if (table === 'birim') {
+      const { data: r } = await supabase.from('birimler').select('*').eq('bkod', id).single()
+      title.textContent = 'Birim Düzenle'
+      body.innerHTML = `
+        <div class="form-group"><label>Kısa Ad</label><input id="edit-birkisa" class="form-control" value="${r.birim_kisa ?? ''}"></div>
+        <div class="form-group"><label>Tam Ad</label><input id="edit-biradi" class="form-control" value="${r.birim_adi ?? ''}"></div>`
     }
 
     modal.classList.remove('hidden')
@@ -591,6 +770,11 @@
       const ekip = parseInt(document.getElementById('edit-svekip').value) || null
       ;({ error } = await supabase.from('sprint_veri').update({ sprint_adi: adi, baslangic: bas, bitis: bit, sure_gun: sure, ekip }).eq('sprint_donem', id))
       if (!error) await loadSprintDonemler()
+    } else if (table === 'birim') {
+      const kisa = document.getElementById('edit-birkisa').value.trim().toUpperCase()
+      const adi  = document.getElementById('edit-biradi').value.trim()
+      ;({ error } = await supabase.from('birimler').update({ birim_kisa: kisa, birim_adi: adi }).eq('bkod', id))
+      if (!error) { await loadBirimler(); await loadRefData() }
     }
 
     if (error) { showToast('Güncelleme hatası: ' + error.message, 'error'); return }
@@ -598,9 +782,49 @@
     document.getElementById('modal-edit').classList.add('hidden')
   })
 
+  // ═══════════════════════════════════════════════════════
+  // Birimler
+  // ═══════════════════════════════════════════════════════
+  async function loadBirimler() {
+    const tbody = document.getElementById('birimler-tbody')
+    const { data, error } = await supabase.from('birimler').select('*').order('bkod')
+    if (error || !data?.length) {
+      tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:#94a3b8;padding:24px;">Kayıt yok.</td></tr>'
+      return
+    }
+    tbody.innerHTML = data.map(r => `
+      <tr>
+        <td style="color:#64748b;">${r.bkod}</td>
+        <td><strong>${r.birim_kisa}</strong></td>
+        <td>${r.birim_adi ?? '—'}</td>
+        <td style="text-align:center;">
+          <button class="row-action row-edit" data-id="${r.bkod}" data-table="birim">Düzenle</button>
+          <button class="row-action row-del" data-id="${r.bkod}" data-table="birim" style="margin-left:4px;">Sil</button>
+        </td>
+      </tr>
+    `).join('')
+  }
+
+  document.getElementById('btn-bir-ekle').addEventListener('click', async () => {
+    const kisa = document.getElementById('bir-kisa').value.trim().toUpperCase()
+    const adi  = document.getElementById('bir-adi').value.trim()
+    if (!kisa || !adi) { showToast('Kısa Ad ve Tam Ad zorunludur.', 'error'); return }
+
+    // bkod auto-generate
+    const { data: maxData } = await supabase.from('birimler').select('bkod').order('bkod', { ascending: false }).limit(1)
+    const newBkod = maxData?.length > 0 ? maxData[0].bkod + 1 : 1
+
+    const { error } = await supabase.from('birimler').insert({ bkod: newBkod, birim_kisa: kisa, birim_adi: adi })
+    if (error) { showToast(error.message, 'error'); return }
+    showToast('Birim eklendi.', 'success')
+    ;['bir-kisa','bir-adi'].forEach(id => document.getElementById(id).value = '')
+    await loadBirimler()
+    await loadRefData()
+  })
+
   // ── Başlat ────────────────────────────────────────────────────────
   await loadRefData()
-  await Promise.all([loadSoplar(), loadKategoriler(), loadPerfGostergeler(), loadPersonel(), loadSprintDonemler()])
+  await Promise.all([loadSoplar(), loadKategoriler(), loadPerfGostergeler(), loadPersonel(), loadSprintDonemler(), loadYilButce(), loadBirimler()])
 </script>
 </body>
 </html>

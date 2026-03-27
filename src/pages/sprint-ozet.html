@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Sprint Özet — DOKA Sprint Kanban</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <link rel="stylesheet" href="../css/app.css">
 </head>
 <body>
@@ -133,7 +132,7 @@
 
 <script type="module">
   import { requireAuth, signOut } from '../js/auth.js'
-  import { getPersonel, renderUserInfo, populateSprintDropdown, formatPercent, formatDate, showToast } from '../js/utils.js'
+  import { getPersonel, renderUserInfo, populateSprintDropdown, formatPercent, formatDate, showToast, hideAyarlarForNonAdmin } from '../js/utils.js'
   import { renderGkiTrend, renderHepinissTrend, renderPlanGerceklesme, renderOrgPuan } from '../js/charts.js'
   import { supabase } from '../js/supabase.js'
 
@@ -153,6 +152,7 @@
   if (session) {
     const personel = await getPersonel(supabase, session.user.id)
     if (personel) renderUserInfo(personel.ad, personel.soyad)
+    if (personel) hideAyarlarForNonAdmin(personel)
   }
 
   // ── Çıkış butonu ─────────────────────────────────────
