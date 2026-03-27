@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>İzinler & Saha — TR90 Sprint Kanban</title>
+  <title>İzinler & Saha — DOKA Sprint Kanban</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="../css/app.css" />
   <style>
@@ -145,6 +145,7 @@
       <a href="sprint-perf-gos.html"><span class="icon">📈</span> Perf. Gerçekleşmeleri</a>
       <a href="harcamalar.html"><span class="icon">💰</span> Harcamalar</a>
       <a href="izinler.html" class="active"><span class="icon">🗓️</span> İzinler & Saha</a>
+      <a href="ayarlar.html"><span class="icon">⚙️</span> Ayarlar</a>
     </nav>
     <div class="sidebar-footer">
       <div class="user-info"><strong id="user-name">Yükleniyor...</strong>Ekip Üyesi</div>
@@ -196,13 +197,14 @@
                 <th>Personel</th>
                 <th>Başlangıç</th>
                 <th>Bitiş</th>
+                <th style="text-align:center;">İzin Günü</th>
                 <th>Tür</th>
                 <th>Açıklama</th>
                 <th style="text-align:center;">İşlemler</th>
               </tr>
             </thead>
             <tbody id="izinler-tbody">
-              <tr><td colspan="6" style="text-align:center;color:#94a3b8;padding:24px;">Yükleniyor...</td></tr>
+              <tr><td colspan="7" style="text-align:center;color:#94a3b8;padding:24px;">Yükleniyor...</td></tr>
             </tbody>
           </table>
         </div>
@@ -222,13 +224,14 @@
               <tr>
                 <th>Personel</th>
                 <th>Tarih</th>
+                <th style="text-align:center;">Görev Gün</th>
                 <th>İl</th>
                 <th>Açıklama</th>
                 <th style="text-align:center;">İşlemler</th>
               </tr>
             </thead>
             <tbody id="saha-tbody">
-              <tr><td colspan="5" style="text-align:center;color:#94a3b8;padding:24px;">Yükleniyor...</td></tr>
+              <tr><td colspan="6" style="text-align:center;color:#94a3b8;padding:24px;">Yükleniyor...</td></tr>
             </tbody>
           </table>
         </div>
@@ -255,6 +258,10 @@
       <div class="form-group">
         <label for="izin-bitis">Bitiş Tarihi</label>
         <input type="date" id="izin-bitis" class="form-control" required />
+      </div>
+      <div class="form-group">
+        <label for="izin-gun-sayi">İzin Gün Sayısı *</label>
+        <input type="number" id="izin-gun-sayi" class="form-control" min="1" step="1" required placeholder="ör: 3" />
       </div>
       <div class="form-group">
         <label for="izin-tur">İzin Türü</label>
@@ -291,6 +298,10 @@
       <div class="form-group">
         <label for="saha-tarih">Tarih</label>
         <input type="date" id="saha-tarih" class="form-control" required />
+      </div>
+      <div class="form-group">
+        <label for="saha-gorev-gun">Görev Gün Sayısı</label>
+        <input type="number" id="saha-gorev-gun" class="form-control" min="1" step="1" value="1" placeholder="1" />
       </div>
       <div class="form-group">
         <label for="saha-il">İl</label>
@@ -349,13 +360,16 @@
   // ── Personel Listesi ──────────────────────────────────────────────
   const { data: personelListesi } = await supabase
     .from('personel')
-    .select('ad, soyad')
+    .select('pkod, ad, soyad')
     .order('ad')
+
+  // pkod → ad soyad haritası
+  const personelMap = Object.fromEntries((personelListesi || []).map(p => [p.pkod, `${p.ad} ${p.soyad}`]))
 
   function personelOpsHTML() {
     if (!personelListesi || personelListesi.length === 0) return '<option value="">Personel bulunamadı</option>'
     return '<option value="">Seçin...</option>' +
-      personelListesi.map(p => `<option value="${p.ad} ${p.soyad}">${p.ad} ${p.soyad}</option>`).join('')
+      personelListesi.map(p => `<option value="${p.pkod}">${p.ad} ${p.soyad}</option>`).join('')
   }
 
   document.getElementById('izin-personel').innerHTML = personelOpsHTML()
@@ -423,11 +437,13 @@
       const silBtn = isFatih
         ? `<button class="btn-danger" data-id="${r.id}" data-table="izinler">Sil</button>`
         : '—'
+      const adSoyad = r.pkod ? (personelMap[r.pkod] ?? `pkod:${r.pkod}`) : '—'
       return `
         <tr>
-          <td>${r.personel ?? '—'}</td>
+          <td>${adSoyad}</td>
           <td>${formatDate(r.izin_basl)}</td>
           <td>${formatDate(r.izin_bitis)}</td>
+          <td style="text-align:center;font-weight:700;color:var(--navy);">${r.izin_gun_sayi ?? '—'}</td>
           <td>
             <span style="display:inline-block;padding:2px 10px;border-radius:9999px;font-size:0.75rem;font-weight:600;
               background:${turRenk(r.tur)};color:#fff;">
@@ -470,10 +486,12 @@
       const silBtn = isFatih
         ? `<button class="btn-danger" data-id="${r.id}" data-table="saha_gorevleri">Sil</button>`
         : '—'
+      const adSoyad = r.pkod ? (personelMap[r.pkod] ?? `pkod:${r.pkod}`) : '—'
       return `
         <tr>
-          <td>${r.personel ?? '—'}</td>
+          <td>${adSoyad}</td>
           <td>${formatDate(r.tarih)}</td>
+          <td style="text-align:center;font-weight:700;color:var(--navy);">${r.gorev_gun ?? 1}</td>
           <td>${r.gorevli_il ?? '—'}</td>
           <td style="max-width:280px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${r.aciklama ?? '—'}</td>
           <td style="text-align:center;">${silBtn}</td>
@@ -505,18 +523,23 @@
   // ── İzin Form Submit ──────────────────────────────────────────────
   document.getElementById('izin-form').addEventListener('submit', async (e) => {
     e.preventDefault()
-    const personelAd    = document.getElementById('izin-personel').value
-    const baslangic     = document.getElementById('izin-baslangic').value
-    const bitis         = document.getElementById('izin-bitis').value
-    const tur           = document.getElementById('izin-tur').value
-    const aciklama      = document.getElementById('izin-aciklama').value.trim()
+    const pkod       = parseInt(document.getElementById('izin-personel').value)
+    const baslangic  = document.getElementById('izin-baslangic').value
+    const bitis      = document.getElementById('izin-bitis').value
+    const gunSayi    = parseInt(document.getElementById('izin-gun-sayi').value)
+    const tur        = document.getElementById('izin-tur').value
+    const aciklama   = document.getElementById('izin-aciklama').value.trim()
 
-    if (!personelAd || !baslangic || !bitis || !tur) {
+    if (!pkod || !baslangic || !bitis || !gunSayi || !tur) {
       showToast('Lütfen zorunlu alanları doldurun.', 'warning')
       return
     }
     if (bitis < baslangic) {
       showToast('Bitiş tarihi başlangıçtan önce olamaz.', 'warning')
+      return
+    }
+    if (gunSayi < 1) {
+      showToast('İzin gün sayısı en az 1 olmalıdır.', 'warning')
       return
     }
 
@@ -525,11 +548,12 @@
     btn.textContent = 'Kaydediliyor...'
 
     const { error } = await supabase.from('izinler').insert({
-      personel:    personelAd,
-      izin_basl:   baslangic,
-      izin_bitis:  bitis,
-      tur:         tur,
-      aciklama:    aciklama || null
+      pkod:          pkod,
+      izin_basl:     baslangic,
+      izin_bitis:    bitis,
+      izin_gun_sayi: gunSayi,
+      tur:           tur,
+      aciklama:      aciklama || null
     })
 
     btn.disabled = false
@@ -549,12 +573,13 @@
   // ── Saha Görevi Form Submit ───────────────────────────────────────
   document.getElementById('saha-form').addEventListener('submit', async (e) => {
     e.preventDefault()
-    const personelAd = document.getElementById('saha-personel').value
-    const tarih      = document.getElementById('saha-tarih').value
-    const il         = document.getElementById('saha-il').value.trim()
-    const aciklama   = document.getElementById('saha-aciklama').value.trim()
+    const pkod     = parseInt(document.getElementById('saha-personel').value)
+    const tarih    = document.getElementById('saha-tarih').value
+    const gorevGun = parseInt(document.getElementById('saha-gorev-gun').value) || 1
+    const il       = document.getElementById('saha-il').value.trim()
+    const aciklama = document.getElementById('saha-aciklama').value.trim()
 
-    if (!personelAd || !tarih || !il) {
+    if (!pkod || !tarih || !il) {
       showToast('Lütfen zorunlu alanları doldurun.', 'warning')
       return
     }
@@ -564,8 +589,9 @@
     btn.textContent = 'Kaydediliyor...'
 
     const { error } = await supabase.from('saha_gorevleri').insert({
-      personel:    personelAd,
+      pkod:        pkod,
       tarih:       tarih,
+      gorev_gun:   gorevGun,
       gorevli_il:  il,
       aciklama:    aciklama || null
     })
@@ -603,49 +629,38 @@
     sprintBas.setHours(0, 0, 0, 0)
     sprintBit.setHours(0, 0, 0, 0)
 
-    // İzinleri çek
+    // İzinleri çek (sprint tarih aralığıyla kesişenler, izin_gun_sayi kullan)
     const { data: tumIzinler, error: izinErr } = await supabase
       .from('izinler')
-      .select('personel, izin_basl, izin_bitis')
+      .select('pkod, izin_basl, izin_bitis, izin_gun_sayi')
+      .lte('izin_basl', sprint.bitis)
+      .gte('izin_bitis', sprint.baslangic)
 
     if (izinErr) {
       showToast('İzinler alınamadı: ' + izinErr.message, 'error')
       return
     }
 
-    // Kesiştiren izinleri filtrele ve gün hesapla
+    // Personel bazlı gün topla
     const personelGunMap = {}
     let totalIzin = 0
 
     for (const izin of (tumIzinler || [])) {
-      const iBas = new Date(izin.izin_basl)
-      const iBit = new Date(izin.izin_bitis)
-      iBas.setHours(0, 0, 0, 0)
-      iBit.setHours(0, 0, 0, 0)
-
-      // Örtüşme kontrolü
-      if (iBas > sprintBit || iBit < sprintBas) continue
-
-      // Kesişen aralık
-      const kesisBas = iBas > sprintBas ? iBas : sprintBas
-      const kesisBit = iBit < sprintBit ? iBit : sprintBit
-      const gun = Math.max(0, (kesisBit - kesisBas) / 86400000 + 1)
-
+      const gun = izin.izin_gun_sayi || 0
       if (gun <= 0) continue
       totalIzin += gun
-
-      const ad = izin.personel || 'Bilinmiyor'
+      const ad = izin.pkod ? (personelMap[izin.pkod] ?? `pkod:${izin.pkod}`) : 'Bilinmiyor'
       personelGunMap[ad] = (personelGunMap[ad] || 0) + gun
     }
 
-    // Saha görevlerini say
+    // Saha görevlerini çek (gorev_gun topla)
     const { data: tumSaha, error: sahaErr } = await supabase
       .from('saha_gorevleri')
-      .select('tarih')
+      .select('gorev_gun')
       .gte('tarih', sprint.baslangic)
       .lte('tarih', sprint.bitis)
 
-    const totalSaha = tumSaha ? tumSaha.length : 0
+    const totalSaha = (tumSaha || []).reduce((s, r) => s + (r.gorev_gun || 1), 0)
 
     // Özet tablosunu render et
     const container = document.getElementById('sprint-ozet-container')
@@ -697,7 +712,8 @@
       return
     }
 
-    showToast(`sprint_veri güncellendi — İzin: ${totalIzin} gün, Saha: ${totalSaha}`, 'success')
+    // Not: sprint_veri.izin ve sprint_veri.saha kaldırıldı — v_sprint_ozet view'ından otomatik hesaplanır
+    showToast(`Özet hesaplandı — İzin: ${totalIzin} gün, Saha: ${totalSaha} gün`, 'success')
   }
 
   document.getElementById('ozet-hesapla-btn').addEventListener('click', hesaplaSprintOzet)

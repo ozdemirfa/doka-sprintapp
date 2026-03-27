@@ -41,15 +41,17 @@ export function formatPercent(value, decimals = 1) {
 }
 
 /**
- * Hepiniss G.ort hesabı: SQRT(rol × hakkında)
+ * Hepiniss A.ort hesabı: (rol + hakkında) / 2
+ * (gort adıyla geriye dönük uyumlu tutuldu)
  * @param {number} rol
  * @param {number} hakkinda
  * @returns {number}
  */
 export function calcGort(rol, hakkinda) {
   if (!rol || !hakkinda) return 0
-  return Math.sqrt(rol * hakkinda)
+  return (rol + hakkinda) / 2
 }
+export { calcGort as calcAort }
 
 /**
  * GKİ hesabı: T.Skor / (sure_gun × ekip - izin) × 100
@@ -133,7 +135,7 @@ export async function getPersonel(supabase, authId) {
   if (!authId) return null
   const { data } = await supabase
     .from('personel')
-    .select('ad, soyad, bkod, rol_kodu')
+    .select('pkod, ad, soyad, bkod, rol_kodu')
     .eq('auth_id', authId)
     .limit(1)
   return data?.[0] ?? null

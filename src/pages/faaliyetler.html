@@ -27,6 +27,7 @@
         <a href="sprint-perf-gos.html"><span class="icon">📈</span> Perf. Gerçekleşmeleri</a>
         <a href="harcamalar.html"><span class="icon">💰</span> Harcamalar</a>
         <a href="izinler.html"><span class="icon">🗓️</span> İzinler & Saha</a>
+        <a href="ayarlar.html"><span class="icon">⚙️</span> Ayarlar</a>
       </nav>
       <div class="sidebar-footer">
         <div class="user-info"><strong id="user-name">Yükleniyor...</strong>Ekip Üyesi</div>
@@ -39,11 +40,8 @@
       <div class="page-header">
         <h2>Faaliyetler</h2>
         <div style="display:flex;gap:10px;align-items:center;">
-          <select id="filter-yil" class="form-control" style="width:auto;min-width:120px;">
-            <option value="">Tüm Yıllar</option>
-            <option value="2024">2024</option>
-            <option value="2025">2025</option>
-            <option value="2026">2026</option>
+          <select id="filter-sop" class="form-control" style="width:auto;min-width:120px;">
+            <option value="">Tüm SOPlar</option>
           </select>
           <button class="btn-gold" id="yeni-faaliyet-btn">+ Yeni Faaliyet</button>
         </div>
@@ -65,35 +63,25 @@
       <form id="form-faaliyet">
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
           <div class="form-group">
-            <label for="f-fkod">Faaliyet Kodu *</label>
-            <input type="text" id="f-fkod" class="form-control" placeholder="ör: STU-01" required>
+            <label for="f-skod">SOP *</label>
+            <select id="f-skod" class="form-control" required></select>
           </div>
           <div class="form-group">
-            <label for="f-sop">SOP *</label>
-            <select id="f-sop" class="form-control" required></select>
+            <label for="f-kkod">Kategori *</label>
+            <select id="f-kkod" class="form-control" required></select>
           </div>
+        </div>
+        <div class="form-group">
+          <label for="f-fkod">Faaliyet Kodu <span style="font-size:0.75rem;color:#64748b;">(otomatik üretilir)</span></label>
+          <input type="text" id="f-fkod" class="form-control" readonly style="background:#f8fafc;color:#64748b;" placeholder="Kaydedilince üretilir">
         </div>
         <div class="form-group">
           <label for="f-faaliyet">Faaliyet Adı *</label>
           <input type="text" id="f-faaliyet" class="form-control" required placeholder="Faaliyet açıklaması...">
         </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;">
-          <div class="form-group">
-            <label for="f-yil">Yıl *</label>
-            <select id="f-yil" class="form-control" required>
-              <option value="2024">2024</option>
-              <option value="2025">2025</option>
-              <option value="2026" selected>2026</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label for="f-butce">Bütçe (₺)</label>
-            <input type="number" id="f-butce" class="form-control" step="0.01" min="0" placeholder="0.00">
-          </div>
-          <div class="form-group">
-            <label for="f-kategori">Kategori</label>
-            <input type="text" id="f-kategori" class="form-control" placeholder="Kategori kodu">
-          </div>
+        <div class="form-group">
+          <label for="f-butce">Bütçe (₺)</label>
+          <input type="number" id="f-butce" class="form-control" step="0.01" min="0" placeholder="0.00">
         </div>
         <div id="modal-faaliyet-error" class="hidden" style="background:#fee2e2;border:1px solid #fca5a5;border-radius:6px;padding:10px;margin-bottom:12px;color:#b91c1c;font-size:0.825rem;"></div>
         <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:8px;">
@@ -140,7 +128,7 @@
   <script type="module">
     import { supabase } from '../js/supabase.js'
     import { requireAuth, signOut } from '../js/auth.js'
-    import { formatCurrency, formatPercent, getPersonel, renderUserInfo, showToast, AY_KEYS, AY_LABELS } from '../js/utils.js'
+    import { formatCurrency, getPersonel, renderUserInfo, showToast } from '../js/utils.js'
 
     // ── Auth ─────────────────────────────────────────────────────────
     const session = await requireAuth()
@@ -149,20 +137,48 @@
 
     document.getElementById('logout-btn').addEventListener('click', () => signOut())
 
-    // ── SOP Listesi Yükle ─────────────────────────────────────────────
-    const { data: sopListesi } = await supabase.from('soplar').select('kisa').order('kisa')
-    const fSop = document.getElementById('f-sop')
-    fSop.innerHTML = '<option value="">Seçin...</option>'
+    // ── Referans Veri Yükle ───────────────────────────────────────────
+    const [{ data: sopListesi }, { data: kategoriListesi }] = await Promise.all([
+      supabase.from('soplar').select('skod,kisa,sop_adi').order('kisa'),
+      supabase.from('kategori_tipleri').select('kkod,kategori_adi').order('kkod')
+    ])
+
+    // skod → kisa haritası (render için)
+    const sopMap = Object.fromEntries((sopListesi || []).map(s => [s.skod, s.kisa]))
+
+    // SOP filtre dropdown
+    const filterSop = document.getElementById('filter-sop')
     ;(sopListesi || []).forEach(s => {
       const opt = document.createElement('option')
-      opt.value = s.kisa
+      opt.value = s.skod
       opt.textContent = s.kisa
-      fSop.appendChild(opt)
+      filterSop.appendChild(opt)
+    })
+
+    // Modal SOP dropdown
+    const fSkod = document.getElementById('f-skod')
+    fSkod.innerHTML = '<option value="">Seçin...</option>'
+    ;(sopListesi || []).forEach(s => {
+      const opt = document.createElement('option')
+      opt.value = s.skod
+      opt.textContent = `${s.kisa} — ${s.sop_adi || ''}`
+      fSkod.appendChild(opt)
+    })
+
+    // Modal Kategori dropdown
+    const fKkod = document.getElementById('f-kkod')
+    fKkod.innerHTML = '<option value="">Seçin...</option>'
+    ;(kategoriListesi || []).forEach(k => {
+      const opt = document.createElement('option')
+      opt.value = k.kkod
+      opt.textContent = `${k.kkod} — ${k.kategori_adi}`
+      fKkod.appendChild(opt)
     })
 
     // ── Yeni Faaliyet Modal ───────────────────────────────────────────
     document.getElementById('yeni-faaliyet-btn').addEventListener('click', () => {
       document.getElementById('form-faaliyet').reset()
+      document.getElementById('f-fkod').value = ''
       document.getElementById('modal-faaliyet-error').classList.add('hidden')
       document.getElementById('modal-faaliyet').classList.remove('hidden')
     })
@@ -171,15 +187,20 @@
     })
     document.getElementById('form-faaliyet').addEventListener('submit', async (e) => {
       e.preventDefault()
-      const fkod = document.getElementById('f-fkod').value.trim()
-      const sop = document.getElementById('f-sop').value
+      const skod = parseInt(document.getElementById('f-skod').value)
+      const kkod = parseInt(document.getElementById('f-kkod').value)
       const faaliyet = document.getElementById('f-faaliyet').value.trim()
-      const yil = parseInt(document.getElementById('f-yil').value)
       const butce = parseFloat(document.getElementById('f-butce').value) || null
       const errEl = document.getElementById('modal-faaliyet-error')
       errEl.classList.add('hidden')
 
-      const { error } = await supabase.from('faaliyetler').insert({ fkod, sop, faaliyet, yil, butce_2026: butce })
+      if (!skod || !kkod) {
+        errEl.textContent = 'SOP ve Kategori seçimi zorunludur.'
+        errEl.classList.remove('hidden')
+        return
+      }
+
+      const { error } = await supabase.from('faaliyetler').insert({ skod, kkod, faaliyet, butce_2026: butce })
       if (error) {
         errEl.textContent = error.message
         errEl.classList.remove('hidden')
@@ -227,8 +248,8 @@
       await renderPage()
     })
 
-    // ── Yıl Filtresi ─────────────────────────────────────────────────
-    document.getElementById('filter-yil').addEventListener('change', renderPage)
+    // ── SOP Filtresi ─────────────────────────────────────────────────
+    document.getElementById('filter-sop').addEventListener('change', renderPage)
 
     // ── Accordion Toggle ─────────────────────────────────────────────
     document.addEventListener('click', (e) => {
@@ -243,24 +264,19 @@
 
     // ── Veri Yükle & Render ───────────────────────────────────────────
     async function renderPage() {
-      const yilFilter = document.getElementById('filter-yil').value
+      const sopFilter = document.getElementById('filter-sop').value
 
       let faaliyetQuery = supabase.from('v_faaliyet_ozet').select('*')
-      if (yilFilter) faaliyetQuery = faaliyetQuery.eq('yil', yilFilter)
-
-      let planQuery = supabase.from('faaliyetler').select('fkod, sop, aylik_plan, yil')
-      if (yilFilter) planQuery = planQuery.eq('yil', yilFilter)
+      if (sopFilter) faaliyetQuery = faaliyetQuery.eq('skod', sopFilter)
 
       const [
         { data: faaliyetOzet },
         { data: altFaaliyetOzet },
-        { data: anahtarSonuclar },
-        { data: faaliyetler }
+        { data: anahtarSonuclar }
       ] = await Promise.all([
         faaliyetQuery,
         supabase.from('v_alt_faaliyet_ozet').select('*'),
-        supabase.from('anahtar_sonuclar').select('*'),
-        planQuery
+        supabase.from('anahtar_sonuclar').select('*')
       ])
 
       // ── Render ─────────────────────────────────────────────────────
@@ -270,14 +286,13 @@
         container.innerHTML = '<p style="color:#64748b;font-size:0.875rem;">Kayıt bulunamadı.</p>'
         return
       }
-      const safeOzet = faaliyetOzet || []
 
-      // SOP bazında grupla
-      const sopMap = {}
-      for (const f of safeOzet) {
-        const sop = f.sop || 'Diğer'
-        if (!sopMap[sop]) sopMap[sop] = []
-        sopMap[sop].push(f)
+      // SOP bazında grupla (skod üzerinden)
+      const sopGruplari = {}
+      for (const f of faaliyetOzet) {
+        const sopKisa = sopMap[f.skod] || `SOP-${f.skod}`
+        if (!sopGruplari[sopKisa]) sopGruplari[sopKisa] = []
+        sopGruplari[sopKisa].push(f)
       }
 
       // altFaaliyetleri fkod'a göre indexle
@@ -294,15 +309,9 @@
         asMap[as_.sno].push(as_)
       }
 
-      // faaliyetler aylik_plan'ı fkod'a göre indexle
-      const planMap = {}
-      for (const f of (faaliyetler || [])) {
-        planMap[f.fkod] = f.aylik_plan || {}
-      }
-
       let html = ''
 
-    for (const [sop, sopFaaliyetler] of Object.entries(sopMap)) {
+    for (const [sop, sopFaaliyetler] of Object.entries(sopGruplari)) {
       // SOP bazında toplam hesapla
       const sopToplamHarcama = sopFaaliyetler.reduce((s, f) => s + (f.harcanan_butce_toplam || 0), 0)
       const sopToplamButce = sopFaaliyetler.reduce((s, f) => s + (f.butce_2026 || 0), 0)
@@ -419,24 +428,7 @@
           html += `<p style="font-size:0.8rem;color:#94a3b8;margin-bottom:12px;">Alt faaliyet bulunamadı.</p>`
         }
 
-        // Gantt Grid
         html += `
-            <div style="margin-top:4px;">
-              <div style="font-size:0.75rem;font-weight:600;color:#374151;margin-bottom:6px;">Aylık Plan</div>
-              <div class="gantt-grid" style="grid-template-columns: repeat(12, 1fr);">
-      `
-        // Header row
-        for (const key of AY_KEYS) {
-          html += `<div class="gantt-header">${AY_LABELS[key]}</div>`
-        }
-        // Data row
-        for (const key of AY_KEYS) {
-          const isActive = plan[key] ? 'active' : ''
-          html += `<div class="gantt-cell ${isActive}" style="height:20px;"></div>`
-        }
-        html += `
-              </div>
-            </div>
           </div>
         </div>
       `

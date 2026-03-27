@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Performans Göstergeleri — TR90 Sprint Kanban</title>
+  <title>Performans Göstergeleri — DOKA Sprint Kanban</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="../css/app.css">
 </head>
@@ -40,6 +40,9 @@
       </a>
       <a href="izinler.html">
         <span class="icon">🗓️</span> İzinler & Saha
+      </a>
+      <a href="ayarlar.html">
+        <span class="icon">⚙️</span> Ayarlar
       </a>
     </nav>
     <div class="sidebar-footer">
@@ -96,76 +99,17 @@
   </main>
 </div>
 
-<!-- Gerçekleşme Giriş Modalı -->
-<div class="modal-overlay hidden" id="modal-gerceklesme">
-  <div class="modal-box">
-    <h3>Gerçekleşme Gir</h3>
-    <form id="form-gerceklesme">
-
-      <div class="form-group">
-        <label for="gir-sprint">Sprint Dönemi</label>
-        <select id="gir-sprint" class="form-control" required></select>
-      </div>
-
-      <div class="form-group">
-        <label for="gir-cg-kod">CG Kod</label>
-        <select id="gir-cg-kod" class="form-control" required>
-          <option value="">Seçiniz...</option>
-        </select>
-      </div>
-
-      <div class="form-group">
-        <label for="gir-sno">Alt Faaliyet (S.No)</label>
-        <select id="gir-sno" class="form-control" required>
-          <option value="">Seçiniz...</option>
-        </select>
-      </div>
-
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-        <div class="form-group">
-          <label for="gir-yil">Yıl</label>
-          <input type="number" id="gir-yil" class="form-control" placeholder="2026" min="2024" max="2026" required>
-        </div>
-        <div class="form-group">
-          <label for="gir-donem">Dönem (1-4)</label>
-          <input type="number" id="gir-donem" class="form-control" placeholder="1" min="1" max="4" required>
-        </div>
-      </div>
-
-      <div class="form-group">
-        <label for="gir-gerceklesen">Gerçekleşen</label>
-        <input type="number" id="gir-gerceklesen" class="form-control" placeholder="0" step="any" required>
-      </div>
-
-      <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:8px;">
-        <button type="button" class="btn-secondary" id="btn-modal-kapat">İptal</button>
-        <button type="submit" class="btn-gold">Kaydet</button>
-      </div>
-    </form>
-  </div>
-</div>
 
 <script type="module">
   import { requireAuth, signOut } from '../js/auth.js'
-  import { getPersonel, renderUserInfo, populateSprintDropdown, formatPercent, showToast } from '../js/utils.js'
+  import { getPersonel, renderUserInfo, formatPercent, showToast } from '../js/utils.js'
   import { supabase } from '../js/supabase.js'
   import Chart from 'https://cdn.jsdelivr.net/npm/chart.js/+esm'
 
   // ── Auth guard ────────────────────────────────────────
-  let session
-  try {
-    session = await requireAuth()
-  } catch (e) {
-    // requireAuth yönlendirdi
-  }
-
-  // ── Kullanıcı bilgisi ─────────────────────────────────
-  if (session) {
-    const personel = await getPersonel(supabase, session.user.id)
-    if (personel) renderUserInfo(personel.ad, personel.soyad)
-  }
-
-  // ── Çıkış butonu ─────────────────────────────────────
+  const session = await requireAuth()
+  const personel = await getPersonel(supabase, session.user.id)
+  if (personel) renderUserInfo(personel.ad, personel.soyad)
   document.getElementById('logout-btn').addEventListener('click', signOut)
 
   // ── State ─────────────────────────────────────────────
@@ -176,7 +120,7 @@
     const { data, error } = await supabase
       .from('v_perf_gosterge_ozet')
       .select('*')
-      .order('sop')
+      .order('cg_kod')
 
     if (error) {
       showToast('Performans verileri yüklenemedi: ' + error.message, 'error')
@@ -196,10 +140,10 @@
       return
     }
 
-    // SOP gruplarına ayır
+    // SOP gruplarına ayır (kisa: view'den gelen sop kısaltması)
     const groups = {}
     rows.forEach(r => {
-      const sop = r.sop || '—'
+      const sop = r.kisa || r.sop || '—'
       if (!groups[sop]) groups[sop] = []
       groups[sop].push(r)
     })
@@ -343,91 +287,6 @@
       })
     }
   }
-
-  // ── Modal: Gerçekleşme Giriş ──────────────────────────
-  async function loadModalDropdowns() {
-    // Sprint dropdown
-    const { data: sprintler } = await supabase
-      .from('sprint_veri')
-      .select('sprint_donem, sprint_adi, baslangic, bitis')
-      .order('sprint_donem')
-    if (sprintler) {
-      populateSprintDropdown(document.getElementById('gir-sprint'), sprintler)
-    }
-
-    // CG Kod dropdown
-    const cgKodSel = document.getElementById('gir-cg-kod')
-    cgKodSel.innerHTML = '<option value="">Seçiniz...</option>'
-    const { data: cgKodlar } = await supabase
-      .from('v_perf_gosterge_ozet')
-      .select('cg_kod, aciklama')
-      .order('cg_kod')
-    if (cgKodlar) {
-      cgKodlar.forEach(r => {
-        const opt = document.createElement('option')
-        opt.value = r.cg_kod
-        opt.textContent = `${r.cg_kod} — ${r.aciklama || ''}`
-        cgKodSel.appendChild(opt)
-      })
-    }
-
-    // Alt faaliyet (sno) dropdown
-    const snoSel = document.getElementById('gir-sno')
-    snoSel.innerHTML = '<option value="">Seçiniz...</option>'
-    const { data: altFaal } = await supabase
-      .from('alt_faaliyetler')
-      .select('sno, alt_faaliyet')
-      .order('sno')
-    if (altFaal) {
-      altFaal.forEach(r => {
-        const opt = document.createElement('option')
-        opt.value = r.sno
-        opt.textContent = `${r.sno} — ${r.alt_faaliyet || ''}`
-        snoSel.appendChild(opt)
-      })
-    }
-  }
-
-  document.getElementById('btn-modal-kapat').addEventListener('click', () => {
-    document.getElementById('modal-gerceklesme').classList.add('hidden')
-    document.getElementById('form-gerceklesme').reset()
-  })
-
-  document.getElementById('modal-gerceklesme').addEventListener('click', (e) => {
-    if (e.target === e.currentTarget) {
-      e.currentTarget.classList.add('hidden')
-      document.getElementById('form-gerceklesme').reset()
-    }
-  })
-
-  document.getElementById('form-gerceklesme').addEventListener('submit', async (e) => {
-    e.preventDefault()
-    const sprintDonem = document.getElementById('gir-sprint').value
-    const cgKod = document.getElementById('gir-cg-kod').value
-    const sno = document.getElementById('gir-sno').value
-    const yil = parseInt(document.getElementById('gir-yil').value)
-    const tamamlanmaDonem = document.getElementById('gir-donem').value
-    const gerceklesen = parseFloat(document.getElementById('gir-gerceklesen').value)
-
-    if (!sprintDonem || !cgKod || !sno || isNaN(yil) || isNaN(gerceklesen)) {
-      showToast('Lütfen tüm alanları doldurun.', 'error')
-      return
-    }
-
-    const { error } = await supabase
-      .from('sprint_perf_gos')
-      .insert([{ sprint_donem: sprintDonem, cg_kod: cgKod, sno, yil, tamamlanma_donemi: tamamlanmaDonem || null, gerceklesen }])
-
-    if (error) {
-      showToast('Kayıt başarısız: ' + error.message, 'error')
-      return
-    }
-
-    showToast('Gerçekleşme kaydedildi.', 'success')
-    document.getElementById('modal-gerceklesme').classList.add('hidden')
-    document.getElementById('form-gerceklesme').reset()
-    await loadPerfData()
-  })
 
   // ── Başlat ────────────────────────────────────────────
   await loadPerfData()

@@ -43,8 +43,10 @@ try {
 async function loadReferenceData() {
   const [sprintRes, personelRes, altFaalRes, perfGosRes] = await Promise.all([
     supabase.from('sprint_veri').select('sprint_donem,sprint_adi,baslangic,bitis').order('sprint_donem', { ascending: false }),
-    supabase.from('personel').select('ad,soyad,rol_kodu').order('ad'),
-    supabase.from('alt_faaliyetler').select('sno,fkod,sop,kategori,faaliyet,alt_faaliyet').order('sno'),
+    supabase.from('personel').select('pkod,ad,soyad,rol_kodu').order('ad'),
+    supabase.from('alt_faaliyetler')
+      .select('sno,fkod,alt_faaliyet,p_sure,faaliyetler(skod,kkod,faaliyet,soplar(kisa),kategori_tipleri(kategori_adi))')
+      .order('sno'),
     supabase.from('perf_gostergeler').select('cg_kod,cikti_gostergesi').order('cg_kod')
   ])
 
@@ -74,14 +76,14 @@ async function loadReferenceData() {
   const ekipFilter = document.getElementById('filter-ekip')
   personeller.forEach(p => {
     const opt = document.createElement('option')
-    opt.value = p.ad
+    opt.value = p.pkod
     opt.textContent = `${p.ad} ${p.soyad}`
     ekipFilter.appendChild(opt)
   })
 
-  // Kendi adını varsayılan seç
+  // Kendi pkod'unu varsayılan seç
   if (currentPersonel) {
-    ekipFilter.value = currentPersonel.ad
+    ekipFilter.value = currentPersonel.pkod
   }
 }
 
@@ -92,7 +94,7 @@ async function loadBoard() {
   const ekipVal = document.getElementById('filter-ekip').value
 
   if (sprintVal) query = query.eq('sprint_donem', sprintVal)
-  if (ekipVal) query = query.eq('ekip_uyesi', ekipVal)
+  if (ekipVal) query = query.eq('pkod', ekipVal)
 
   const { data, error } = await query
 
@@ -143,15 +145,15 @@ function buildCard(g) {
 
   const baslama = g.baslama_t ? `<span style="font-size:0.65rem;color:#94a3b8;">▶ ${formatDate(g.baslama_t)}</span>` : ''
   const tamamlanma = g.tamamlanma_t ? `<span style="font-size:0.65rem;color:#94a3b8;">✓ ${formatDate(g.tamamlanma_t)}</span>` : ''
-  const butce = g.harcanan_butce ? `<span class="badge-sure">${formatCurrency(g.harcanan_butce)}</span>` : ''
+  const ekipAdi = g.pkod ? (personeller.find(p => p.pkod === g.pkod) ?? null) : null
+  const ekipBadge = ekipAdi ? `<span class="badge-ekip">${escHtml(ekipAdi.ad)}</span>` : ''
 
   card.innerHTML = `
     <div class="card-title">${escHtml(g.sprint_faaliyetleri || '—')}</div>
     <div class="card-meta">
       <span class="badge-sno">S.${g.sno || '?'}</span>
-      ${g.ekip_uyesi ? `<span class="badge-ekip">${escHtml(g.ekip_uyesi)}</span>` : ''}
+      ${ekipBadge}
       ${g.plan_sure ? `<span class="badge-sure">${g.plan_sure}g</span>` : ''}
-      ${butce}
     </div>
     <div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap;">
       ${baslama}${tamamlanma}
@@ -195,7 +197,7 @@ async function handleDragEnd(evt) {
 
   // Standart kullanıcı yalnızca kendi görevini taşıyabilir
   const isYonetici = currentPersonel?.rol_kodu === 'yönetici'
-  if (!isYonetici && gorev.ekip_uyesi !== currentPersonel?.ad) {
+  if (!isYonetici && gorev.pkod !== currentPersonel?.pkod) {
     showToast('Sadece yönetici başkasının görevini taşıyabilir.', 'error')
     await loadBoard()
     return
@@ -331,9 +333,9 @@ function initModal() {
   const isYonetici = currentPersonel?.rol_kodu === 'yönetici'
   personeller.forEach(p => {
     const opt = document.createElement('option')
-    opt.value = p.ad
+    opt.value = p.pkod
     opt.textContent = `${p.ad} ${p.soyad}`
-    if (!isYonetici && currentPersonel && p.ad !== currentPersonel.ad) {
+    if (!isYonetici && currentPersonel && p.pkod !== currentPersonel.pkod) {
       opt.disabled = true
     }
     gEkip.appendChild(opt)
@@ -377,8 +379,8 @@ function openNewModal() {
   const sprintVal = document.getElementById('filter-sprint').value
   if (sprintVal) document.getElementById('g-sprint').value = sprintVal
 
-  // Kendi adını varsayılan yap
-  if (currentPersonel) document.getElementById('g-ekip').value = currentPersonel.ad
+  // Kendi pkod'unu varsayılan yap
+  if (currentPersonel) document.getElementById('g-ekip').value = currentPersonel.pkod
 
   // Perf göstergeler seçimini temizle
   const gPerfGos = document.getElementById('g-perf-gostergeler')
@@ -400,9 +402,8 @@ function openEditModal(g) {
   document.getElementById('g-sno-display').value = g.sno ? `S.${g.sno} — ${af?.alt_faaliyet || ''}` : ''
   document.getElementById('g-sno-hidden').value = g.sno || ''
   document.getElementById('g-plansure').value = g.plan_sure || ''
-  document.getElementById('g-ekip').value = g.ekip_uyesi || ''
+  document.getElementById('g-ekip').value = g.pkod || ''
   document.getElementById('g-durum').value = g.is_durum || ''
-  document.getElementById('g-butce').value = g.harcanan_butce || ''
   document.getElementById('modal-error').classList.add('hidden')
 
   // Performans göstergelerini seç
@@ -450,9 +451,8 @@ async function handleSave(e) {
     sprint_faaliyetleri: document.getElementById('g-faaliyetleri').value.trim(),
     sno: Number(document.getElementById('g-sno-hidden').value) || null,
     plan_sure: parseFloat(document.getElementById('g-plansure').value) || null,
-    ekip_uyesi: document.getElementById('g-ekip').value || null,
+    pkod: Number(document.getElementById('g-ekip').value) || null,
     is_durum: document.getElementById('g-durum').value || null,
-    harcanan_butce: parseFloat(document.getElementById('g-butce').value) || null,
     performans_gostergeler: secilenPerfGos
   }
 
@@ -507,9 +507,9 @@ function openAltFaaliyetModal() {
   const modal = document.getElementById('af-search-modal')
   if (!modal) return
 
-  // Dropdown'ları doldur
-  const sopSet = [...new Set(altFaaliyetler.map(a => a.sop).filter(Boolean))]
-  const katSet = [...new Set(altFaaliyetler.map(a => a.kategori).filter(Boolean))]
+  // Dropdown'ları doldur (nested faaliyetler verisi üzerinden)
+  const sopSet = [...new Set(altFaaliyetler.map(a => a.faaliyetler?.soplar?.kisa).filter(Boolean))]
+  const katSet = [...new Set(altFaaliyetler.map(a => a.faaliyetler?.kategori_tipleri?.kategori_adi).filter(Boolean))]
 
   const sopSel = document.getElementById('af-filter-sop')
   sopSel.innerHTML = '<option value="">Tüm SOPlar</option>'
@@ -530,9 +530,12 @@ function renderAltFaaliyetList() {
   const metin = document.getElementById('af-filter-metin').value.toLowerCase()
 
   const filtered = altFaaliyetler.filter(af => {
-    if (sop && af.sop !== sop) return false
-    if (kat && af.kategori !== kat) return false
-    if (metin && !af.alt_faaliyet?.toLowerCase().includes(metin) && !String(af.sno).includes(metin) && !af.faaliyet?.toLowerCase().includes(metin)) return false
+    const afSop = af.faaliyetler?.soplar?.kisa
+    const afKat = af.faaliyetler?.kategori_tipleri?.kategori_adi
+    const afFaaliyet = af.faaliyetler?.faaliyet
+    if (sop && afSop !== sop) return false
+    if (kat && afKat !== kat) return false
+    if (metin && !af.alt_faaliyet?.toLowerCase().includes(metin) && !String(af.sno).includes(metin) && !afFaaliyet?.toLowerCase().includes(metin)) return false
     return true
   })
 
@@ -545,8 +548,8 @@ function renderAltFaaliyetList() {
   tbody.innerHTML = filtered.slice(0, 100).map(af => `
     <tr style="cursor:pointer;" data-sno="${af.sno}" data-alt="${escHtml(af.alt_faaliyet || '')}">
       <td><span class="badge-sno">${af.sno}</span></td>
-      <td style="font-size:0.78rem;color:#64748b;">${escHtml(af.sop || '')}</td>
-      <td style="font-size:0.78rem;">${escHtml(af.faaliyet || '')}</td>
+      <td style="font-size:0.78rem;color:#64748b;">${escHtml(af.faaliyetler?.soplar?.kisa || '')}</td>
+      <td style="font-size:0.78rem;">${escHtml(af.faaliyetler?.faaliyet || '')}</td>
       <td style="font-size:0.78rem;">${escHtml(af.alt_faaliyet || '')}</td>
     </tr>
   `).join('')

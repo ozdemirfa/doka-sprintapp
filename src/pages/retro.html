@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Retrospektif — TR90 Sprint Kanban</title>
+  <title>Retrospektif — DOKA Sprint Kanban</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="../css/app.css" />
 </head>
@@ -25,6 +25,7 @@
       <a href="sprint-perf-gos.html"><span class="icon">📈</span> Perf. Gerçekleşmeleri</a>
       <a href="harcamalar.html"><span class="icon">💰</span> Harcamalar</a>
       <a href="izinler.html"><span class="icon">🗓️</span> İzinler & Saha</a>
+      <a href="ayarlar.html"><span class="icon">⚙️</span> Ayarlar</a>
     </nav>
     <div class="sidebar-footer">
       <div class="user-info"><strong id="user-name">Yükleniyor...</strong>Ekip Üyesi</div>
@@ -54,9 +55,9 @@
                 <select id="sprint-select" class="form-control" required></select>
               </div>
 
-              <!-- Kişi (salt okunur) -->
+              <!-- Kişi (salt okunur, oturum açmış kullanıcı) -->
               <div class="form-group">
-                <label>Ad Soyad</label>
+                <label>Kişi</label>
                 <input type="text" id="retro-ad" class="form-control" readonly
                   style="background:#f1f5f9;color:#64748b;cursor:not-allowed;" value="Yükleniyor..." />
               </div>
@@ -91,9 +92,9 @@
                 <input type="range" id="hakkinda-slider" min="1" max="10" value="5" />
               </div>
 
-              <!-- G.ort -->
+              <!-- A.ort -->
               <div style="background:var(--gold-pale);border:1px solid #fde68a;border-radius:8px;padding:14px 16px;margin-bottom:20px;">
-                <div style="font-size:0.72rem;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;color:#92400e;margin-bottom:4px;">Hepiniss G.ort</div>
+                <div style="font-size:0.72rem;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;color:#92400e;margin-bottom:4px;">Hepiniss A.ort</div>
                 <div id="gort-display" style="font-size:2.5rem;font-weight:800;color:var(--navy);">5.00</div>
               </div>
 
@@ -113,11 +114,11 @@
                 <thead>
                   <tr>
                     <th>Sprint</th>
-                    <th>Ad Soyad</th>
+                    <th>Kişi</th>
                     <th style="text-align:center;">Org. Puanı</th>
                     <th style="text-align:center;">Ajanstaki Rolü</th>
                     <th style="text-align:center;">Ajans Hakkında</th>
-                    <th style="text-align:center;">G.ort</th>
+                    <th style="text-align:center;">A.ort</th>
                     <th>Tarih</th>
                   </tr>
                 </thead>
@@ -147,6 +148,15 @@
     renderUserInfo(personel.ad, personel.soyad)
     document.getElementById('retro-ad').value = `${personel.ad} ${personel.soyad}`
   }
+
+  // ── Personel Listesi (ad lookup için) ────────────────────────────
+  const { data: personelListesi } = await supabase
+    .from('personel')
+    .select('pkod, ad, soyad')
+    .order('ad')
+  const personelMap = Object.fromEntries(
+    (personelListesi || []).map(p => [p.pkod, `${p.ad} ${p.soyad}`])
+  )
 
   document.getElementById('logout-btn').addEventListener('click', () => signOut())
 
@@ -210,15 +220,16 @@
     }
 
     tbody.innerHTML = data.map(r => {
-      const gort = calcGort(r.ajanstaki_rolu || 0, r.ajans_hakkinda || 0)
+      const kisi = r.pkod ? (personelMap[r.pkod] ?? `#${r.pkod}`) : '—'
+      const aort = r.aort ?? calcGort(r.ajanstaki_rolu || 0, r.ajans_hakkinda || 0)
       return `
         <tr>
           <td>${r.sprint_donem ?? '—'}</td>
-          <td>${r.ad ?? '—'}</td>
+          <td>${kisi}</td>
           <td style="text-align:center;">${r.org_puan ?? '—'}</td>
           <td style="text-align:center;">${r.ajanstaki_rolu ?? '—'}</td>
           <td style="text-align:center;">${r.ajans_hakkinda ?? '—'}</td>
-          <td style="text-align:center;font-weight:700;color:var(--navy);">${gort.toFixed(2)}</td>
+          <td style="text-align:center;font-weight:700;color:var(--navy);">${Number(aort).toFixed(2)}</td>
           <td>${formatDate(r.created_at)}</td>
         </tr>
       `
@@ -231,15 +242,17 @@
   document.getElementById('retro-form').addEventListener('submit', async (e) => {
     e.preventDefault()
 
-    const sprintDonem  = sprintSelect.value
-    const ad           = personel ? `${personel.ad} ${personel.soyad}` : ''
-    const orgPuan      = parseInt(orgSlider.value)
+    const sprintDonem   = sprintSelect.value
+    const orgPuan       = parseInt(orgSlider.value)
     const ajanstakiRolu = parseInt(rolSlider.value)
     const ajansHakkinda = parseInt(hakkindaSlider.value)
-    const gort         = calcGort(ajanstakiRolu, ajansHakkinda)
 
     if (!sprintDonem) {
       showToast('Lütfen bir sprint seçin.', 'warning')
+      return
+    }
+    if (!personel?.pkod) {
+      showToast('Kullanıcı bilgisi alınamadı.', 'error')
       return
     }
 
@@ -249,11 +262,10 @@
 
     const { error } = await supabase.from('sprint_retro').insert({
       sprint_donem:    sprintDonem,
-      ad:              ad,
+      pkod:            personel.pkod,
       org_puan:        orgPuan,
       ajanstaki_rolu:  ajanstakiRolu,
-      ajans_hakkinda:  ajansHakkinda,
-      gort:            gort
+      ajans_hakkinda:  ajansHakkinda
     })
 
     submitBtn.disabled = false

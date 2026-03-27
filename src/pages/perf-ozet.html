@@ -29,6 +29,7 @@
       <a href="sprint-perf-gos.html"><span class="icon">📈</span> Perf. Gerçekleşmeleri</a>
       <a href="harcamalar.html"><span class="icon">💰</span> Harcamalar</a>
       <a href="izinler.html"><span class="icon">🗓️</span> İzinler & Saha</a>
+      <a href="ayarlar.html"><span class="icon">⚙️</span> Ayarlar</a>
     </nav>
     <div class="sidebar-footer">
       <div class="user-info"><strong id="user-name">Yükleniyor...</strong>Ekip Üyesi</div>
@@ -96,7 +97,7 @@
   async function loadData() {
     const { data, error } = await supabase
       .from('perf_gostergeler')
-      .select('*')
+      .select('*, soplar(kisa)')
       .order('cg_kod')
 
     if (error) {
@@ -104,10 +105,10 @@
       return
     }
 
-    allData = data || []
+    allData = (data || []).map(r => ({ ...r, sop: r.soplar?.kisa ?? null }))
 
     // SOP filtre dropdown
-    const sopSet = [...new Set(allData.map(r => r.sop).filter(Boolean))]
+    const sopSet = [...new Set(allData.map(r => r.sop).filter(Boolean))].sort()
     const filterSop = document.getElementById('filter-sop')
     filterSop.innerHTML = '<option value="">Tüm SOPlar</option>'
     sopSet.forEach(s => {

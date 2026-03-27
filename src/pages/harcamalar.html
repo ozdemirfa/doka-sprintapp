@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Harcamalar — TR90 Sprint Kanban</title>
+  <title>Harcamalar — DOKA Sprint Kanban</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="../css/app.css">
 </head>
@@ -17,30 +17,15 @@
       <p>Sprint Kanban Sistemi</p>
     </div>
     <nav>
-      <a href="../index.html">
-        <span class="icon">📋</span> Kanban Board
-      </a>
-      <a href="sprint-ozet.html">
-        <span class="icon">📊</span> Sprint Özet
-      </a>
-      <a href="faaliyetler.html">
-        <span class="icon">📁</span> Faaliyetler
-      </a>
-      <a href="retro.html">
-        <span class="icon">🔁</span> Retrospektif
-      </a>
-      <a href="performans.html">
-        <span class="icon">🎯</span> Perf. Özeti
-      </a>
-      <a href="sprint-perf-gos.html">
-        <span class="icon">📈</span> Perf. Gerçekleşmeleri
-      </a>
-      <a href="harcamalar.html" class="active">
-        <span class="icon">💰</span> Harcamalar
-      </a>
-      <a href="izinler.html">
-        <span class="icon">🗓️</span> İzinler & Saha
-      </a>
+      <a href="../index.html"><span class="icon">📋</span> Kanban Board</a>
+      <a href="sprint-ozet.html"><span class="icon">📊</span> Sprint Özet</a>
+      <a href="faaliyetler.html"><span class="icon">📁</span> Faaliyetler</a>
+      <a href="retro.html"><span class="icon">🔁</span> Retrospektif</a>
+      <a href="performans.html"><span class="icon">🎯</span> Perf. Özeti</a>
+      <a href="sprint-perf-gos.html"><span class="icon">📈</span> Perf. Gerçekleşmeleri</a>
+      <a href="harcamalar.html" class="active"><span class="icon">💰</span> Harcamalar</a>
+      <a href="izinler.html"><span class="icon">🗓️</span> İzinler & Saha</a>
+      <a href="ayarlar.html"><span class="icon">⚙️</span> Ayarlar</a>
     </nav>
     <div class="sidebar-footer">
       <div class="user-info">
@@ -68,7 +53,7 @@
         </div>
         <div class="metric-card">
           <div class="metric-value" id="metric-is-plani-butce">—</div>
-          <div class="metric-label">Sprint İş Planı Bütçe</div>
+          <div class="metric-label">İş Planı Toplam Bütçe</div>
         </div>
         <div class="metric-card">
           <div class="metric-value" id="metric-fark">—</div>
@@ -81,12 +66,6 @@
         <select id="filter-sprint" class="form-control" style="width:auto;min-width:220px;">
           <option value="">Tüm Sprintler</option>
         </select>
-        <select id="filter-durum" class="form-control" style="width:auto;min-width:140px;">
-          <option value="">Tüm Durumlar</option>
-          <option value="Bekliyor">Bekliyor</option>
-          <option value="Ödendi">Ödendi</option>
-          <option value="İptal">İptal</option>
-        </select>
       </div>
 
       <!-- Harcamalar Tablosu -->
@@ -95,19 +74,17 @@
           <thead>
             <tr>
               <th>ID</th>
-              <th>Sprint</th>
-              <th>S.No</th>
+              <th>İş Planı</th>
               <th>Açıklama</th>
               <th style="text-align:right;">KDV'li Tutar</th>
               <th>Ödeme Dönemi</th>
-              <th>Durum</th>
-              <th>Son Güncelleme</th>
+              <th>Onay Tarihi</th>
               <th>Güncelleyen</th>
             </tr>
           </thead>
           <tbody id="harcamalar-tbody">
             <tr>
-              <td colspan="9" style="text-align:center;color:#94a3b8;padding:32px;">Veriler yükleniyor...</td>
+              <td colspan="7" style="text-align:center;color:#94a3b8;padding:32px;">Veriler yükleniyor...</td>
             </tr>
           </tbody>
         </table>
@@ -139,30 +116,21 @@
 
 <!-- Yeni Harcama Modalı -->
 <div class="modal-overlay hidden" id="modal-harcama">
-  <div class="modal-box" style="max-width:560px;">
+  <div class="modal-box" style="max-width:520px;">
     <h3>Yeni Harcama</h3>
     <form id="form-harcama">
 
       <div class="form-group">
-        <label for="hir-sprint">Sprint Dönemi</label>
-        <select id="hir-sprint" class="form-control" required></select>
-      </div>
-
-      <div class="form-group">
-        <label for="hir-faaliyet">Sprint Faaliyeti</label>
-        <input type="text" id="hir-faaliyet" class="form-control" placeholder="İlgili faaliyet adı (opsiyonel)">
-      </div>
-
-      <div class="form-group">
-        <label for="hir-sno">Alt Faaliyet (S.No)</label>
-        <select id="hir-sno" class="form-control" required>
+        <label for="hir-is-plani">İş Planı Kalemi</label>
+        <select id="hir-is-plani" class="form-control" required>
           <option value="">Seçiniz...</option>
         </select>
       </div>
 
       <div class="form-group">
         <label for="hir-aciklama">Açıklama</label>
-        <textarea id="hir-aciklama" class="form-control" rows="2" placeholder="Harcama açıklaması..." required></textarea>
+        <textarea id="hir-aciklama" class="form-control" rows="2"
+          placeholder="Harcama açıklaması..." required></textarea>
       </div>
 
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
@@ -176,18 +144,14 @@
         </div>
       </div>
 
-      <!-- Çoklu Ödeme Dönemi -->
-      <div class="form-group">
-        <label style="display:flex;justify-content:space-between;align-items:center;">
-          Ödeme Dönemleri
-          <button type="button" id="btn-donem-ekle" class="btn-secondary" style="padding:3px 10px;font-size:0.78rem;">+ Dönem Ekle</button>
-        </label>
-        <div id="odeme-donemler-container">
-          <div class="odeme-donem-row" style="display:grid;grid-template-columns:1fr 1fr auto;gap:8px;margin-bottom:6px;">
-            <input type="text" class="form-control donem-donem" placeholder="2026/1" required>
-            <input type="number" class="form-control donem-tutar" placeholder="Tutar (₺)" step="0.01" min="0" required>
-            <button type="button" class="btn-danger donem-sil" style="padding:4px 8px;display:none;">✕</button>
-          </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div class="form-group">
+          <label for="hir-tutar">KDV'li Tutar (₺)</label>
+          <input type="number" id="hir-tutar" class="form-control" step="0.01" min="0" required>
+        </div>
+        <div class="form-group">
+          <label for="hir-odeme-donem">Ödeme Dönemi</label>
+          <input type="text" id="hir-odeme-donem" class="form-control" placeholder="ör: 2026/1">
         </div>
       </div>
 
@@ -201,40 +165,29 @@
 
 <script type="module">
   import { requireAuth, signOut } from '../js/auth.js'
-  import { getPersonel, renderUserInfo, populateSprintDropdown, formatCurrency, formatDate, showToast, todayISO } from '../js/utils.js'
+  import { getPersonel, renderUserInfo, formatCurrency, formatDate, showToast, todayISO } from '../js/utils.js'
   import { supabase } from '../js/supabase.js'
 
   // ── Auth guard ────────────────────────────────────────
-  let session
-  try {
-    session = await requireAuth()
-  } catch (e) {
-    // requireAuth yönlendirdi
-  }
-
-  // ── Kullanıcı bilgisi ─────────────────────────────────
-  if (session) {
-    const personel = await getPersonel(supabase, session.user.id)
-    if (personel) renderUserInfo(personel.ad, personel.soyad)
-  }
-
-  // ── Çıkış butonu ─────────────────────────────────────
+  const session = await requireAuth()
+  const personel = await getPersonel(supabase, session.user.id)
+  if (personel) renderUserInfo(personel.ad, personel.soyad)
   document.getElementById('logout-btn').addEventListener('click', signOut)
 
   // ── State ─────────────────────────────────────────────
   let allHarcamalar = []
+  let isPlaniMap = {}   // id → label string
   let sprintler = []
 
   // ── Veri çekme ────────────────────────────────────────
   async function loadData() {
-    // Sprint listesi
+    // Sprint listesi (filtre için)
     const { data: sprintData } = await supabase
       .from('sprint_veri')
       .select('sprint_donem, sprint_adi, baslangic, bitis')
       .order('sprint_donem')
     sprintler = sprintData || []
 
-    // Sprint filtre dropdown
     const filterSprint = document.getElementById('filter-sprint')
     filterSprint.innerHTML = '<option value="">Tüm Sprintler</option>'
     sprintler.forEach(s => {
@@ -242,6 +195,19 @@
       opt.value = s.sprint_donem
       opt.textContent = `${s.sprint_donem} — ${s.sprint_adi || ''}`
       filterSprint.appendChild(opt)
+    })
+
+    // İş planı kayıtları (lookup ve tablo join için)
+    const { data: isPlaniData } = await supabase
+      .from('sprint_is_plani')
+      .select('id, sprint_donem, pkod, sno, butce, personel(ad, soyad), alt_faaliyetler(sno, alt_faaliyet)')
+      .order('sprint_donem')
+
+    isPlaniMap = {}
+    ;(isPlaniData || []).forEach(ip => {
+      const adSoyad = ip.personel ? `${ip.personel.ad} ${ip.personel.soyad}` : `pkod:${ip.pkod}`
+      const altFaaliyet = ip.alt_faaliyetler?.alt_faaliyet || `S${ip.sno}`
+      isPlaniMap[ip.id] = `[${ip.sprint_donem}] ${adSoyad} — ${altFaaliyet}`
     })
 
     // Harcamalar
@@ -258,17 +224,17 @@
 
     renderTable(allHarcamalar)
     renderOdemeDonemiOzet(allHarcamalar)
-    await updateMetrics(allHarcamalar)
+    updateMetrics(allHarcamalar, isPlaniData || [])
   }
 
   // ── Metrik Kartları ───────────────────────────────────
-  async function updateMetrics(filteredHarcamalar) {
+  function updateMetrics(filteredHarcamalar, isPlaniData) {
     const sprintVal = document.getElementById('filter-sprint').value
-    let ipQuery = supabase.from('sprint_is_plani').select('harcanan_butce')
-    if (sprintVal) ipQuery = ipQuery.eq('sprint_donem', sprintVal)
-    const { data: ipData } = await ipQuery
+    const filteredIsPlani = sprintVal
+      ? isPlaniData.filter(ip => String(ip.sprint_donem) === String(sprintVal))
+      : isPlaniData
 
-    const totalIsPlani = (ipData || []).reduce((s, r) => s + (r.harcanan_butce ?? 0), 0)
+    const totalIsPlani = filteredIsPlani.reduce((s, r) => s + (r.butce ?? 0), 0)
     const totalHarcama = filteredHarcamalar.reduce((s, r) => s + (r.odenecek_kdvli ?? 0), 0)
     const fark = totalIsPlani - totalHarcama
 
@@ -283,57 +249,30 @@
   function renderTable(rows) {
     const tbody = document.getElementById('harcamalar-tbody')
     if (!rows.length) {
-      tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;color:#94a3b8;padding:32px;">Veri bulunamadı.</td></tr>'
+      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#94a3b8;padding:32px;">Veri bulunamadı.</td></tr>'
       return
     }
 
-    tbody.innerHTML = rows.map(r => {
-      const durumBadge = getDurumBadge(r.durum)
-      return `
-        <tr>
-          <td style="color:#64748b;font-size:0.75rem;">${r.id ?? '—'}</td>
-          <td>${r.sprint_donem ?? '—'}</td>
-          <td><span class="badge-sno">${r.sno ?? '—'}</span></td>
-          <td style="max-width:240px;">${r.aciklama ?? '—'}</td>
-          <td style="text-align:right;font-weight:600;">${formatCurrency(r.odenecek_kdvli)}</td>
-          <td>${r.odeme_donem ?? '—'}</td>
-          <td>${durumBadge}</td>
-          <td style="font-size:0.75rem;color:#64748b;">${formatDate(r.guncel_tarih)}</td>
-          <td style="font-size:0.75rem;color:#64748b;">${r.guncelleyen ?? '—'}</td>
-        </tr>
-      `
-    }).join('')
+    tbody.innerHTML = rows.map(r => `
+      <tr>
+        <td style="color:#64748b;font-size:0.75rem;">${r.id ?? '—'}</td>
+        <td style="font-size:0.8rem;">${r.sprint_is_plani_id ? (isPlaniMap[r.sprint_is_plani_id] ?? `#${r.sprint_is_plani_id}`) : '—'}</td>
+        <td style="max-width:240px;">${r.aciklama ?? '—'}</td>
+        <td style="text-align:right;font-weight:600;">${formatCurrency(r.odenecek_kdvli)}</td>
+        <td>${r.odeme_donem ?? '—'}</td>
+        <td style="font-size:0.8rem;">${formatDate(r.onay_tarihi)}</td>
+        <td style="font-size:0.75rem;color:#64748b;">${r.guncelleyen ?? '—'}</td>
+      </tr>
+    `).join('')
   }
 
-  function getDurumBadge(durum) {
-    if (!durum) return '—'
-    if (durum === 'Ödendi') {
-      return `<span style="background:#dcfce7;color:#15803d;border-radius:9999px;padding:2px 10px;font-size:0.72rem;font-weight:600;">Ödendi</span>`
-    }
-    if (durum === 'İptal') {
-      return `<span style="background:#fee2e2;color:#b91c1c;border-radius:9999px;padding:2px 10px;font-size:0.72rem;font-weight:600;">İptal</span>`
-    }
-    // Bekliyor (default)
-    return `<span style="background:#fef3c7;color:#92400e;border-radius:9999px;padding:2px 10px;font-size:0.72rem;font-weight:600;">Bekliyor</span>`
-  }
-
-  // ── Ödeme Dönemi Özet Tablosu ─────────────────────────
+  // ── Ödeme Dönemi Özet ─────────────────────────────────
   function renderOdemeDonemiOzet(rows) {
     const tbody = document.getElementById('odeme-ozet-tbody')
     const grouped = {}
     rows.forEach(r => {
-      if (r.odeme_kalemleri && Array.isArray(r.odeme_kalemleri)) {
-        // Çoklu ödeme dönemi JSONB array'i varsa her kalemi özete ekle
-        r.odeme_kalemleri.forEach(k => {
-          const donem = k.donem || 'Belirsiz'
-          grouped[donem] = (grouped[donem] || 0) + (Number(k.tutar) || 0)
-        })
-      } else if (r.odeme_donem) {
-        // Geriye dönük uyumluluk: tek dönem
-        grouped[r.odeme_donem] = (grouped[r.odeme_donem] || 0) + (r.odenecek_kdvli ?? 0)
-      } else {
-        grouped['Belirsiz'] = (grouped['Belirsiz'] || 0) + (r.odenecek_kdvli ?? 0)
-      }
+      const donem = r.odeme_donem || 'Belirsiz'
+      grouped[donem] = (grouped[donem] || 0) + (r.odenecek_kdvli ?? 0)
     })
 
     const entries = Object.entries(grouped).sort((a, b) => a[0].localeCompare(b[0]))
@@ -351,70 +290,41 @@
   }
 
   // ── Filtreler ─────────────────────────────────────────
-  async function applyFilters() {
+  document.getElementById('filter-sprint').addEventListener('change', async () => {
     const sprintVal = document.getElementById('filter-sprint').value
-    const durumVal = document.getElementById('filter-durum').value
     let filtered = allHarcamalar
 
     if (sprintVal) {
-      filtered = filtered.filter(r => String(r.sprint_donem) === String(sprintVal))
-    }
-    if (durumVal) {
-      filtered = filtered.filter(r => r.durum === durumVal)
+      // sprint_is_plani_id üzerinden sprint filtresi
+      const idsInSprint = Object.entries(isPlaniMap)
+        .filter(([, label]) => label.startsWith(`[${sprintVal}]`))
+        .map(([id]) => Number(id))
+      filtered = filtered.filter(r => idsInSprint.includes(r.sprint_is_plani_id))
     }
 
     renderTable(filtered)
     renderOdemeDonemiOzet(filtered)
-    await updateMetrics(filtered)
-  }
 
-  document.getElementById('filter-sprint').addEventListener('change', applyFilters)
-  document.getElementById('filter-durum').addEventListener('change', applyFilters)
+    const { data: isPlaniData } = await supabase
+      .from('sprint_is_plani')
+      .select('id, sprint_donem, butce')
+    updateMetrics(filtered, isPlaniData || [])
+  })
 
   // ── Modal: Yeni Harcama ───────────────────────────────
-  async function loadModalDropdowns() {
-    // Sprint dropdown (modal)
-    const modalSprint = document.getElementById('hir-sprint')
-    modalSprint.innerHTML = ''
-    populateSprintDropdown(modalSprint, sprintler)
-
-    // Alt faaliyet (sno) dropdown
-    const snoSel = document.getElementById('hir-sno')
-    snoSel.innerHTML = '<option value="">Seçiniz...</option>'
-    const { data: altFaal } = await supabase
-      .from('alt_faaliyetler')
-      .select('sno, alt_faaliyet')
-      .order('sno')
-    if (altFaal) {
-      altFaal.forEach(r => {
-        const opt = document.createElement('option')
-        opt.value = r.sno
-        opt.textContent = `${r.sno} — ${r.alt_faaliyet || ''}`
-        snoSel.appendChild(opt)
-      })
-    }
-  }
-
-  // Çoklu dönem satırı ekle/sil
-  document.getElementById('btn-donem-ekle').addEventListener('click', () => {
-    const container = document.getElementById('odeme-donemler-container')
-    const ilkRow = container.querySelector('.odeme-donem-row')
-    const newRow = ilkRow.cloneNode(true)
-    newRow.querySelectorAll('input').forEach(i => i.value = '')
-    const silBtn = newRow.querySelector('.donem-sil')
-    silBtn.style.display = ''
-    silBtn.addEventListener('click', () => newRow.remove())
-    container.appendChild(newRow)
-  })
-
-  document.getElementById('odeme-donemler-container').addEventListener('click', (e) => {
-    if (e.target.classList.contains('donem-sil')) {
-      e.target.closest('.odeme-donem-row').remove()
-    }
-  })
-
   document.getElementById('btn-yeni-harcama').addEventListener('click', async () => {
-    await loadModalDropdowns()
+    // İş planı dropdown yenile
+    const isSel = document.getElementById('hir-is-plani')
+    isSel.innerHTML = '<option value="">Seçiniz...</option>'
+    Object.entries(isPlaniMap)
+      .sort((a, b) => a[1].localeCompare(b[1]))
+      .forEach(([id, label]) => {
+        const opt = document.createElement('option')
+        opt.value = id
+        opt.textContent = label
+        isSel.appendChild(opt)
+      })
+
     document.getElementById('modal-harcama').classList.remove('hidden')
   })
 
@@ -432,51 +342,29 @@
 
   document.getElementById('form-harcama').addEventListener('submit', async (e) => {
     e.preventDefault()
-    const sprintDonem = document.getElementById('hir-sprint').value
-    const sprintFaaliyet = document.getElementById('hir-faaliyet').value.trim()
-    const sno = document.getElementById('hir-sno').value
-    const aciklama = document.getElementById('hir-aciklama').value.trim()
-    const onayKodu = document.getElementById('hir-onay-kodu').value.trim()
-    const onayTarihi = document.getElementById('hir-onay-tarihi').value || null
+    const sprintIsPlaniId = Number(document.getElementById('hir-is-plani').value)
+    const aciklama        = document.getElementById('hir-aciklama').value.trim()
+    const onayKodu        = document.getElementById('hir-onay-kodu').value.trim()
+    const onayTarihi      = document.getElementById('hir-onay-tarihi').value || null
+    const odenecekKdvli   = parseFloat(document.getElementById('hir-tutar').value)
+    const odemeDonem      = document.getElementById('hir-odeme-donem').value.trim() || null
 
-    // Ödeme dönemleri
-    const donemRows = document.querySelectorAll('#odeme-donemler-container .odeme-donem-row')
-    const donemler = []
-    let valid = true
-    donemRows.forEach(row => {
-      const donem = row.querySelector('.donem-donem').value.trim()
-      const tutar = parseFloat(row.querySelector('.donem-tutar').value)
-      if (!donem || isNaN(tutar)) { valid = false; return }
-      donemler.push({ donem, tutar })
-    })
-
-    if (!sprintDonem || !sno || !aciklama || !valid || donemler.length === 0) {
-      showToast('Lütfen tüm zorunlu alanları doldurun.', 'error')
+    if (!sprintIsPlaniId || !aciklama || isNaN(odenecekKdvli)) {
+      showToast('Lütfen zorunlu alanları doldurun.', 'error')
       return
     }
 
-    // İlk dönemin tutarını ana alana yaz (geriye dönük uyumluluk)
-    const ilkDonem = donemler[0]
-    const odenecekKdvli = donemler.reduce((s, d) => s + d.tutar, 0)
-
-    let guncelleyen = null
-    if (session) {
-      const personel = await getPersonel(supabase, session.user.id)
-      if (personel) guncelleyen = `${personel.ad} ${personel.soyad}`
-    }
+    const guncelleyen = personel ? `${personel.ad} ${personel.soyad}` : null
 
     const { error } = await supabase
       .from('harcamalar')
       .insert([{
-        sprint_donem:       Number(sprintDonem),
-        sprint_faaliyet:    sprintFaaliyet || null,
-        sno:                Number(sno),
+        sprint_is_plani_id: sprintIsPlaniId,
         aciklama,
         harcama_onay_kodu:  onayKodu || null,
         onay_tarihi:        onayTarihi,
         odenecek_kdvli:     odenecekKdvli,
-        odeme_donem:        ilkDonem.donem,
-        odeme_kalemleri:    donemler.length > 1 ? donemler : null,
+        odeme_donem:        odemeDonem,
         guncel_tarih:       todayISO(),
         guncelleyen
       }])
@@ -489,10 +377,8 @@
     showToast('Harcama kaydedildi.', 'success')
     document.getElementById('modal-harcama').classList.add('hidden')
     document.getElementById('form-harcama').reset()
-    // State ve metrikleri yenile
     allHarcamalar = []
     document.getElementById('filter-sprint').value = ''
-    document.getElementById('filter-durum').value = ''
     await loadData()
   })
 

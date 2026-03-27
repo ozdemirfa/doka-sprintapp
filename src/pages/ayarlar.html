@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ayarlar — DOKA Sprint Kanban</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="../css/app.css" />
+  <style>
+    .tab-btn { padding:8px 18px;border-radius:6px 6px 0 0;font-size:0.82rem;font-weight:600;cursor:pointer;border:none;background:#e2e8f0;color:#475569;transition:all .15s; }
+    .tab-btn.active { background:var(--navy);color:#fff; }
+    .tab-panel { display:none; }
+    .tab-panel.active { display:block; }
+    .inline-form { display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;padding:14px 16px;background:#f8fafc;border-top:1px solid #e2e8f0; }
+    .inline-form .form-control { max-width:200px; }
+    .row-action { padding:2px 8px;font-size:0.75rem;border-radius:4px;cursor:pointer;border:1px solid; }
+    .row-edit { background:#eff6ff;color:#1d4ed8;border-color:#bfdbfe; }
+    .row-del  { background:#fee2e2;color:#b91c1c;border-color:#fca5a5; }
+  </style>
+</head>
+<body>
+<div class="app-layout">
+
+  <!-- Sidebar -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <h1>DOKA</h1>
+      <p>Sprint Kanban Sistemi</p>
+    </div>
+    <nav>
+      <a href="../index.html"><span class="icon">📋</span> Kanban Board</a>
+      <a href="sprint-ozet.html"><span class="icon">📊</span> Sprint Özet</a>
+      <a href="faaliyetler.html"><span class="icon">📁</span> Faaliyetler</a>
+      <a href="retro.html"><span class="icon">🔁</span> Retrospektif</a>
+      <a href="performans.html"><span class="icon">🎯</span> Perf. Özeti</a>
+      <a href="sprint-perf-gos.html"><span class="icon">📈</span> Perf. Gerçekleşmeleri</a>
+      <a href="harcamalar.html"><span class="icon">💰</span> Harcamalar</a>
+      <a href="izinler.html"><span class="icon">🗓️</span> İzinler & Saha</a>
+      <a href="ayarlar.html" class="active"><span class="icon">⚙️</span> Ayarlar</a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="user-info"><strong id="user-name">Yükleniyor...</strong>Yönetici</div>
+      <button class="btn-logout" id="logout-btn">⇐ Çıkış Yap</button>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="main-content">
+    <div class="page-header">
+      <h2>⚙️ Ayarlar</h2>
+    </div>
+
+    <div class="page-body">
+
+      <!-- Tab Başlıkları -->
+      <div style="display:flex;gap:4px;margin-bottom:0;border-bottom:2px solid var(--navy);">
+        <button class="tab-btn active" data-tab="soplar">SOP'lar</button>
+        <button class="tab-btn" data-tab="kategoriler">Kategoriler</button>
+        <button class="tab-btn" data-tab="perf-gostergeler">Perf. Göstergeleri</button>
+        <button class="tab-btn" data-tab="personel">Personel</button>
+        <button class="tab-btn" data-tab="sprint-donemler">Sprint Dönemleri</button>
+      </div>
+
+      <!-- ───── SOP'lar ───── -->
+      <div class="tab-panel active metric-card" id="tab-soplar" style="border-radius:0 6px 6px 6px;padding:0;overflow:hidden;">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>skod</th>
+              <th>Kısa</th>
+              <th>SOP Adı</th>
+              <th>Başlangıç Yılı</th>
+              <th>Bitiş Yılı</th>
+              <th style="text-align:center;">İşlem</th>
+            </tr>
+          </thead>
+          <tbody id="soplar-tbody">
+            <tr><td colspan="6" style="text-align:center;color:#94a3b8;padding:24px;">Yükleniyor...</td></tr>
+          </tbody>
+        </table>
+        <div class="inline-form" id="soplar-form-area">
+          <input type="text" id="sop-kisa" class="form-control" placeholder="Kısa (3 BÜYÜK)" maxlength="3" style="max-width:100px;">
+          <input type="text" id="sop-adi" class="form-control" placeholder="SOP Adı" style="max-width:280px;">
+          <input type="number" id="sop-bas" class="form-control" placeholder="Başlangıç" style="max-width:110px;">
+          <input type="number" id="sop-bit" class="form-control" placeholder="Bitiş" style="max-width:110px;">
+          <button class="btn-gold" id="btn-sop-ekle">+ Ekle</button>
+        </div>
+      </div>
+
+      <!-- ───── Kategoriler ───── -->
+      <div class="tab-panel metric-card" id="tab-kategoriler" style="border-radius:0 6px 6px 6px;padding:0;overflow:hidden;">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>kkod</th>
+              <th>Kategori Adı</th>
+              <th style="text-align:center;">İşlem</th>
+            </tr>
+          </thead>
+          <tbody id="kategoriler-tbody">
+            <tr><td colspan="3" style="text-align:center;color:#94a3b8;padding:24px;">Yükleniyor...</td></tr>
+          </tbody>
+        </table>
+        <div class="inline-form">
+          <input type="text" id="kat-adi" class="form-control" placeholder="Kategori Adı" style="max-width:280px;">
+          <button class="btn-gold" id="btn-kat-ekle">+ Ekle</button>
+        </div>
+      </div>
+
+      <!-- ───── Perf. Göstergeleri ───── -->
+      <div class="tab-panel metric-card" id="tab-perf-gostergeler" style="border-radius:0 6px 6px 6px;padding:0;overflow:hidden;">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>CG Kodu</th>
+              <th>SOP</th>
+              <th>Kategori</th>
+              <th>Çıktı Göstergesi</th>
+              <th>Açıklama</th>
+              <th style="text-align:center;">İşlem</th>
+            </tr>
+          </thead>
+          <tbody id="pg-tbody">
+            <tr><td colspan="6" style="text-align:center;color:#94a3b8;padding:24px;">Yükleniyor...</td></tr>
+          </tbody>
+        </table>
+        <div class="inline-form">
+          <select id="pg-skod" class="form-control" style="max-width:160px;"><option value="">SOP Seç...</option></select>
+          <select id="pg-kkod" class="form-control" style="max-width:160px;"><option value="">Kategori Seç...</option></select>
+          <input type="text" id="pg-cikti" class="form-control" placeholder="Çıktı Göstergesi" style="max-width:260px;">
+          <input type="text" id="pg-aciklama" class="form-control" placeholder="Açıklama (opsiyonel)" style="max-width:260px;">
+          <button class="btn-gold" id="btn-pg-ekle">+ Ekle</button>
+        </div>
+      </div>
+
+      <!-- ───── Personel ───── -->
+      <div class="tab-panel metric-card" id="tab-personel" style="border-radius:0 6px 6px 6px;padding:0;overflow:hidden;">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>pkod</th>
+              <th>Ad</th>
+              <th>Soyad</th>
+              <th>Birim Kodu</th>
+              <th>Rol</th>
+              <th style="text-align:center;">İşlem</th>
+            </tr>
+          </thead>
+          <tbody id="personel-tbody">
+            <tr><td colspan="6" style="text-align:center;color:#94a3b8;padding:24px;">Yükleniyor...</td></tr>
+          </tbody>
+        </table>
+        <div class="inline-form">
+          <input type="text" id="p-ad" class="form-control" placeholder="Ad" style="max-width:140px;">
+          <input type="text" id="p-soyad" class="form-control" placeholder="Soyad" style="max-width:140px;">
+          <input type="text" id="p-bkod" class="form-control" placeholder="Birim Kodu" style="max-width:110px;">
+          <select id="p-rol" class="form-control" style="max-width:140px;">
+            <option value="uye">Ekip Üyesi</option>
+            <option value="yönetici">Yönetici</option>
+          </select>
+          <button class="btn-gold" id="btn-p-ekle">+ Ekle</button>
+        </div>
+      </div>
+
+      <!-- ───── Sprint Dönemleri ───── -->
+      <div class="tab-panel metric-card" id="tab-sprint-donemler" style="border-radius:0 6px 6px 6px;padding:0;overflow:hidden;">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Dönem</th>
+              <th>Sprint Adı</th>
+              <th>Başlangıç</th>
+              <th>Bitiş</th>
+              <th>Süre (gün)</th>
+              <th>Ekip</th>
+              <th style="text-align:center;">İşlem</th>
+            </tr>
+          </thead>
+          <tbody id="sprint-tbody">
+            <tr><td colspan="7" style="text-align:center;color:#94a3b8;padding:24px;">Yükleniyor...</td></tr>
+          </tbody>
+        </table>
+        <div class="inline-form">
+          <input type="number" id="sv-donem" class="form-control" placeholder="Dönem (ör: 5)" style="max-width:100px;">
+          <input type="text" id="sv-adi" class="form-control" placeholder="Sprint Adı" style="max-width:200px;">
+          <input type="date" id="sv-bas" class="form-control" style="max-width:150px;">
+          <input type="date" id="sv-bit" class="form-control" style="max-width:150px;">
+          <input type="number" id="sv-sure" class="form-control" placeholder="Süre" style="max-width:80px;">
+          <input type="number" id="sv-ekip" class="form-control" placeholder="Ekip" style="max-width:80px;">
+          <button class="btn-gold" id="btn-sv-ekle">+ Ekle</button>
+        </div>
+      </div>
+
+    </div><!-- /page-body -->
+  </main>
+</div>
+
+<!-- Düzenleme Modalı (generic) -->
+<div class="modal-overlay hidden" id="modal-edit">
+  <div class="modal-box" style="max-width:480px;">
+    <h3 id="edit-modal-title">Düzenle</h3>
+    <div id="edit-modal-body"></div>
+    <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:16px;">
+      <button class="btn-secondary" id="btn-edit-kapat">İptal</button>
+      <button class="btn-gold" id="btn-edit-kaydet">Kaydet</button>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+  import { supabase } from '../js/supabase.js'
+  import { requireAuth, signOut } from '../js/auth.js'
+  import { getPersonel, renderUserInfo, showToast } from '../js/utils.js'
+
+  // ── Auth + Yönetici kontrolü ────────────────────────────────────
+  const session = await requireAuth()
+  const personel = await getPersonel(supabase, session.user.id)
+  if (!personel || personel.rol_kodu !== 'yönetici') {
+    showToast('Bu sayfaya erişim yetkiniz yok.', 'error')
+    setTimeout(() => { window.location.href = '../index.html' }, 1500)
+  }
+  if (personel) renderUserInfo(personel.ad, personel.soyad)
+  document.getElementById('logout-btn').addEventListener('click', () => signOut())
+
+  // ── Tab Yönetimi ─────────────────────────────────────────────────
+  const tabBtns = document.querySelectorAll('.tab-btn')
+  const tabPanels = document.querySelectorAll('.tab-panel')
+  tabBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      tabBtns.forEach(b => b.classList.remove('active'))
+      tabPanels.forEach(p => p.classList.remove('active'))
+      btn.classList.add('active')
+      document.getElementById(`tab-${btn.dataset.tab}`).classList.add('active')
+    })
+  })
+
+  // ── Referans verileri (ortak) ────────────────────────────────────
+  let soplar = [], kategoriler = []
+
+  async function loadRefData() {
+    const [{ data: sData }, { data: kData }] = await Promise.all([
+      supabase.from('soplar').select('skod,kisa,sop_adi,baslangic,bitis').order('skod'),
+      supabase.from('kategori_tipleri').select('kkod,kategori_adi').order('kkod')
+    ])
+    soplar = sData || []
+    kategoriler = kData || []
+  }
+
+  // ═══════════════════════════════════════════════════════
+  // SOP'lar
+  // ═══════════════════════════════════════════════════════
+  async function loadSoplar() {
+    const tbody = document.getElementById('soplar-tbody')
+    const { data, error } = await supabase.from('soplar').select('*').order('skod')
+    if (error || !data?.length) {
+      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#94a3b8;padding:24px;">Kayıt yok.</td></tr>'
+      return
+    }
+    tbody.innerHTML = data.map(r => `
+      <tr>
+        <td style="color:#64748b;">${r.skod}</td>
+        <td><strong>${r.kisa}</strong></td>
+        <td>${r.sop_adi ?? '—'}</td>
+        <td>${r.baslangic ?? '—'}</td>
+        <td>${r.bitis ?? '—'}</td>
+        <td style="text-align:center;">
+          <button class="row-action row-edit" data-id="${r.skod}" data-table="soplar">Düzenle</button>
+          <button class="row-action row-del" data-id="${r.skod}" data-table="soplar" style="margin-left:4px;">Sil</button>
+        </td>
+      </tr>
+    `).join('')
+  }
+
+  document.getElementById('btn-sop-ekle').addEventListener('click', async () => {
+    const kisa = document.getElementById('sop-kisa').value.trim().toUpperCase()
+    const adi  = document.getElementById('sop-adi').value.trim()
+    const bas  = parseInt(document.getElementById('sop-bas').value) || null
+    const bit  = parseInt(document.getElementById('sop-bit').value) || null
+    if (!kisa || kisa.length !== 3 || !adi) {
+      showToast('Kısa (3 harf) ve SOP Adı zorunludur.', 'error'); return
+    }
+    const { error } = await supabase.from('soplar').insert({ kisa, sop_adi: adi, baslangic: bas, bitis: bit })
+    if (error) { showToast(error.message, 'error'); return }
+    showToast('SOP eklendi.', 'success')
+    ;['sop-kisa','sop-adi','sop-bas','sop-bit'].forEach(id => document.getElementById(id).value = '')
+    await loadSoplar()
+    await loadRefData()
+  })
+
+  // ═══════════════════════════════════════════════════════
+  // Kategoriler
+  // ═══════════════════════════════════════════════════════
+  async function loadKategoriler() {
+    const tbody = document.getElementById('kategoriler-tbody')
+    const { data, error } = await supabase.from('kategori_tipleri').select('*').order('kkod')
+    if (error || !data?.length) {
+      tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;color:#94a3b8;padding:24px;">Kayıt yok.</td></tr>'
+      return
+    }
+    tbody.innerHTML = data.map(r => `
+      <tr>
+        <td style="color:#64748b;">${r.kkod}</td>
+        <td>${r.kategori_adi}</td>
+        <td style="text-align:center;">
+          <button class="row-action row-edit" data-id="${r.kkod}" data-table="kategoriler">Düzenle</button>
+          <button class="row-action row-del" data-id="${r.kkod}" data-table="kategoriler" style="margin-left:4px;">Sil</button>
+        </td>
+      </tr>
+    `).join('')
+  }
+
+  document.getElementById('btn-kat-ekle').addEventListener('click', async () => {
+    const adi = document.getElementById('kat-adi').value.trim()
+    if (!adi) { showToast('Kategori Adı zorunludur.', 'error'); return }
+    const { error } = await supabase.from('kategori_tipleri').insert({ kategori_adi: adi })
+    if (error) { showToast(error.message, 'error'); return }
+    showToast('Kategori eklendi.', 'success')
+    document.getElementById('kat-adi').value = ''
+    await loadKategoriler()
+    await loadRefData()
+  })
+
+  // ═══════════════════════════════════════════════════════
+  // Perf. Göstergeleri
+  // ═══════════════════════════════════════════════════════
+  function populatePgDropdowns() {
+    const skodSel = document.getElementById('pg-skod')
+    const kkodSel = document.getElementById('pg-kkod')
+    skodSel.innerHTML = '<option value="">SOP Seç...</option>'
+    kkodSel.innerHTML = '<option value="">Kategori Seç...</option>'
+    soplar.forEach(s => {
+      const opt = document.createElement('option')
+      opt.value = s.skod; opt.textContent = `${s.kisa} — ${s.sop_adi || ''}`
+      skodSel.appendChild(opt)
+    })
+    kategoriler.forEach(k => {
+      const opt = document.createElement('option')
+      opt.value = k.kkod; opt.textContent = `${k.kkod} — ${k.kategori_adi}`
+      kkodSel.appendChild(opt)
+    })
+  }
+
+  async function loadPerfGostergeler() {
+    const tbody = document.getElementById('pg-tbody')
+    const { data, error } = await supabase
+      .from('perf_gostergeler')
+      .select('id,cg_kod,skod,kkod,cikti_gostergesi,aciklama,soplar(kisa),kategori_tipleri(kategori_adi)')
+      .order('cg_kod')
+    if (error || !data?.length) {
+      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#94a3b8;padding:24px;">Kayıt yok.</td></tr>'
+      return
+    }
+    tbody.innerHTML = data.map(r => `
+      <tr>
+        <td><span class="badge-sno">${r.cg_kod ?? '—'}</span></td>
+        <td>${r.soplar?.kisa ?? r.skod ?? '—'}</td>
+        <td>${r.kategori_tipleri?.kategori_adi ?? r.kkod ?? '—'}</td>
+        <td style="max-width:200px;">${r.cikti_gostergesi ?? '—'}</td>
+        <td style="max-width:160px;color:#64748b;font-size:0.8rem;">${r.aciklama ?? '—'}</td>
+        <td style="text-align:center;">
+          <button class="row-action row-del" data-id="${r.id}" data-table="pg" style="margin-left:4px;">Sil</button>
+        </td>
+      </tr>
+    `).join('')
+    populatePgDropdowns()
+  }
+
+  document.getElementById('btn-pg-ekle').addEventListener('click', async () => {
+    const skod   = parseInt(document.getElementById('pg-skod').value)
+    const kkod   = parseInt(document.getElementById('pg-kkod').value)
+    const cikti  = document.getElementById('pg-cikti').value.trim()
+    const aciklama = document.getElementById('pg-aciklama').value.trim()
+    if (!skod || !kkod || !cikti) {
+      showToast('SOP, Kategori ve Çıktı Göstergesi zorunludur.', 'error'); return
+    }
+    const { error } = await supabase.from('perf_gostergeler').insert({ skod, kkod, cikti_gostergesi: cikti, aciklama: aciklama || null })
+    if (error) { showToast(error.message, 'error'); return }
+    showToast('Gösterge eklendi (cg_kod otomatik üretildi).', 'success')
+    ;['pg-cikti','pg-aciklama'].forEach(id => document.getElementById(id).value = '')
+    document.getElementById('pg-skod').value = ''
+    document.getElementById('pg-kkod').value = ''
+    await loadPerfGostergeler()
+  })
+
+  // ═══════════════════════════════════════════════════════
+  // Personel
+  // ═══════════════════════════════════════════════════════
+  async function loadPersonel() {
+    const tbody = document.getElementById('personel-tbody')
+    const { data, error } = await supabase.from('personel').select('pkod,ad,soyad,bkod,rol_kodu').order('pkod')
+    if (error || !data?.length) {
+      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#94a3b8;padding:24px;">Kayıt yok.</td></tr>'
+      return
+    }
+    tbody.innerHTML = data.map(r => `
+      <tr>
+        <td style="color:#64748b;">${r.pkod}</td>
+        <td>${r.ad}</td>
+        <td>${r.soyad}</td>
+        <td>${r.bkod ?? '—'}</td>
+        <td><span style="background:${r.rol_kodu==='yönetici'?'#fef3c7':'#f0fdf4'};color:${r.rol_kodu==='yönetici'?'#92400e':'#166534'};border-radius:9999px;padding:2px 8px;font-size:0.72rem;">${r.rol_kodu ?? '—'}</span></td>
+        <td style="text-align:center;">
+          <button class="row-action row-edit" data-id="${r.pkod}" data-table="personel">Düzenle</button>
+        </td>
+      </tr>
+    `).join('')
+  }
+
+  document.getElementById('btn-p-ekle').addEventListener('click', async () => {
+    const ad    = document.getElementById('p-ad').value.trim()
+    const soyad = document.getElementById('p-soyad').value.trim()
+    const bkod  = document.getElementById('p-bkod').value.trim() || null
+    const rol   = document.getElementById('p-rol').value
+    if (!ad || !soyad) { showToast('Ad ve Soyad zorunludur.', 'error'); return }
+    const { error } = await supabase.from('personel').insert({ ad, soyad, bkod, rol_kodu: rol })
+    if (error) { showToast(error.message, 'error'); return }
+    showToast('Personel eklendi.', 'success')
+    ;['p-ad','p-soyad','p-bkod'].forEach(id => document.getElementById(id).value = '')
+    await loadPersonel()
+  })
+
+  // ═══════════════════════════════════════════════════════
+  // Sprint Dönemleri
+  // ═══════════════════════════════════════════════════════
+  async function loadSprintDonemler() {
+    const tbody = document.getElementById('sprint-tbody')
+    const { data, error } = await supabase.from('sprint_veri').select('*').order('sprint_donem')
+    if (error || !data?.length) {
+      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#94a3b8;padding:24px;">Kayıt yok.</td></tr>'
+      return
+    }
+    tbody.innerHTML = data.map(r => `
+      <tr>
+        <td><strong>${r.sprint_donem}</strong></td>
+        <td>${r.sprint_adi ?? '—'}</td>
+        <td>${r.baslangic ?? '—'}</td>
+        <td>${r.bitis ?? '—'}</td>
+        <td>${r.sure_gun ?? '—'}</td>
+        <td>${r.ekip ?? '—'}</td>
+        <td style="text-align:center;">
+          <button class="row-action row-edit" data-id="${r.sprint_donem}" data-table="sprint">Düzenle</button>
+          <button class="row-action row-del" data-id="${r.sprint_donem}" data-table="sprint" style="margin-left:4px;">Sil</button>
+        </td>
+      </tr>
+    `).join('')
+  }
+
+  document.getElementById('btn-sv-ekle').addEventListener('click', async () => {
+    const donem = parseInt(document.getElementById('sv-donem').value)
+    const adi   = document.getElementById('sv-adi').value.trim()
+    const bas   = document.getElementById('sv-bas').value || null
+    const bit   = document.getElementById('sv-bit').value || null
+    const sure  = parseInt(document.getElementById('sv-sure').value) || null
+    const ekip  = parseInt(document.getElementById('sv-ekip').value) || null
+    if (!donem || !adi) { showToast('Dönem ve Sprint Adı zorunludur.', 'error'); return }
+    const { error } = await supabase.from('sprint_veri').insert({
+      sprint_donem: donem, sprint_adi: adi, baslangic: bas, bitis: bit, sure_gun: sure, ekip
+    })
+    if (error) { showToast(error.message, 'error'); return }
+    showToast('Sprint dönemi eklendi.', 'success')
+    ;['sv-donem','sv-adi','sv-bas','sv-bit','sv-sure','sv-ekip'].forEach(id => document.getElementById(id).value = '')
+    await loadSprintDonemler()
+  })
+
+  // ═══════════════════════════════════════════════════════
+  // Silme & Düzenleme (ortak)
+  // ═══════════════════════════════════════════════════════
+  document.querySelector('.page-body').addEventListener('click', async (e) => {
+    const btn = e.target.closest('.row-action')
+    if (!btn) return
+    const id = btn.dataset.id
+    const table = btn.dataset.table
+
+    // Silme
+    if (btn.classList.contains('row-del')) {
+      if (!confirm('Bu kaydı silmek istediğinizden emin misiniz?')) return
+
+      let error
+      if (table === 'soplar') {
+        ({ error } = await supabase.from('soplar').delete().eq('skod', id))
+        if (!error) await loadSoplar()
+      } else if (table === 'kategoriler') {
+        ({ error } = await supabase.from('kategori_tipleri').delete().eq('kkod', id))
+        if (!error) await loadKategoriler()
+      } else if (table === 'pg') {
+        ({ error } = await supabase.from('perf_gostergeler').delete().eq('id', id))
+        if (!error) await loadPerfGostergeler()
+      } else if (table === 'sprint') {
+        ({ error } = await supabase.from('sprint_veri').delete().eq('sprint_donem', id))
+        if (!error) await loadSprintDonemler()
+      }
+
+      if (error) showToast('Silme hatası: ' + error.message, 'error')
+      else showToast('Kayıt silindi.', 'success')
+      return
+    }
+
+    // Düzenleme
+    if (btn.classList.contains('row-edit')) {
+      openEditModal(table, id)
+    }
+  })
+
+  // ── Edit Modal ───────────────────────────────────────────────────
+  let editState = {}
+
+  async function openEditModal(table, id) {
+    const modal = document.getElementById('modal-edit')
+    const body = document.getElementById('edit-modal-body')
+    const title = document.getElementById('edit-modal-title')
+    editState = { table, id }
+
+    if (table === 'soplar') {
+      const { data: r } = await supabase.from('soplar').select('*').eq('skod', id).single()
+      title.textContent = 'SOP Düzenle'
+      body.innerHTML = `
+        <div class="form-group"><label>Kısa</label><input id="edit-kisa" class="form-control" value="${r.kisa ?? ''}"></div>
+        <div class="form-group"><label>SOP Adı</label><input id="edit-adi" class="form-control" value="${r.sop_adi ?? ''}"></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div class="form-group"><label>Başlangıç</label><input id="edit-bas" class="form-control" type="number" value="${r.baslangic ?? ''}"></div>
+          <div class="form-group"><label>Bitiş</label><input id="edit-bit" class="form-control" type="number" value="${r.bitis ?? ''}"></div>
+        </div>`
+    } else if (table === 'kategoriler') {
+      const { data: r } = await supabase.from('kategori_tipleri').select('*').eq('kkod', id).single()
+      title.textContent = 'Kategori Düzenle'
+      body.innerHTML = `<div class="form-group"><label>Kategori Adı</label><input id="edit-katadi" class="form-control" value="${r.kategori_adi ?? ''}"></div>`
+    } else if (table === 'personel') {
+      const { data: r } = await supabase.from('personel').select('*').eq('pkod', id).single()
+      title.textContent = 'Personel Düzenle'
+      body.innerHTML = `
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div class="form-group"><label>Ad</label><input id="edit-pad" class="form-control" value="${r.ad ?? ''}"></div>
+          <div class="form-group"><label>Soyad</label><input id="edit-psoyad" class="form-control" value="${r.soyad ?? ''}"></div>
+        </div>
+        <div class="form-group"><label>Birim Kodu</label><input id="edit-pbkod" class="form-control" value="${r.bkod ?? ''}"></div>
+        <div class="form-group"><label>Rol</label>
+          <select id="edit-prol" class="form-control">
+            <option value="uye" ${r.rol_kodu==='uye'?'selected':''}>Ekip Üyesi</option>
+            <option value="yönetici" ${r.rol_kodu==='yönetici'?'selected':''}>Yönetici</option>
+          </select>
+        </div>`
+    } else if (table === 'sprint') {
+      const { data: r } = await supabase.from('sprint_veri').select('*').eq('sprint_donem', id).single()
+      title.textContent = 'Sprint Dönemi Düzenle'
+      body.innerHTML = `
+        <div class="form-group"><label>Sprint Adı</label><input id="edit-svadi" class="form-control" value="${r.sprint_adi ?? ''}"></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div class="form-group"><label>Başlangıç</label><input id="edit-svbas" type="date" class="form-control" value="${r.baslangic ?? ''}"></div>
+          <div class="form-group"><label>Bitiş</label><input id="edit-svbit" type="date" class="form-control" value="${r.bitis ?? ''}"></div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div class="form-group"><label>Süre (gün)</label><input id="edit-svsure" type="number" class="form-control" value="${r.sure_gun ?? ''}"></div>
+          <div class="form-group"><label>Ekip</label><input id="edit-svekip" type="number" class="form-control" value="${r.ekip ?? ''}"></div>
+        </div>`
+    }
+
+    modal.classList.remove('hidden')
+  }
+
+  document.getElementById('btn-edit-kapat').addEventListener('click', () => {
+    document.getElementById('modal-edit').classList.add('hidden')
+  })
+
+  document.getElementById('btn-edit-kaydet').addEventListener('click', async () => {
+    const { table, id } = editState
+    let error
+
+    if (table === 'soplar') {
+      const kisa = document.getElementById('edit-kisa').value.trim().toUpperCase()
+      const adi  = document.getElementById('edit-adi').value.trim()
+      const bas  = parseInt(document.getElementById('edit-bas').value) || null
+      const bit  = parseInt(document.getElementById('edit-bit').value) || null
+      ;({ error } = await supabase.from('soplar').update({ kisa, sop_adi: adi, baslangic: bas, bitis: bit }).eq('skod', id))
+      if (!error) await loadSoplar()
+    } else if (table === 'kategoriler') {
+      const adi = document.getElementById('edit-katadi').value.trim()
+      ;({ error } = await supabase.from('kategori_tipleri').update({ kategori_adi: adi }).eq('kkod', id))
+      if (!error) await loadKategoriler()
+    } else if (table === 'personel') {
+      const ad    = document.getElementById('edit-pad').value.trim()
+      const soyad = document.getElementById('edit-psoyad').value.trim()
+      const bkod  = document.getElementById('edit-pbkod').value.trim() || null
+      const rol   = document.getElementById('edit-prol').value
+      ;({ error } = await supabase.from('personel').update({ ad, soyad, bkod, rol_kodu: rol }).eq('pkod', id))
+      if (!error) await loadPersonel()
+    } else if (table === 'sprint') {
+      const adi  = document.getElementById('edit-svadi').value.trim()
+      const bas  = document.getElementById('edit-svbas').value || null
+      const bit  = document.getElementById('edit-svbit').value || null
+      const sure = parseInt(document.getElementById('edit-svsure').value) || null
+      const ekip = parseInt(document.getElementById('edit-svekip').value) || null
+      ;({ error } = await supabase.from('sprint_veri').update({ sprint_adi: adi, baslangic: bas, bitis: bit, sure_gun: sure, ekip }).eq('sprint_donem', id))
+      if (!error) await loadSprintDonemler()
+    }
+
+    if (error) { showToast('Güncelleme hatası: ' + error.message, 'error'); return }
+    showToast('Kayıt güncellendi.', 'success')
+    document.getElementById('modal-edit').classList.add('hidden')
+  })
+
+  // ── Başlat ────────────────────────────────────────────────────────
+  await loadRefData()
+  await Promise.all([loadSoplar(), loadKategoriler(), loadPerfGostergeler(), loadPersonel(), loadSprintDonemler()])
+</script>
+</body>
+</html>
