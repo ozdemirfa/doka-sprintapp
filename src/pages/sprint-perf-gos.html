@@ -87,10 +87,13 @@
       </div>
 
       <div class="form-group">
-        <label for="g-cg-kod">ÇG Kodu *</label>
-        <select id="g-cg-kod" class="form-control" required>
-          <option value="">Seçin...</option>
-        </select>
+        <label>ÇG Kodu *</label>
+        <input type="hidden" id="g-cg-kod-hidden" required>
+        <div style="display:flex;gap:6px;">
+          <input type="text" id="g-cg-kod-display" class="form-control" readonly
+            style="background:#f8fafc;cursor:pointer;flex:1;" placeholder="ÇG Kodu seçin..." />
+          <button type="button" id="btn-cg-ara" class="btn-secondary" style="white-space:nowrap;padding:0 12px;">Ara</button>
+        </div>
       </div>
 
       <div class="form-group">
@@ -99,15 +102,9 @@
           placeholder="Gerçekleşme açıklaması..."></textarea>
       </div>
 
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-        <div class="form-group">
-          <label for="g-gerceklesme">Gerçekleşme Değeri *</label>
-          <input type="number" id="g-gerceklesme" class="form-control" step="0.01" min="0" required>
-        </div>
-        <div class="form-group">
-          <label for="g-tamamlanma-donemi">Tamamlanma Dönemi</label>
-          <input type="text" id="g-tamamlanma-donemi" class="form-control" placeholder="ör: 2026/1">
-        </div>
+      <div class="form-group">
+        <label for="g-gerceklesme">Gerçekleşme Değeri *</label>
+        <input type="number" id="g-gerceklesme" class="form-control" step="1" min="0" required>
       </div>
 
       <div class="form-group">
@@ -126,32 +123,70 @@
   </div>
 </div>
 
+<!-- ÇG Kodu Arama Modalı -->
+<div class="modal-overlay hidden" id="cg-search-modal" style="z-index:1100;">
+  <div class="modal-box" style="max-width:680px;width:95%;">
+    <h3>ÇG Kodu Ara</h3>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
+      <div>
+        <label style="font-size:0.78rem;color:#64748b;">SOP</label>
+        <select id="cg-filter-sop" class="form-control"></select>
+      </div>
+      <div>
+        <label style="font-size:0.78rem;color:#64748b;">Metin Ara</label>
+        <input type="text" id="cg-filter-metin" class="form-control" placeholder="Gösterge adı...">
+      </div>
+    </div>
+    <div style="overflow-x:auto;max-height:340px;overflow-y:auto;">
+      <table class="data-table" style="font-size:0.8rem;">
+        <thead>
+          <tr>
+            <th>ÇG Kodu</th>
+            <th>SOP</th>
+            <th>Çıktı Göstergesi</th>
+          </tr>
+        </thead>
+        <tbody id="cg-list-tbody">
+          <tr><td colspan="3" style="text-align:center;color:#94a3b8;padding:16px;">Yükleniyor...</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div style="margin-top:14px;text-align:right;">
+      <button type="button" id="cg-modal-kapat" class="btn-secondary">İptal</button>
+    </div>
+  </div>
+</div>
+
 <script type="module">
   import { supabase } from '../js/supabase.js'
   import { requireAuth, signOut } from '../js/auth.js'
-  import { formatDate, getPersonel, renderUserInfo, showToast } from '../js/utils.js'
+  import { formatDate, getPersonel, renderUserInfo, showToast, hideAyarlarForNonAdmin } from '../js/utils.js'
 
   // ── Auth ──────────────────────────────────────────────────────────
   const session = await requireAuth()
   const personel = await getPersonel(supabase, session.user.id)
   if (personel) renderUserInfo(personel.ad, personel.soyad)
+  if (personel) hideAyarlarForNonAdmin(personel)
   document.getElementById('logout-btn').addEventListener('click', () => signOut())
 
   // ── Referans veriler ──────────────────────────────────────────────
-  const [{ data: sprintler }, { data: perfGostergeler }, { data: isPlaniData }] = await Promise.all([
+  const [{ data: sprintler }, { data: perfGostergeler }, { data: isPlaniData }, { data: soplar }] = await Promise.all([
     supabase.from('sprint_veri').select('sprint_donem,sprint_adi').order('sprint_donem', { ascending: false }),
-    supabase.from('perf_gostergeler').select('cg_kod,cikti_gostergesi').order('cg_kod'),
+    supabase.from('perf_gostergeler').select('cg_kod,cikti_gostergesi,skod,soplar(kisa)').order('cg_kod'),
     supabase.from('sprint_is_plani')
-      .select('id, sprint_donem, pkod, sno, personel(ad, soyad), alt_faaliyetler(sno, alt_faaliyet)')
-      .order('sprint_donem', { ascending: false })
+      .select('id, sprint_donem, pkod, sno, sprint_faaliyetleri, personel(ad, soyad), alt_faaliyetler(sno, alt_faaliyet)')
+      .order('sprint_donem', { ascending: false }),
+    supabase.from('soplar').select('skod,kisa').order('kisa')
   ])
 
   // isPlaniMap: id → display label
   const isPlaniMap = {}
   ;(isPlaniData || []).forEach(ip => {
-    const adSoyad = ip.personel ? `${ip.personel.ad} ${ip.personel.soyad}` : `pkod:${ip.pkod}`
-    const altFaaliyet = ip.alt_faaliyetler?.alt_faaliyet || `S${ip.sno}`
-    isPlaniMap[ip.id] = `[${ip.sprint_donem}] ${adSoyad} — ${altFaaliyet}`
+    const adSoyad = ip.personel ? `${ip.personel.ad} ${ip.personel.soyad}` : ''
+    const altFaaliyet = ip.alt_faaliyetler?.alt_faaliyet || (ip.sprint_faaliyetleri ? ip.sprint_faaliyetleri.substring(0, 40) : `S${ip.sno}`)
+    isPlaniMap[ip.id] = adSoyad
+      ? `[${ip.sprint_donem}] ${adSoyad} — ${altFaaliyet}`
+      : `[${ip.sprint_donem}] ${altFaaliyet}`
   })
 
   // Sprint filtre dropdown
@@ -239,15 +274,9 @@
         isSel.appendChild(opt)
       })
 
-    // ÇG Kod dropdown
-    const cgKodSel = document.getElementById('g-cg-kod')
-    cgKodSel.innerHTML = '<option value="">Seçin...</option>'
-    ;(perfGostergeler || []).forEach(pg => {
-      const opt = document.createElement('option')
-      opt.value = pg.cg_kod
-      opt.textContent = `${pg.cg_kod} — ${pg.cikti_gostergesi?.substring(0, 50) || ''}`
-      cgKodSel.appendChild(opt)
-    })
+    // ÇG Kod alanını temizle
+    document.getElementById('g-cg-kod-hidden').value = ''
+    document.getElementById('g-cg-kod-display').value = ''
 
     document.getElementById('modal-gerceklesme-error').classList.add('hidden')
     document.getElementById('modal-gerceklesme').classList.remove('hidden')
@@ -265,10 +294,9 @@
   document.getElementById('form-gerceklesme').addEventListener('submit', async (e) => {
     e.preventDefault()
     const sprintIsPlaniId = Number(document.getElementById('g-is-plani').value)
-    const cgKod           = document.getElementById('g-cg-kod').value
+    const cgKod           = document.getElementById('g-cg-kod-hidden').value
     const aciklama        = document.getElementById('g-aciklama').value.trim()
     const gerceklesme     = parseFloat(document.getElementById('g-gerceklesme').value)
-    const tamamlanmaDonemi = document.getElementById('g-tamamlanma-donemi').value.trim() || null
     const tamamlanmaTarihi = document.getElementById('g-tamamlanma-tarihi').value || null
     const errEl = document.getElementById('modal-gerceklesme-error')
     errEl.classList.add('hidden')
@@ -284,7 +312,6 @@
       cg_kod:              cgKod,
       aciklama:            aciklama || null,
       gerceklesme,
-      tamamlanma_donemi:   tamamlanmaDonemi,
       tamamlanma_tarihi:   tamamlanmaTarihi
     })
 
@@ -297,6 +324,61 @@
     showToast('Gerçekleşme kaydedildi.', 'success')
     document.getElementById('modal-gerceklesme').classList.add('hidden')
     await loadData()
+  })
+
+  // ── ÇG Kodu Arama Modalı ──────────────────────────────────────────
+  function renderCgList() {
+    const sopVal  = document.getElementById('cg-filter-sop').value
+    const txtVal  = document.getElementById('cg-filter-metin').value.trim().toLowerCase()
+    const tbody   = document.getElementById('cg-list-tbody')
+    const filtered = (perfGostergeler || []).filter(pg => {
+      const sopMatch  = !sopVal || String(pg.skod) === String(sopVal)
+      const txtMatch  = !txtVal || (pg.cikti_gostergesi || '').toLowerCase().includes(txtVal)
+                                || String(pg.cg_kod).toLowerCase().includes(txtVal)
+      return sopMatch && txtMatch
+    })
+    if (!filtered.length) {
+      tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;color:#94a3b8;padding:16px;">Kayıt bulunamadı.</td></tr>'
+      return
+    }
+    tbody.innerHTML = filtered.map(pg => `
+      <tr style="cursor:pointer;" data-cg-kod="${pg.cg_kod}" data-label="${pg.cg_kod} — ${(pg.cikti_gostergesi || '').substring(0, 60)}">
+        <td><span class="badge-sno">${pg.cg_kod}</span></td>
+        <td>${pg.soplar?.kisa ?? pg.skod ?? '—'}</td>
+        <td style="max-width:340px;">${pg.cikti_gostergesi || '—'}</td>
+      </tr>
+    `).join('')
+  }
+
+  // SOP filtre dropdown'u doldur
+  const cgFilterSop = document.getElementById('cg-filter-sop')
+  cgFilterSop.innerHTML = '<option value="">Tüm SOP\'lar</option>'
+  ;(soplar || []).forEach(s => {
+    const opt = document.createElement('option')
+    opt.value = s.skod; opt.textContent = s.kisa
+    cgFilterSop.appendChild(opt)
+  })
+
+  document.getElementById('btn-cg-ara').addEventListener('click', () => {
+    document.getElementById('cg-filter-metin').value = ''
+    cgFilterSop.value = ''
+    renderCgList()
+    document.getElementById('cg-search-modal').classList.remove('hidden')
+  })
+
+  document.getElementById('cg-modal-kapat').addEventListener('click', () => {
+    document.getElementById('cg-search-modal').classList.add('hidden')
+  })
+
+  document.getElementById('cg-filter-sop').addEventListener('change', renderCgList)
+  document.getElementById('cg-filter-metin').addEventListener('input', renderCgList)
+
+  document.getElementById('cg-list-tbody').addEventListener('click', (e) => {
+    const row = e.target.closest('tr[data-cg-kod]')
+    if (!row) return
+    document.getElementById('g-cg-kod-hidden').value  = row.dataset.cgKod
+    document.getElementById('g-cg-kod-display').value = row.dataset.label
+    document.getElementById('cg-search-modal').classList.add('hidden')
   })
 </script>
 </body>

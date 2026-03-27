@@ -79,10 +79,6 @@
           <label for="f-faaliyet">Faaliyet Adı *</label>
           <input type="text" id="f-faaliyet" class="form-control" required placeholder="Faaliyet açıklaması...">
         </div>
-        <div class="form-group">
-          <label for="f-butce">Bütçe (₺)</label>
-          <input type="number" id="f-butce" class="form-control" step="0.01" min="0" placeholder="0.00">
-        </div>
         <div id="modal-faaliyet-error" class="hidden" style="background:#fee2e2;border:1px solid #fca5a5;border-radius:6px;padding:10px;margin-bottom:12px;color:#b91c1c;font-size:0.825rem;"></div>
         <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:8px;">
           <button type="button" class="btn-secondary" id="btn-faaliyet-kapat">İptal</button>
@@ -128,12 +124,13 @@
   <script type="module">
     import { supabase } from '../js/supabase.js'
     import { requireAuth, signOut } from '../js/auth.js'
-    import { formatCurrency, getPersonel, renderUserInfo, showToast } from '../js/utils.js'
+    import { formatCurrency, getPersonel, renderUserInfo, showToast, hideAyarlarForNonAdmin } from '../js/utils.js'
 
     // ── Auth ─────────────────────────────────────────────────────────
     const session = await requireAuth()
     const personel = await getPersonel(supabase, session.user.id)
     if (personel) renderUserInfo(personel.ad, personel.soyad)
+    if (personel) hideAyarlarForNonAdmin(personel)
 
     document.getElementById('logout-btn').addEventListener('click', () => signOut())
 
@@ -190,7 +187,6 @@
       const skod = parseInt(document.getElementById('f-skod').value)
       const kkod = parseInt(document.getElementById('f-kkod').value)
       const faaliyet = document.getElementById('f-faaliyet').value.trim()
-      const butce = parseFloat(document.getElementById('f-butce').value) || null
       const errEl = document.getElementById('modal-faaliyet-error')
       errEl.classList.add('hidden')
 
@@ -200,7 +196,7 @@
         return
       }
 
-      const { error } = await supabase.from('faaliyetler').insert({ skod, kkod, faaliyet, butce_2026: butce })
+      const { error } = await supabase.from('faaliyetler').insert({ skod, kkod, faaliyet })
       if (error) {
         errEl.textContent = error.message
         errEl.classList.remove('hidden')
@@ -332,7 +328,6 @@
       for (const faaliyet of sopFaaliyetler) {
         const pct = Math.round((faaliyet.is_durum_ort || 0) * 100)
         const altler = altMap[faaliyet.fkod] || []
-        const plan = planMap[faaliyet.fkod] || {}
 
         html += `
         <div class="accordion-item" style="margin:12px;border-radius:8px;">

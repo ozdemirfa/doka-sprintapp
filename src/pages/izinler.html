@@ -330,12 +330,13 @@
 <script type="module">
   import { supabase } from '../js/supabase.js'
   import { requireAuth, signOut } from '../js/auth.js'
-  import { formatDate, getPersonel, renderUserInfo, populateSprintDropdown, showToast, todayISO } from '../js/utils.js'
+  import { formatDate, getPersonel, renderUserInfo, populateSprintDropdown, showToast, todayISO, hideAyarlarForNonAdmin } from '../js/utils.js'
 
   // ── Auth ─────────────────────────────────────────────────────────
   const session = await requireAuth()
   const personel = await getPersonel(supabase, session.user.id)
   if (personel) renderUserInfo(personel.ad, personel.soyad)
+  if (personel) hideAyarlarForNonAdmin(personel)
   const isFatih = personel?.rol_kodu === 'yönetici'
 
   document.getElementById('logout-btn').addEventListener('click', () => signOut())

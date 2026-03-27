@@ -139,13 +139,14 @@
 <script type="module">
   import { supabase } from '../js/supabase.js'
   import { requireAuth, signOut } from '../js/auth.js'
-  import { formatDate, getPersonel, renderUserInfo, populateSprintDropdown, showToast, calcGort } from '../js/utils.js'
+  import { formatDate, getPersonel, renderUserInfo, populateSprintDropdown, showToast, calcGort, hideAyarlarForNonAdmin } from '../js/utils.js'
 
   // ── Auth ─────────────────────────────────────────────────────────
   const session = await requireAuth()
   const personel = await getPersonel(supabase, session.user.id)
   if (personel) {
     renderUserInfo(personel.ad, personel.soyad)
+    hideAyarlarForNonAdmin(personel)
     document.getElementById('retro-ad').value = `${personel.ad} ${personel.soyad}`
   }
 
@@ -226,7 +227,7 @@
         <tr>
           <td>${r.sprint_donem ?? '—'}</td>
           <td>${kisi}</td>
-          <td style="text-align:center;">${r.org_puan ?? '—'}</td>
+          <td style="text-align:center;">${r.organizasyon_puan ?? '—'}</td>
           <td style="text-align:center;">${r.ajanstaki_rolu ?? '—'}</td>
           <td style="text-align:center;">${r.ajans_hakkinda ?? '—'}</td>
           <td style="text-align:center;font-weight:700;color:var(--navy);">${Number(aort).toFixed(2)}</td>
@@ -261,11 +262,11 @@
     submitBtn.textContent = 'Kaydediliyor...'
 
     const { error } = await supabase.from('sprint_retro').insert({
-      sprint_donem:    sprintDonem,
-      pkod:            personel.pkod,
-      org_puan:        orgPuan,
-      ajanstaki_rolu:  ajanstakiRolu,
-      ajans_hakkinda:  ajansHakkinda
+      sprint_donem:       sprintDonem,
+      pkod:               personel.pkod,
+      organizasyon_puan:  orgPuan,
+      ajanstaki_rolu:     ajanstakiRolu,
+      ajans_hakkinda:     ajansHakkinda
     })
 
     submitBtn.disabled = false

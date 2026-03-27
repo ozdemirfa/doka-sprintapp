@@ -51,11 +51,11 @@
           <div class="metric-value" id="metric-toplam-harcama">—</div>
           <div class="metric-label">Toplam Harcama</div>
         </div>
-        <div class="metric-card">
+        <div class="metric-card" style="display:none;" id="card-is-plani-butce">
           <div class="metric-value" id="metric-is-plani-butce">—</div>
           <div class="metric-label">İş Planı Toplam Bütçe</div>
         </div>
-        <div class="metric-card">
+        <div class="metric-card" style="display:none;" id="card-fark">
           <div class="metric-value" id="metric-fark">—</div>
           <div class="metric-label">Fark (Bütçe − Harcama)</div>
         </div>
@@ -144,15 +144,10 @@
         </div>
       </div>
 
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-        <div class="form-group">
-          <label for="hir-tutar">KDV'li Tutar (₺)</label>
-          <input type="number" id="hir-tutar" class="form-control" step="0.01" min="0" required>
-        </div>
-        <div class="form-group">
-          <label for="hir-odeme-donem">Ödeme Dönemi</label>
-          <input type="text" id="hir-odeme-donem" class="form-control" placeholder="ör: 2026/1">
-        </div>
+      <div class="form-group">
+        <label>Ödeme Kalemleri <span style="font-size:0.75rem;color:#64748b;">(KDV'li Tutar + Dönem)</span></label>
+        <div id="odeme-satirlari"></div>
+        <button type="button" id="btn-odeme-satir-ekle" class="btn-secondary" style="margin-top:6px;padding:4px 14px;font-size:0.82rem;">+ Satır Ekle</button>
       </div>
 
       <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:8px;">
@@ -165,13 +160,14 @@
 
 <script type="module">
   import { requireAuth, signOut } from '../js/auth.js'
-  import { getPersonel, renderUserInfo, formatCurrency, formatDate, showToast, todayISO } from '../js/utils.js'
+  import { getPersonel, renderUserInfo, formatCurrency, formatDate, showToast, todayISO, hideAyarlarForNonAdmin } from '../js/utils.js'
   import { supabase } from '../js/supabase.js'
 
   // ── Auth guard ────────────────────────────────────────
   const session = await requireAuth()
   const personel = await getPersonel(supabase, session.user.id)
   if (personel) renderUserInfo(personel.ad, personel.soyad)
+  if (personel) hideAyarlarForNonAdmin(personel)
   document.getElementById('logout-btn').addEventListener('click', signOut)
 
   // ── State ─────────────────────────────────────────────
@@ -200,14 +196,16 @@
     // İş planı kayıtları (lookup ve tablo join için)
     const { data: isPlaniData } = await supabase
       .from('sprint_is_plani')
-      .select('id, sprint_donem, pkod, sno, butce, personel(ad, soyad), alt_faaliyetler(sno, alt_faaliyet)')
+      .select('id, sprint_donem, pkod, sno, sprint_faaliyetleri, personel(ad, soyad), alt_faaliyetler(sno, alt_faaliyet)')
       .order('sprint_donem')
 
     isPlaniMap = {}
     ;(isPlaniData || []).forEach(ip => {
-      const adSoyad = ip.personel ? `${ip.personel.ad} ${ip.personel.soyad}` : `pkod:${ip.pkod}`
-      const altFaaliyet = ip.alt_faaliyetler?.alt_faaliyet || `S${ip.sno}`
-      isPlaniMap[ip.id] = `[${ip.sprint_donem}] ${adSoyad} — ${altFaaliyet}`
+      const adSoyad = ip.personel ? `${ip.personel.ad} ${ip.personel.soyad}` : ''
+      const altFaaliyet = ip.alt_faaliyetler?.alt_faaliyet || (ip.sprint_faaliyetleri ? ip.sprint_faaliyetleri.substring(0, 40) : `S${ip.sno}`)
+      isPlaniMap[ip.id] = adSoyad
+        ? `[${ip.sprint_donem}] ${adSoyad} — ${altFaaliyet}`
+        : `[${ip.sprint_donem}] ${altFaaliyet}`
     })
 
     // Harcamalar
@@ -234,7 +232,7 @@
       ? isPlaniData.filter(ip => String(ip.sprint_donem) === String(sprintVal))
       : isPlaniData
 
-    const totalIsPlani = filteredIsPlani.reduce((s, r) => s + (r.butce ?? 0), 0)
+    const totalIsPlani = 0
     const totalHarcama = filteredHarcamalar.reduce((s, r) => s + (r.odenecek_kdvli ?? 0), 0)
     const fark = totalIsPlani - totalHarcama
 
@@ -307,7 +305,7 @@
 
     const { data: isPlaniData } = await supabase
       .from('sprint_is_plani')
-      .select('id, sprint_donem, butce')
+      .select('id, sprint_donem')
     updateMetrics(filtered, isPlaniData || [])
   })
 
@@ -325,18 +323,23 @@
         isSel.appendChild(opt)
       })
 
+    // Ödeme satırlarını sıfırla
+    initOdemeSatirlari()
+
     document.getElementById('modal-harcama').classList.remove('hidden')
   })
 
   document.getElementById('btn-modal-kapat').addEventListener('click', () => {
     document.getElementById('modal-harcama').classList.add('hidden')
     document.getElementById('form-harcama').reset()
+    initOdemeSatirlari()
   })
 
   document.getElementById('modal-harcama').addEventListener('click', (e) => {
     if (e.target === e.currentTarget) {
       e.currentTarget.classList.add('hidden')
       document.getElementById('form-harcama').reset()
+      initOdemeSatirlari()
     }
   })
 
@@ -346,40 +349,90 @@
     const aciklama        = document.getElementById('hir-aciklama').value.trim()
     const onayKodu        = document.getElementById('hir-onay-kodu').value.trim()
     const onayTarihi      = document.getElementById('hir-onay-tarihi').value || null
-    const odenecekKdvli   = parseFloat(document.getElementById('hir-tutar').value)
-    const odemeDonem      = document.getElementById('hir-odeme-donem').value.trim() || null
 
-    if (!sprintIsPlaniId || !aciklama || isNaN(odenecekKdvli)) {
+    if (!sprintIsPlaniId || !aciklama) {
       showToast('Lütfen zorunlu alanları doldurun.', 'error')
+      return
+    }
+
+    // Ödeme satırlarını topla
+    const odemeKalemleri = []
+    document.querySelectorAll('#odeme-satirlari .odeme-satiri').forEach(satir => {
+      const tutar = parseFloat(satir.querySelector('.odeme-tutar').value)
+      const donem = satir.querySelector('.odeme-donem').value.trim() || null
+      if (!isNaN(tutar) && tutar > 0) {
+        odemeKalemleri.push({ tutar, donem })
+      }
+    })
+
+    if (odemeKalemleri.length === 0) {
+      showToast('En az bir geçerli ödeme kalemi giriniz.', 'error')
       return
     }
 
     const guncelleyen = personel ? `${personel.ad} ${personel.soyad}` : null
 
-    const { error } = await supabase
-      .from('harcamalar')
-      .insert([{
-        sprint_is_plani_id: sprintIsPlaniId,
-        aciklama,
-        harcama_onay_kodu:  onayKodu || null,
-        onay_tarihi:        onayTarihi,
-        odenecek_kdvli:     odenecekKdvli,
-        odeme_donem:        odemeDonem,
-        guncel_tarih:       todayISO(),
-        guncelleyen
-      }])
+    const kayitlar = odemeKalemleri.map(k => ({
+      sprint_is_plani_id: sprintIsPlaniId,
+      aciklama,
+      harcama_onay_kodu:  onayKodu || null,
+      onay_tarihi:        onayTarihi,
+      odenecek_kdvli:     k.tutar,
+      odeme_donem:        k.donem,
+      guncel_tarih:       todayISO(),
+      guncelleyen
+    }))
+
+    const { error } = await supabase.from('harcamalar').insert(kayitlar)
 
     if (error) {
       showToast('Kayıt başarısız: ' + error.message, 'error')
       return
     }
 
-    showToast('Harcama kaydedildi.', 'success')
+    showToast(`${kayitlar.length} harcama kaydedildi.`, 'success')
     document.getElementById('modal-harcama').classList.add('hidden')
     document.getElementById('form-harcama').reset()
     allHarcamalar = []
     document.getElementById('filter-sprint').value = ''
     await loadData()
+  })
+
+  // ── Ödeme Satırları ───────────────────────────────────
+  function odemeSatiriHtml(index) {
+    return `
+      <div class="odeme-satiri" data-index="${index}" style="display:flex;gap:8px;align-items:flex-end;margin-bottom:8px;">
+        <div class="form-group" style="flex:1;margin-bottom:0;">
+          <input type="number" class="form-control odeme-tutar" step="0.01" min="0" placeholder="KDV'li Tutar (₺)" required>
+        </div>
+        <div class="form-group" style="flex:1;margin-bottom:0;">
+          <input type="text" class="form-control odeme-donem" placeholder="Dönem (ör: 2026/1)">
+        </div>
+        <button type="button" class="btn-danger odeme-sil" style="padding:6px 10px;flex-shrink:0;margin-bottom:0;" title="Sil">✕</button>
+      </div>
+    `
+  }
+
+  function initOdemeSatirlari() {
+    const container = document.getElementById('odeme-satirlari')
+    if (container) container.innerHTML = odemeSatiriHtml(0)
+  }
+
+  document.getElementById('btn-odeme-satir-ekle').addEventListener('click', () => {
+    const container = document.getElementById('odeme-satirlari')
+    const index = container.querySelectorAll('.odeme-satiri').length
+    container.insertAdjacentHTML('beforeend', odemeSatiriHtml(index))
+  })
+
+  document.getElementById('odeme-satirlari').addEventListener('click', (e) => {
+    if (e.target.classList.contains('odeme-sil')) {
+      const container = document.getElementById('odeme-satirlari')
+      if (container.querySelectorAll('.odeme-satiri').length > 1) {
+        e.target.closest('.odeme-satiri').remove()
+      } else {
+        showToast('En az bir ödeme kalemi olmalıdır.', 'warning')
+      }
+    }
   })
 
   // ── Başlat ────────────────────────────────────────────
