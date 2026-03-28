@@ -3,7 +3,7 @@
 // ============================================================
 import { supabase } from './supabase.js'
 import { requireAuth, signOut } from './auth.js'
-import { formatDate, formatCurrency, getPersonel, renderUserInfo, showToast, todayISO, populateSprintDropdown, hideAyarlarForNonAdmin } from './utils.js'
+import { formatDate, formatCurrency, getPersonel, renderUserInfo, showToast, todayISO, populateSprintDropdown, hideAyarlarForNonAdmin, isReadOnly, applyViewerRestrictions, loadActivePersonel } from './utils.js'
 import Sortable from 'https://cdn.jsdelivr.net/npm/sortablejs/+esm'
 
 // ── State ────────────────────────────────────────────────────
@@ -24,12 +24,13 @@ try {
   currentPersonel = await getPersonel(supabase, currentUser.id)
   if (currentPersonel) renderUserInfo(currentPersonel.ad, currentPersonel.soyad)
   if (currentPersonel) hideAyarlarForNonAdmin(currentPersonel)
+  if (currentPersonel) applyViewerRestrictions(currentPersonel)
 
   document.getElementById('logout-btn').addEventListener('click', () => signOut())
 
   await loadReferenceData()
   await loadBoard()
-  initSortable()
+  if (!isReadOnly(currentPersonel)) initSortable()
   initRealtime()
   initFilters()
   initModal()
@@ -44,14 +45,14 @@ try {
 async function loadReferenceData() {
   const [sprintRes, personelRes, altFaalRes] = await Promise.all([
     supabase.from('sprint_veri').select('sprint_donem,sprint_adi,baslangic,bitis').order('sprint_donem', { ascending: false }),
-    supabase.from('personel').select('pkod,ad,soyad,rol_kodu').order('ad'),
+    loadActivePersonel(supabase),
     supabase.from('alt_faaliyetler')
       .select('sno,fkod,alt_faaliyet,p_sure,faaliyetler(skod,kkod,faaliyet,soplar(kisa),kategori_tipleri(kategori_adi))')
       .order('sno')
   ])
 
   sprints = sprintRes.data || []
-  personeller = personelRes.data || []
+  personeller = personelRes || []
   altFaaliyetler = altFaalRes.data || []
 
   // Sprint filtre dropdown

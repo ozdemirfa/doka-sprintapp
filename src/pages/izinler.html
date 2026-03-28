@@ -330,13 +330,14 @@
 <script type="module">
   import { supabase } from '../js/supabase.js'
   import { requireAuth, signOut } from '../js/auth.js'
-  import { formatDate, getPersonel, renderUserInfo, populateSprintDropdown, showToast, todayISO, hideAyarlarForNonAdmin } from '../js/utils.js'
+  import { formatDate, getPersonel, renderUserInfo, populateSprintDropdown, showToast, todayISO, hideAyarlarForNonAdmin, applyViewerRestrictions, loadActivePersonel } from '../js/utils.js'
 
   // ── Auth ─────────────────────────────────────────────────────────
   const session = await requireAuth()
   const personel = await getPersonel(supabase, session.user.id)
   if (personel) renderUserInfo(personel.ad, personel.soyad)
   if (personel) hideAyarlarForNonAdmin(personel)
+  if (personel) applyViewerRestrictions(personel)
   const isFatih = personel?.rol_kodu === 'yönetici'
 
   document.getElementById('logout-btn').addEventListener('click', () => signOut())
@@ -358,11 +359,8 @@
     sprintSelectIzin.value = ''
   }
 
-  // ── Personel Listesi ──────────────────────────────────────────────
-  const { data: personelListesi } = await supabase
-    .from('personel')
-    .select('pkod, ad, soyad')
-    .order('ad')
+  // ── Personel Listesi (Aktif, izleyici olmayan) ───────────────────
+  const personelListesi = await loadActivePersonel(supabase)
 
   // pkod → ad soyad haritası
   const personelMap = Object.fromEntries((personelListesi || []).map(p => [p.pkod, `${p.ad} ${p.soyad}`]))

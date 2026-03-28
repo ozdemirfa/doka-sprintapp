@@ -640,3 +640,11 @@ input[type=range]::-webkit-slider-thumb {
   .main-content { margin-left: 0; }
   .kanban-board { grid-template-columns: 1fr; }
 }
+
+/* ── İzleyici Modu (viewer-mode) ────────────────────────── */
+.viewer-mode .btn-gold,
+.viewer-mode .row-action,
+.viewer-mode .btn-yeni-gorev,
+.viewer-mode #btn-gorev-ekle,
+.viewer-mode .modal-open-btn,
+.viewer-mode #btn-sil { display: none !important; }

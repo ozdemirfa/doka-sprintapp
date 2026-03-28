@@ -47,6 +47,9 @@
         <select id="filter-sprint" class="form-control" style="width:auto;min-width:220px;">
           <option value="">Tüm Sprintler</option>
         </select>
+        <select id="filter-faaliyet" class="form-control" style="width:auto;min-width:280px;">
+          <option value="">Tüm Sprint Faaliyetler</option>
+        </select>
       </div>
 
       <!-- Tablo -->
@@ -54,7 +57,7 @@
         <table class="data-table">
           <thead>
             <tr>
-              <th>İş Planı</th>
+              <th>Sprint Faaliyet</th>
               <th>ÇG Kodu</th>
               <th>Açıklama</th>
               <th style="text-align:right;">Gerçekleşme</th>
@@ -76,11 +79,11 @@
 <!-- Yeni Gerçekleşme Modalı -->
 <div class="modal-overlay hidden" id="modal-gerceklesme">
   <div class="modal-box" style="max-width:520px;">
-    <h3>Performans Gerçekleşmesi Gir</h3>
+    <h3 id="modal-gerceklesme-title">Performans Gerçekleşmesi Gir</h3>
     <form id="form-gerceklesme">
 
       <div class="form-group">
-        <label for="g-is-plani">İş Planı Kalemi</label>
+        <label for="g-is-plani">Sprint Faaliyet Kalemi</label>
         <select id="g-is-plani" class="form-control" required>
           <option value="">Seçiniz...</option>
         </select>
@@ -160,13 +163,14 @@
 <script type="module">
   import { supabase } from '../js/supabase.js'
   import { requireAuth, signOut } from '../js/auth.js'
-  import { formatDate, getPersonel, renderUserInfo, showToast, hideAyarlarForNonAdmin } from '../js/utils.js'
+  import { formatDate, getPersonel, renderUserInfo, showToast, hideAyarlarForNonAdmin, applyViewerRestrictions } from '../js/utils.js'
 
   // ── Auth ──────────────────────────────────────────────────────────
   const session = await requireAuth()
   const personel = await getPersonel(supabase, session.user.id)
   if (personel) renderUserInfo(personel.ad, personel.soyad)
   if (personel) hideAyarlarForNonAdmin(personel)
+  if (personel) applyViewerRestrictions(personel)
   document.getElementById('logout-btn').addEventListener('click', () => signOut())
 
   // ── Referans veriler ──────────────────────────────────────────────
@@ -198,20 +202,59 @@
     filterSprint.appendChild(opt)
   })
 
+  // Sprint Faaliyet filtre dropdown
+  const filterFaaliyet = document.getElementById('filter-faaliyet')
+  const uniqueFaaliyetler = [...new Set(
+    (isPlaniData || []).filter(ip => ip.sprint_faaliyetleri).map(ip => ip.sprint_faaliyetleri)
+  )].sort()
+  uniqueFaaliyetler.forEach(f => {
+    const opt = document.createElement('option')
+    opt.value = f
+    opt.textContent = f.length > 70 ? f.substring(0, 67) + '...' : f
+    filterFaaliyet.appendChild(opt)
+  })
+
+  // URL parametresi: kanban'dan gelen ?faaliyet= ile filtre ön seçimi
+  const urlParams = new URLSearchParams(window.location.search)
+  const urlFaaliyet = urlParams.get('faaliyet')
+  if (urlFaaliyet) {
+    const matchOpt = [...filterFaaliyet.options].find(o =>
+      o.value === urlFaaliyet || o.value.includes(urlFaaliyet) || urlFaaliyet.includes(o.value)
+    )
+    if (matchOpt) filterFaaliyet.value = matchOpt.value
+  }
+
+  // Edit durumu
+  let editId = null
+
   // ── Veri yükle ────────────────────────────────────────────────────
   async function loadData() {
-    const sv = filterSprint.value
+    const sv  = filterSprint.value
+    const fv  = filterFaaliyet.value
     let query = supabase.from('sprint_perf_gos').select('*').order('id', { ascending: false })
 
+    // Sprint filtresi
     if (sv) {
-      // sprint_is_plani_id üzerinden sprint filtresi
       const idsInSprint = (isPlaniData || [])
         .filter(ip => String(ip.sprint_donem) === String(sv))
         .map(ip => ip.id)
       if (idsInSprint.length > 0) {
         query = query.in('sprint_is_plani_id', idsInSprint)
       } else {
-        // Sprint'te iş planı yok
+        document.getElementById('perf-gos-tbody').innerHTML =
+          '<tr><td colspan="7" style="text-align:center;color:#94a3b8;padding:32px;">Kayıt bulunamadı.</td></tr>'
+        return
+      }
+    }
+
+    // Sprint Faaliyet filtresi
+    if (fv) {
+      const idsForFaaliyet = (isPlaniData || [])
+        .filter(ip => ip.sprint_faaliyetleri === fv)
+        .map(ip => ip.id)
+      if (idsForFaaliyet.length > 0) {
+        query = query.in('sprint_is_plani_id', idsForFaaliyet)
+      } else {
         document.getElementById('perf-gos-tbody').innerHTML =
           '<tr><td colspan="7" style="text-align:center;color:#94a3b8;padding:32px;">Kayıt bulunamadı.</td></tr>'
         return
@@ -230,6 +273,7 @@
       const isPlaniLabel = r.sprint_is_plani_id
         ? (isPlaniMap[r.sprint_is_plani_id] ?? `#${r.sprint_is_plani_id}`)
         : '—'
+      const aciklamaEsc = (r.aciklama ?? '').replace(/"/g, '&quot;')
       return `
         <tr>
           <td style="font-size:0.8rem;max-width:220px;">${isPlaniLabel}</td>
@@ -238,7 +282,17 @@
           <td style="text-align:right;font-weight:600;color:var(--navy);">${r.gerceklesme ?? '—'}</td>
           <td>${r.tamamlanma_donemi ?? '—'}</td>
           <td>${formatDate(r.tamamlanma_tarihi)}</td>
-          <td style="text-align:center;">
+          <td style="text-align:center;white-space:nowrap;">
+            <button class="btn-edit-perf"
+              data-id="${r.id}"
+              data-is-plani-id="${r.sprint_is_plani_id ?? ''}"
+              data-cg-kod="${r.cg_kod ?? ''}"
+              data-aciklama="${aciklamaEsc}"
+              data-gerceklesme="${r.gerceklesme ?? ''}"
+              data-tarihi="${r.tamamlanma_tarihi ?? ''}"
+              style="padding:3px 10px;background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;border-radius:4px;cursor:pointer;font-size:0.75rem;margin-right:4px;">
+              Düzenle
+            </button>
             <button class="btn-danger" data-id="${r.id}" style="padding:3px 10px;">Sil</button>
           </td>
         </tr>
@@ -248,16 +302,46 @@
 
   await loadData()
   filterSprint.addEventListener('change', loadData)
+  filterFaaliyet.addEventListener('change', loadData)
 
-  // Silme
+  // Silme + Düzenleme
   document.getElementById('perf-gos-tbody').addEventListener('click', async (e) => {
-    const btn = e.target.closest('.btn-danger[data-id]')
-    if (!btn) return
-    if (!confirm('Bu kaydı silmek istiyor musunuz?')) return
-    const { error } = await supabase.from('sprint_perf_gos').delete().eq('id', btn.dataset.id)
-    if (error) { showToast('Silme hatası: ' + error.message, 'error'); return }
-    showToast('Kayıt silindi.', 'success')
-    await loadData()
+    // Silme
+    const delBtn = e.target.closest('.btn-danger[data-id]')
+    if (delBtn) {
+      if (!confirm('Bu kaydı silmek istiyor musunuz?')) return
+      const { error } = await supabase.from('sprint_perf_gos').delete().eq('id', delBtn.dataset.id)
+      if (error) { showToast('Silme hatası: ' + error.message, 'error'); return }
+      showToast('Kayıt silindi.', 'success')
+      await loadData()
+      return
+    }
+
+    // Düzenleme
+    const editBtn = e.target.closest('.btn-edit-perf[data-id]')
+    if (!editBtn) return
+    editId = parseInt(editBtn.dataset.id)
+    document.getElementById('modal-gerceklesme-title').textContent = 'Gerçekleşme Düzenle'
+
+    // İş planı dropdown
+    const isSel = document.getElementById('g-is-plani')
+    isSel.innerHTML = '<option value="">Seçiniz...</option>'
+    Object.entries(isPlaniMap)
+      .sort((a, b) => a[1].localeCompare(b[1]))
+      .forEach(([id, label]) => {
+        const opt = document.createElement('option')
+        opt.value = id; opt.textContent = label
+        isSel.appendChild(opt)
+      })
+    isSel.value = editBtn.dataset.isPlaniId
+
+    document.getElementById('g-cg-kod-hidden').value  = editBtn.dataset.cgKod
+    document.getElementById('g-cg-kod-display').value = editBtn.dataset.cgKod
+    document.getElementById('g-aciklama').value        = editBtn.dataset.aciklama
+    document.getElementById('g-gerceklesme').value     = editBtn.dataset.gerceklesme
+    document.getElementById('g-tamamlanma-tarihi').value = editBtn.dataset.tarihi
+    document.getElementById('modal-gerceklesme-error').classList.add('hidden')
+    document.getElementById('modal-gerceklesme').classList.remove('hidden')
   })
 
   // ── Modal ─────────────────────────────────────────────────────────
@@ -283,6 +367,8 @@
   }
 
   document.getElementById('btn-yeni-gerceklesme').addEventListener('click', () => {
+    editId = null
+    document.getElementById('modal-gerceklesme-title').textContent = 'Performans Gerçekleşmesi Gir'
     document.getElementById('form-gerceklesme').reset()
     openModal()
   })
@@ -302,18 +388,25 @@
     errEl.classList.add('hidden')
 
     if (!sprintIsPlaniId || !cgKod || isNaN(gerceklesme)) {
-      errEl.textContent = 'İş Planı, ÇG Kodu ve Gerçekleşme Değeri zorunludur.'
+      errEl.textContent = 'Sprint Faaliyet, ÇG Kodu ve Gerçekleşme Değeri zorunludur.'
       errEl.classList.remove('hidden')
       return
     }
 
-    const { error } = await supabase.from('sprint_perf_gos').insert({
-      sprint_is_plani_id:  sprintIsPlaniId,
-      cg_kod:              cgKod,
-      aciklama:            aciklama || null,
+    const payload = {
+      sprint_is_plani_id: sprintIsPlaniId,
+      cg_kod:             cgKod,
+      aciklama:           aciklama || null,
       gerceklesme,
-      tamamlanma_tarihi:   tamamlanmaTarihi
-    })
+      tamamlanma_tarihi:  tamamlanmaTarihi
+    }
+
+    let error
+    if (editId) {
+      ;({ error } = await supabase.from('sprint_perf_gos').update(payload).eq('id', editId))
+    } else {
+      ;({ error } = await supabase.from('sprint_perf_gos').insert(payload))
+    }
 
     if (error) {
       errEl.textContent = error.message
@@ -321,7 +414,8 @@
       return
     }
 
-    showToast('Gerçekleşme kaydedildi.', 'success')
+    showToast(editId ? 'Kayıt güncellendi.' : 'Gerçekleşme kaydedildi.', 'success')
+    editId = null
     document.getElementById('modal-gerceklesme').classList.add('hidden')
     await loadData()
   })

@@ -139,7 +139,7 @@
 <script type="module">
   import { supabase } from '../js/supabase.js'
   import { requireAuth, signOut } from '../js/auth.js'
-  import { formatDate, getPersonel, renderUserInfo, populateSprintDropdown, showToast, calcGort, hideAyarlarForNonAdmin } from '../js/utils.js'
+  import { formatDate, getPersonel, renderUserInfo, populateSprintDropdown, showToast, calcGort, hideAyarlarForNonAdmin, applyViewerRestrictions } from '../js/utils.js'
 
   // ── Auth ─────────────────────────────────────────────────────────
   const session = await requireAuth()
@@ -147,6 +147,7 @@
   if (personel) {
     renderUserInfo(personel.ad, personel.soyad)
     hideAyarlarForNonAdmin(personel)
+    applyViewerRestrictions(personel)
     document.getElementById('retro-ad').value = `${personel.ad} ${personel.soyad}`
   }
 
