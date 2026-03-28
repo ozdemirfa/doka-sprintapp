@@ -311,7 +311,7 @@
     for (const [sop, sopFaaliyetler] of Object.entries(sopGruplari)) {
       // SOP bazında toplam hesapla
       const sopToplamHarcama = sopFaaliyetler.reduce((s, f) => s + (f.harcanan_butce_toplam || 0), 0)
-      const sopToplamButce = sopFaaliyetler.reduce((s, f) => s + (f.butce_2026 || 0), 0)
+      const sopToplamButce = sopFaaliyetler.reduce((s, f) => s + (f.sop_butce || 0), 0)
 
       html += `
     <div class="mb-6">
@@ -349,7 +349,7 @@
               </button>
               <div style="font-size:0.72rem;color:#64748b;">Harcanan</div>
               <div style="font-size:0.8rem;font-weight:600;color:var(--navy);">${formatCurrency(faaliyet.harcanan_butce_toplam)}</div>
-              <div style="font-size:0.68rem;color:#94a3b8;">/ ${formatCurrency(faaliyet.butce_2026)}</div>
+              <div style="font-size:0.68rem;color:#94a3b8;">/ ${formatCurrency(faaliyet.sop_butce)}</div>
             </div>
           </div>
           <div class="accordion-body">
