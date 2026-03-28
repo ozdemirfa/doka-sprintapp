@@ -145,6 +145,7 @@
       <a href="sprint-perf-gos.html"><span class="icon">📈</span> Perf. Gerçekleşmeleri</a>
       <a href="harcamalar.html"><span class="icon">💰</span> Harcamalar</a>
       <a href="izinler.html" class="active"><span class="icon">🗓️</span> İzinler & Saha</a>
+      <a href="parola.html"><span class="icon">🔑</span> Parola İşlemleri</a>
       <a href="ayarlar.html"><span class="icon">⚙️</span> Ayarlar</a>
     </nav>
     <div class="sidebar-footer">
@@ -212,6 +213,9 @@
 
       <!-- ────────────────── TAB: SAHA GÖREVLERİ ────────────────── -->
       <div class="tab-content" id="tab-saha">
+
+        <!-- Personel Bazlı Özet -->
+        <div id="saha-ozet" style="margin-bottom:16px;"></div>
 
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
           <h3 style="font-size:0.95rem;font-weight:700;color:var(--navy);margin:0;">Saha Görevleri</h3>
@@ -467,6 +471,54 @@
 
   await loadIzinler()
 
+  // ── Saha Özeti (personel bazlı) ───────────────────────────────────
+  function renderSahaOzet(rows) {
+    const container = document.getElementById('saha-ozet')
+    if (!rows || rows.length === 0) {
+      container.innerHTML = ''
+      return
+    }
+
+    // pkod bazında grupla
+    const ozet = {}
+    rows.forEach(r => {
+      if (!r.pkod) return
+      if (!ozet[r.pkod]) ozet[r.pkod] = { toplamGun: 0, iller: new Set() }
+      ozet[r.pkod].toplamGun += r.gorev_gun || 1
+      if (r.gorevli_il) ozet[r.pkod].iller.add(r.gorevli_il)
+    })
+
+    const entries = Object.entries(ozet)
+      .map(([pkod, v]) => ({ ad: personelMap[pkod] ?? `pkod:${pkod}`, toplamGun: v.toplamGun, ilSayisi: v.iller.size }))
+      .sort((a, b) => b.toplamGun - a.toplamGun)
+
+    container.innerHTML = `
+      <div class="sprint-ozet-box">
+        <h4>Personel Bazlı Saha Özeti</h4>
+        <div style="overflow-x:auto;">
+          <table class="data-table" style="font-size:0.82rem;">
+            <thead>
+              <tr>
+                <th>Personel</th>
+                <th style="text-align:center;">Toplam Görev Gün</th>
+                <th style="text-align:center;">İl Sayısı</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${entries.map(e => `
+                <tr>
+                  <td>${e.ad}</td>
+                  <td style="text-align:center;font-weight:700;color:var(--navy);">${e.toplamGun}</td>
+                  <td style="text-align:center;">${e.ilSayisi}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    `
+  }
+
   // ── Saha Görevleri Tablosu ────────────────────────────────────────
   async function loadSahaGorevleri() {
     const { data, error } = await supabase
@@ -477,9 +529,12 @@
     const tbody = document.getElementById('saha-tbody')
 
     if (error || !data || data.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#94a3b8;padding:24px;">Kayıt bulunamadı.</td></tr>'
+      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#94a3b8;padding:24px;">Kayıt bulunamadı.</td></tr>'
+      renderSahaOzet([])
       return
     }
+
+    renderSahaOzet(data)
 
     tbody.innerHTML = data.map(r => {
       const silBtn = isFatih

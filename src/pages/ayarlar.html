@@ -36,6 +36,7 @@
       <a href="sprint-perf-gos.html"><span class="icon">📈</span> Perf. Gerçekleşmeleri</a>
       <a href="harcamalar.html"><span class="icon">💰</span> Harcamalar</a>
       <a href="izinler.html"><span class="icon">🗓️</span> İzinler & Saha</a>
+      <a href="parola.html"><span class="icon">🔑</span> Parola İşlemleri</a>
       <a href="ayarlar.html" class="active"><span class="icon">⚙️</span> Ayarlar</a>
     </nav>
     <div class="sidebar-footer">
@@ -336,6 +337,22 @@
   </div>
 </div>
 
+<!-- Şifre Sıfırla Modalı -->
+<div class="modal-overlay hidden" id="modal-sifre-sifirla">
+  <div class="modal-box" style="max-width:380px;">
+    <h3 id="sifre-modal-title">Şifre Sıfırla</h3>
+    <input type="hidden" id="sifre-modal-pkod">
+    <div class="form-group">
+      <label>Yeni Şifre</label>
+      <input type="password" id="sifre-modal-pwd" class="form-control" placeholder="En az 8 karakter" autocomplete="new-password">
+    </div>
+    <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:16px;">
+      <button class="btn-secondary" id="btn-sifre-modal-kapat">İptal</button>
+      <button class="btn-gold" id="btn-sifre-modal-kaydet">Sıfırla</button>
+    </div>
+  </div>
+</div>
+
 <!-- Düzenleme Modalı (generic) -->
 <div class="modal-overlay hidden" id="modal-edit">
   <div class="modal-box" style="max-width:480px;">
@@ -558,6 +575,9 @@
     const hedef             = parseFloat(document.getElementById('pgm-hedef').value) || null
     const tamamlanma_donemi = document.getElementById('pgm-tamamlanma').value.trim()
     const katki_sonuc_gostergesi = document.getElementById('pgm-katki').value.trim()
+    if (tamamlanma_donemi && !/^\d{4}\/[1-4]$/.test(tamamlanma_donemi)) {
+      showToast('Tamamlanma Dönemi "YYYY/Ç" formatında olmalıdır. Örnek: 2026/3', 'error'); return
+    }
     if (!skod || !kkod || !cikti) {
       showToast('SOP, Kategori ve Çıktı Göstergesi zorunludur.', 'error'); return
     }
@@ -582,7 +602,7 @@
   // ═══════════════════════════════════════════════════════
   async function loadPersonel() {
     const tbody = document.getElementById('personel-tbody')
-    const { data, error } = await supabase.from('personel').select('pkod,ad,soyad,bkod,rol_kodu,durum').order('pkod')
+    const { data, error } = await supabase.from('personel').select('pkod,ad,soyad,bkod,rol_kodu,durum,eposta').order('pkod')
     if (error || !data?.length) {
       tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#94a3b8;padding:24px;">Kayıt yok.</td></tr>'
       return
@@ -606,12 +626,57 @@
         <td>${birimMap[r.bkod] ?? (r.bkod ?? '—')}</td>
         <td><span style="background:${rr.bg};color:${rr.fg};border-radius:9999px;padding:2px 8px;font-size:0.72rem;">${r.rol_kodu ?? '—'}</span></td>
         <td>${durumBadge}</td>
-        <td style="text-align:center;">
+        <td style="text-align:center;display:flex;gap:4px;justify-content:center;">
           <button class="row-action row-edit" data-id="${r.pkod}" data-table="personel">Düzenle</button>
+          <button class="row-action" style="background:#fef3c7;color:#92400e;border-color:#fcd34d;"
+            data-pkod="${r.pkod}" data-adsoyad="${r.ad} ${r.soyad}" data-action="sifre-sifirla">🔑 Şifre</button>
         </td>
       </tr>`
     }).join('')
   }
+
+  // ── Şifre Sıfırla Modal ───────────────────────────────────────────
+  document.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-action="sifre-sifirla"]')
+    if (!btn) return
+    const pkod = btn.dataset.pkod
+    const adSoyad = btn.dataset.adsoyad
+    document.getElementById('sifre-modal-pkod').value = pkod
+    document.getElementById('sifre-modal-title').textContent = `Şifre Sıfırla — ${adSoyad}`
+    document.getElementById('sifre-modal-pwd').value = ''
+    document.getElementById('modal-sifre-sifirla').classList.remove('hidden')
+  })
+
+  document.getElementById('btn-sifre-modal-kapat').addEventListener('click', () => {
+    document.getElementById('modal-sifre-sifirla').classList.add('hidden')
+  })
+
+  document.getElementById('btn-sifre-modal-kaydet').addEventListener('click', async () => {
+    const pkod = parseInt(document.getElementById('sifre-modal-pkod').value)
+    const pwd  = document.getElementById('sifre-modal-pwd').value
+
+    if (!pwd || pwd.length < 8) {
+      showToast('Şifre en az 8 karakter olmalıdır.', 'error'); return
+    }
+
+    const saveBtn = document.getElementById('btn-sifre-modal-kaydet')
+    saveBtn.disabled = true
+    saveBtn.textContent = 'Sıfırlanıyor...'
+
+    const { error } = await supabase.functions.invoke('admin-reset-password', {
+      body: { pkod, new_password: pwd }
+    })
+
+    saveBtn.disabled = false
+    saveBtn.textContent = 'Sıfırla'
+
+    if (error) {
+      showToast('Hata: ' + error.message, 'error')
+    } else {
+      showToast('Şifre başarıyla sıfırlandı.', 'success')
+      document.getElementById('modal-sifre-sifirla').classList.add('hidden')
+    }
+  })
 
   document.getElementById('btn-p-ekle').addEventListener('click', async () => {
     const ad    = document.getElementById('p-ad').value.trim()
@@ -864,6 +929,9 @@
               <option value="Pasif" ${r.durum==='Pasif'?'selected':''}>Pasif</option>
             </select>
           </div>
+        </div>
+        <div class="form-group"><label>E-posta</label>
+          <input id="edit-peposta" class="form-control" type="email" value="${r.eposta ?? ''}" placeholder="ornek@kurum.gov.tr">
         </div>`
     } else if (table === 'sprint') {
       const { data: r } = await supabase.from('sprint_veri').select('*').eq('sprint_donem', id).single()
@@ -1017,9 +1085,10 @@
       const ad    = document.getElementById('edit-pad').value.trim()
       const soyad = document.getElementById('edit-psoyad').value.trim()
       const bkod  = document.getElementById('edit-pbkod').value.trim() || null
-      const rol   = document.getElementById('edit-prol').value
-      const durum = document.getElementById('edit-pdurum').value || 'Aktif'
-      ;({ error } = await supabase.from('personel').update({ ad, soyad, bkod, rol_kodu: rol, durum }).eq('pkod', id))
+      const rol    = document.getElementById('edit-prol').value
+      const durum  = document.getElementById('edit-pdurum').value || 'Aktif'
+      const eposta = document.getElementById('edit-peposta').value.trim() || null
+      ;({ error } = await supabase.from('personel').update({ ad, soyad, bkod, rol_kodu: rol, durum, eposta }).eq('pkod', id))
       if (!error) await loadPersonel()
     } else if (table === 'sprint') {
       const adi  = document.getElementById('edit-svadi').value.trim()
@@ -1039,6 +1108,9 @@
       const hedef             = parseFloat(document.getElementById('edit-pg-hedef').value) || null
       const tamamlanma_donemi = document.getElementById('edit-pg-tamamlanma').value.trim()
       const katki_sonuc_gostergesi = document.getElementById('edit-pg-katki').value.trim()
+      if (tamamlanma_donemi && !/^\d{4}\/[1-4]$/.test(tamamlanma_donemi)) {
+        showToast('Tamamlanma Dönemi "YYYY/Ç" formatında olmalıdır. Örnek: 2026/3', 'error'); return
+      }
       ;({ error } = await supabase.from('perf_gostergeler').update({
         skod, kkod,
         cikti_gostergesi: cikti || null,
