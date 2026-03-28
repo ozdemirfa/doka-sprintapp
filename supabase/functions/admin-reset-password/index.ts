@@ -5,25 +5,6 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-/**
- * JWT payload'ını imza doğrulaması yapmadan decode eder.
- * Edge Runtime JWT'yi zaten doğruladığı için burada tekrar doğrulamaya gerek yok.
- */
-function getSubFromJwt(jwt: string): string | null {
-  try {
-    const base64Payload = jwt.split('.')[1]
-    // base64url → base64: - → +, _ → /, padding ekle
-    const base64 = base64Payload
-      .replace(/-/g, '+')
-      .replace(/_/g, '/')
-    const padded = base64 + '='.repeat((4 - base64.length % 4) % 4)
-    const payload = JSON.parse(atob(padded))
-    return payload.sub ?? null
-  } catch {
-    return null
-  }
-}
-
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
@@ -32,26 +13,29 @@ Deno.serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!
     const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+    const anonKey = Deno.env.get('SUPABASE_ANON_KEY')!
 
-    // Authorization header'dan token al
+    // Authorization header kontrolü
     const authHeader = req.headers.get('Authorization') ?? ''
-    const token = authHeader.replace(/^Bearer\s+/i, '').trim()
-
-    if (!token) {
+    if (!authHeader.startsWith('Bearer ')) {
       return new Response(JSON.stringify({ error: 'Yetkilendirme başlığı eksik.' }), {
         status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       })
     }
 
-    // JWT'den caller user ID'sini al (outbound HTTP çağrısı yapmadan)
-    const callerUserId = getSubFromJwt(token)
-    if (!callerUserId) {
-      return new Response(JSON.stringify({ error: 'Geçersiz JWT token.' }), {
+    // JWT doğrulama: callerClient (anon key + user JWT) → auth.getUser()
+    // Supabase önerilen pattern — imzayı doğrular ve user bilgisini döner
+    const callerClient = createClient(supabaseUrl, anonKey, {
+      global: { headers: { Authorization: authHeader } }
+    })
+    const { data: { user: callerUser }, error: authErr } = await callerClient.auth.getUser()
+    if (authErr || !callerUser) {
+      return new Response(JSON.stringify({ error: 'Oturum doğrulanamadı: ' + (authErr?.message ?? '') }), {
         status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       })
     }
 
-    // adminClient — tüm DB sorguları ve admin operasyonları (RLS bypass)
+    // adminClient — tüm DB sorguları service role ile (RLS bypass)
     const adminClient = createClient(supabaseUrl, serviceRoleKey, {
       auth: { autoRefreshToken: false, persistSession: false }
     })
@@ -60,7 +44,7 @@ Deno.serve(async (req) => {
     const { data: callerPersonel, error: rolErr } = await adminClient
       .from('personel')
       .select('rol_kodu')
-      .eq('auth_id', callerUserId)
+      .eq('auth_id', callerUser.id)
       .single()
 
     if (rolErr || callerPersonel?.rol_kodu !== 'yönetici') {
