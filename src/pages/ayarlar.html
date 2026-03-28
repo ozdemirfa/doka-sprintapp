@@ -671,7 +671,8 @@
     saveBtn.textContent = 'Sıfırla'
 
     if (error) {
-      showToast('Hata: ' + error.message, 'error')
+      const errBody = await error.context?.json().catch(() => null)
+      showToast('Hata: ' + (errBody?.error ?? error.message), 'error')
     } else {
       showToast('Şifre başarıyla sıfırlandı.', 'success')
       document.getElementById('modal-sifre-sifirla').classList.add('hidden')

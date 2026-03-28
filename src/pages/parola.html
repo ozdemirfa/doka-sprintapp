@@ -177,7 +177,8 @@
       btn.textContent = 'Şifreyi Sıfırla'
 
       if (error) {
-        showToast('Hata: ' + error.message, 'error')
+        const errBody = await error.context?.json().catch(() => null)
+        showToast('Hata: ' + (errBody?.error ?? error.message), 'error')
       } else {
         showToast('Kullanıcı şifresi başarıyla sıfırlandı.', 'success')
         document.getElementById('admin-new-password').value = ''
