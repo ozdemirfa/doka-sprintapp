@@ -12,8 +12,11 @@ const corsHeaders = {
 function getSubFromJwt(jwt: string): string | null {
   try {
     const base64Payload = jwt.split('.')[1]
-    // Deno'da atob base64url desteklemeyebilir — padding düzeltmesi ekle
-    const padded = base64Payload.replace(/-/g, '+').replace(/_/g, '/')
+    // base64url → base64: - → +, _ → /, padding ekle
+    const base64 = base64Payload
+      .replace(/-/g, '+')
+      .replace(/_/g, '/')
+    const padded = base64 + '='.repeat((4 - base64.length % 4) % 4)
     const payload = JSON.parse(atob(padded))
     return payload.sub ?? null
   } catch {

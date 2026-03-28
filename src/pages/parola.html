@@ -178,7 +178,7 @@
 
       if (error) {
         const errBody = await error.context?.json().catch(() => null)
-        showToast('Hata: ' + (errBody?.error ?? error.message), 'error')
+        showToast('Hata: ' + (errBody?.error ?? errBody?.message ?? error.message), 'error')
       } else {
         showToast('Kullanıcı şifresi başarıyla sıfırlandı.', 'success')
         document.getElementById('admin-new-password').value = ''
