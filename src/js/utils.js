@@ -162,3 +162,38 @@ export function hideAyarlarForNonAdmin(personel) {
     })
   }
 }
+
+/**
+ * Personelin izleyici (read-only) olup olmadığını döndürür
+ * @param {object|null} personel
+ * @returns {boolean}
+ */
+export function isReadOnly(personel) {
+  return personel?.rol_kodu === 'izleyici'
+}
+
+/**
+ * İzleyici personel için body'e viewer-mode class'ı ekler
+ * CSS ile .btn-gold, .row-action vb. gizlenir
+ * @param {object|null} personel
+ */
+export function applyViewerRestrictions(personel) {
+  if (isReadOnly(personel)) {
+    document.body.classList.add('viewer-mode')
+  }
+}
+
+/**
+ * Sadece Aktif ve izleyici olmayan personeli döndürür (form dropdownları için)
+ * @param {object} supabase
+ * @returns {Promise<Array>}
+ */
+export async function loadActivePersonel(supabase) {
+  const { data } = await supabase
+    .from('personel')
+    .select('pkod,ad,soyad,bkod,rol_kodu,durum')
+    .neq('rol_kodu', 'izleyici')
+    .neq('durum', 'Pasif')
+    .order('ad')
+  return data || []
+}

@@ -45,13 +45,19 @@
         <select id="filter-sop" class="form-control" style="width:auto;min-width:130px;">
           <option value="">Tüm SOPlar</option>
         </select>
+        <select id="filter-yil" class="form-control" style="width:auto;min-width:130px;">
+          <option value="">Tüm Yıllar</option>
+          <option value="2024">2024</option>
+          <option value="2025">2025</option>
+          <option value="2026">2026</option>
+        </select>
       </div>
     </div>
 
     <div class="page-body">
       <div style="overflow-x:auto;">
         <table class="data-table perf-table">
-          <thead>
+          <thead id="perf-ozet-thead">
             <tr>
               <th>ÇG Kodu</th>
               <th>SOP</th>
@@ -83,12 +89,14 @@
 <script type="module">
   import { supabase } from '../js/supabase.js'
   import { requireAuth, signOut } from '../js/auth.js'
-  import { getPersonel, renderUserInfo, showToast } from '../js/utils.js'
+  import { getPersonel, renderUserInfo, showToast, hideAyarlarForNonAdmin, applyViewerRestrictions } from '../js/utils.js'
 
   // ── Auth ──────────────────────────────────────────────────────────
   const session = await requireAuth()
   const personel = await getPersonel(supabase, session.user.id)
   if (personel) renderUserInfo(personel.ad, personel.soyad)
+  if (personel) hideAyarlarForNonAdmin(personel)
+  if (personel) applyViewerRestrictions(personel)
   document.getElementById('logout-btn').addEventListener('click', () => signOut())
 
   // ── Veri yükle ────────────────────────────────────────────────────
@@ -126,20 +134,39 @@
     return Number(v).toLocaleString('tr-TR', { minimumFractionDigits: 0, maximumFractionDigits: 2 })
   }
 
+  const YEARS = [2024, 2025, 2026]
+
   function renderTable() {
     const sopFilter = document.getElementById('filter-sop').value
+    const yilFilter = document.getElementById('filter-yil').value
     const rows = sopFilter ? allData.filter(r => r.sop === sopFilter) : allData
     const tbody = document.getElementById('perf-ozet-tbody')
+    const thead = document.getElementById('perf-ozet-thead')
+
+    // Dynamic column count for empty-state colspan
+    const colCount = yilFilter ? 11 : 16
 
     if (!rows.length) {
-      tbody.innerHTML = '<tr><td colspan="16" style="text-align:center;color:#94a3b8;padding:32px;">Veri bulunamadı.</td></tr>'
+      tbody.innerHTML = `<tr><td colspan="${colCount}" style="text-align:center;color:#94a3b8;padding:32px;">Veri bulunamadı.</td></tr>`
       return
     }
 
-    // Kümülatif gerçekleşme = gerç. 2024 + 2025 + 2026
-    tbody.innerHTML = rows.map(r => {
-      const kumGerc = (r.gerceklesen_2024 || 0) + (r.gerceklesen_2025 || 0) + (r.gerceklesen_2026 || 0)
-      return `
+    if (yilFilter) {
+      // Yıl seçili: sadece o yılın hedef + gerçekleşen kolonları
+      thead.innerHTML = `<tr>
+        <th>ÇG Kodu</th>
+        <th>SOP</th>
+        <th>Bileşen Kodu</th>
+        <th>Bileşen Adı</th>
+        <th>Çıktı Göstergesi</th>
+        <th>Birim</th>
+        <th style="text-align:right;">Hedef</th>
+        <th>Tamam. Dönemi</th>
+        <th>Katkı Sonuç Gost.</th>
+        <th style="text-align:right;">H. ${yilFilter}</th>
+        <th style="text-align:right;">Gerç. ${yilFilter}</th>
+      </tr>`
+      tbody.innerHTML = rows.map(r => `
         <tr>
           <td><strong>${r.cg_kod ?? '—'}</strong></td>
           <td>${r.sop ?? '—'}</td>
@@ -150,19 +177,58 @@
           <td style="text-align:right;">${fmt(r.hedef)}</td>
           <td>${r.tamamlanma_donemi ?? '—'}</td>
           <td style="max-width:160px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${r.katki_sonuc_gostergesi ?? ''}">${r.katki_sonuc_gostergesi ?? '—'}</td>
-          <td style="text-align:right;">${fmt(r.hedef_2024)}</td>
-          <td style="text-align:right;">${fmt(r.hedef_2025)}</td>
-          <td style="text-align:right;">${fmt(r.hedef_2026)}</td>
-          <td style="text-align:right;font-weight:700;color:var(--navy);">${fmt(kumGerc || null)}</td>
-          <td style="text-align:right;">${fmt(r.gerceklesen_2024)}</td>
-          <td style="text-align:right;">${fmt(r.gerceklesen_2025)}</td>
-          <td style="text-align:right;">${fmt(r.gerceklesen_2026)}</td>
+          <td style="text-align:right;">${fmt(r[`hedef_${yilFilter}`])}</td>
+          <td style="text-align:right;">${fmt(r[`gerceklesen_${yilFilter}`])}</td>
         </tr>
-      `
-    }).join('')
+      `).join('')
+    } else {
+      // Tüm yıllar görünümü
+      thead.innerHTML = `<tr>
+        <th>ÇG Kodu</th>
+        <th>SOP</th>
+        <th>Bileşen Kodu</th>
+        <th>Bileşen Adı</th>
+        <th>Çıktı Göstergesi</th>
+        <th>Birim</th>
+        <th style="text-align:right;">Hedef</th>
+        <th>Tamam. Dönemi</th>
+        <th>Katkı Sonuç Gost.</th>
+        <th style="text-align:right;">H. 1.yıl</th>
+        <th style="text-align:right;">H. 2.yıl</th>
+        <th style="text-align:right;">H. 3.yıl</th>
+        <th style="text-align:right;">Küm. Gerç.</th>
+        <th style="text-align:right;">Gerç. 1.yıl</th>
+        <th style="text-align:right;">Gerç. 2.yıl</th>
+        <th style="text-align:right;">Gerç. 3.yıl</th>
+      </tr>`
+      tbody.innerHTML = rows.map(r => {
+        const kumGerc = (r.gerceklesen_2024 || 0) + (r.gerceklesen_2025 || 0) + (r.gerceklesen_2026 || 0)
+        return `
+          <tr>
+            <td><strong>${r.cg_kod ?? '—'}</strong></td>
+            <td>${r.sop ?? '—'}</td>
+            <td>${r.bilesen_kodu ?? '—'}</td>
+            <td style="max-width:160px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${r.bilesen_adi ?? ''}">${r.bilesen_adi ?? '—'}</td>
+            <td style="max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${r.cikti_gostergesi ?? ''}">${r.cikti_gostergesi ?? '—'}</td>
+            <td>${r.birim ?? '—'}</td>
+            <td style="text-align:right;">${fmt(r.hedef)}</td>
+            <td>${r.tamamlanma_donemi ?? '—'}</td>
+            <td style="max-width:160px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${r.katki_sonuc_gostergesi ?? ''}">${r.katki_sonuc_gostergesi ?? '—'}</td>
+            <td style="text-align:right;">${fmt(r.hedef_2024)}</td>
+            <td style="text-align:right;">${fmt(r.hedef_2025)}</td>
+            <td style="text-align:right;">${fmt(r.hedef_2026)}</td>
+            <td style="text-align:right;font-weight:700;color:var(--navy);">${fmt(kumGerc || null)}</td>
+            <td style="text-align:right;">${fmt(r.gerceklesen_2024)}</td>
+            <td style="text-align:right;">${fmt(r.gerceklesen_2025)}</td>
+            <td style="text-align:right;">${fmt(r.gerceklesen_2026)}</td>
+          </tr>
+        `
+      }).join('')
+    }
   }
 
   document.getElementById('filter-sop').addEventListener('change', renderTable)
+  document.getElementById('filter-yil').addEventListener('change', renderTable)
 
   await loadData()
 </script>

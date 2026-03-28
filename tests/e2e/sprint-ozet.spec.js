@@ -26,9 +26,8 @@ test.describe('US-4: Sprint Özet sayfası', () => {
   })
 
   test('GKİ ve Hepiniss canvas elementleri DOM\'da mevcut olmalı', async ({ page }) => {
-    // US-4: 4 grafik canvas elementi bulunmalı
-    await expect(page.locator('#chart-gki')).toBeVisible()
-    await expect(page.locator('#chart-hepiniss')).toBeVisible()
+    // US-4: 3 grafik canvas elementi bulunmalı (GKİ+Hepiniss birleşik tek canvas)
+    await expect(page.locator('#chart-gki-hepiniss')).toBeVisible()
     await expect(page.locator('#chart-plan')).toBeVisible()
     await expect(page.locator('#chart-org')).toBeVisible()
   })

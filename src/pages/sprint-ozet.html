@@ -85,19 +85,18 @@
         </div>
       </div>
 
-      <!-- Grafik Grid (2x2) -->
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px;">
+      <!-- Grafik Grid: üst 2 sütun, alt tam genişlik -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
         <div class="metric-card" style="padding:16px;">
-          <canvas id="chart-gki" height="200"></canvas>
-        </div>
-        <div class="metric-card" style="padding:16px;">
-          <canvas id="chart-hepiniss" height="200"></canvas>
-        </div>
-        <div class="metric-card" style="padding:16px;">
-          <canvas id="chart-plan" height="200"></canvas>
+          <canvas id="chart-gki-hepiniss" height="200"></canvas>
         </div>
         <div class="metric-card" style="padding:16px;">
           <canvas id="chart-org" height="200"></canvas>
+        </div>
+      </div>
+      <div style="margin-bottom:24px;">
+        <div class="metric-card" style="padding:16px;">
+          <canvas id="chart-plan" height="120"></canvas>
         </div>
       </div>
 
@@ -132,8 +131,8 @@
 
 <script type="module">
   import { requireAuth, signOut } from '../js/auth.js'
-  import { getPersonel, renderUserInfo, populateSprintDropdown, formatPercent, formatDate, showToast, hideAyarlarForNonAdmin } from '../js/utils.js'
-  import { renderGkiTrend, renderHepinissTrend, renderPlanGerceklesme, renderOrgPuan } from '../js/charts.js'
+  import { getPersonel, renderUserInfo, populateSprintDropdown, formatPercent, formatDate, showToast, hideAyarlarForNonAdmin, applyViewerRestrictions } from '../js/utils.js'
+  import { renderGkiHepiniss, renderPlanGerceklesme, renderOrgPuan } from '../js/charts.js'
   import { supabase } from '../js/supabase.js'
 
   // ── State ─────────────────────────────────────────────
@@ -153,6 +152,7 @@
     const personel = await getPersonel(supabase, session.user.id)
     if (personel) renderUserInfo(personel.ad, personel.soyad)
     if (personel) hideAyarlarForNonAdmin(personel)
+    if (personel) applyViewerRestrictions(personel)
   }
 
   // ── Çıkış butonu ─────────────────────────────────────
@@ -202,15 +202,19 @@
   // ── Grafikleri çiz ────────────────────────────────────
   function renderAllCharts(rows) {
     const labels = rows.map(r => String(r.sprint_donem))
-    renderGkiTrend('chart-gki', labels, rows.map(r => r.gki ?? 0))
-    renderHepinissTrend('chart-hepiniss', labels, rows.map(r => r.hepiniss ?? 0))
+    renderGkiHepiniss(
+      'chart-gki-hepiniss',
+      labels,
+      rows.map(r => r.gki ?? 0),
+      rows.map(r => r.hepiniss ?? null)
+    )
     renderPlanGerceklesme(
       'chart-plan',
       labels,
       rows.map(r => r.plan_toplam ?? 0),
       rows.map(r => r.gerceklesme ?? 0)
     )
-    renderOrgPuan('chart-org', labels, rows.map(r => r.org_puan ?? 0))
+    renderOrgPuan('chart-org', labels, rows.map(r => r.org_puan ?? null))
   }
 
   // ── Metrik kartlarını güncelle ────────────────────────

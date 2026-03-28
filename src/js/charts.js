@@ -179,6 +179,94 @@ export function renderPlanGerceklesme(canvasId, labels, planData, gercekData) {
 }
 
 /**
+ * GKİ + Hepiniss birleşik dual-Y eksenli grafik
+ * GKİ her zaman değer taşır (spanGaps:true), Hepiniss retro yoksa null (spanGaps:false)
+ * @param {string} canvasId
+ * @param {string[]} labels
+ * @param {(number|null)[]} gkiData
+ * @param {(number|null)[]} hepinissData
+ */
+export function renderGkiHepiniss(canvasId, labels, gkiData, hepinissData) {
+  destroyIfExists(canvasId)
+  const ctx = document.getElementById(canvasId)
+  if (!ctx) return
+  new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        {
+          label: 'GKİ (%)',
+          data: gkiData,
+          borderColor: '#1a2744',
+          backgroundColor: 'rgba(26,39,68,0.1)',
+          borderWidth: 2.5,
+          pointBackgroundColor: '#1a2744',
+          pointRadius: 4,
+          tension: 0.3,
+          fill: true,
+          spanGaps: true,
+          yAxisID: 'yGki'
+        },
+        {
+          label: 'Hepiniss (G.ort)',
+          data: hepinissData,
+          borderColor: '#c9a227',
+          backgroundColor: 'rgba(201,162,39,0.08)',
+          borderWidth: 2,
+          pointBackgroundColor: '#c9a227',
+          pointRadius: 4,
+          tension: 0.3,
+          fill: false,
+          spanGaps: false,
+          yAxisID: 'yHepiniss'
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        title: {
+          display: true,
+          text: 'GKİ & Hepiniss Trendi',
+          color: '#1a2744',
+          font: { size: 13, weight: '700' }
+        },
+        legend: {
+          display: true,
+          position: 'bottom',
+          labels: { font: { size: 11 }, padding: 12 }
+        }
+      },
+      scales: {
+        yGki: {
+          type: 'linear',
+          position: 'left',
+          min: 0,
+          max: 120,
+          title: { display: true, text: 'GKİ (%)', font: { size: 10 } },
+          ticks: { font: { size: 11 } },
+          grid: { color: 'rgba(0,0,0,0.06)' }
+        },
+        yHepiniss: {
+          type: 'linear',
+          position: 'right',
+          min: 0,
+          max: 10,
+          title: { display: true, text: 'Hepiniss', font: { size: 10 } },
+          ticks: { font: { size: 11 } },
+          grid: { drawOnChartArea: false }
+        },
+        x: {
+          ticks: { font: { size: 11 } },
+          grid: { display: false }
+        }
+      }
+    }
+  })
+}
+
+/**
  * Organizasyon Puanı Trendi çizgi grafiği
  * @param {string} canvasId
  * @param {string[]} labels

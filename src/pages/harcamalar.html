@@ -160,7 +160,7 @@
 
 <script type="module">
   import { requireAuth, signOut } from '../js/auth.js'
-  import { getPersonel, renderUserInfo, formatCurrency, formatDate, showToast, todayISO, hideAyarlarForNonAdmin } from '../js/utils.js'
+  import { getPersonel, renderUserInfo, formatCurrency, formatDate, showToast, todayISO, hideAyarlarForNonAdmin, applyViewerRestrictions } from '../js/utils.js'
   import { supabase } from '../js/supabase.js'
 
   // ── Auth guard ────────────────────────────────────────
@@ -168,6 +168,7 @@
   const personel = await getPersonel(supabase, session.user.id)
   if (personel) renderUserInfo(personel.ad, personel.soyad)
   if (personel) hideAyarlarForNonAdmin(personel)
+  if (personel) applyViewerRestrictions(personel)
   document.getElementById('logout-btn').addEventListener('click', signOut)
 
   // ── State ─────────────────────────────────────────────

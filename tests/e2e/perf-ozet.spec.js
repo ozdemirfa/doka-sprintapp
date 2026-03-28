@@ -8,7 +8,7 @@ const { mockSupabase } = require('./helpers/auth')
 const MOCK_PERF_GOSTERGELER = [
   {
     cg_kod: 'CG-01',
-    sop: 'SOP-1',
+    soplar: { kisa: 'SOP-1' },
     bilesen_kodu: 'B-01',
     bilesen_adi: 'Bileşen 1',
     cikti_gostergesi: 'Test Çıktı Göstergesi',

@@ -109,7 +109,7 @@
 
 <script type="module">
   import { requireAuth, signOut } from '../js/auth.js'
-  import { getPersonel, renderUserInfo, formatPercent, showToast, hideAyarlarForNonAdmin } from '../js/utils.js'
+  import { getPersonel, renderUserInfo, formatPercent, showToast, hideAyarlarForNonAdmin, applyViewerRestrictions } from '../js/utils.js'
   import { supabase } from '../js/supabase.js'
   import Chart from 'https://cdn.jsdelivr.net/npm/chart.js/+esm'
 
@@ -118,6 +118,7 @@
   const personel = await getPersonel(supabase, session.user.id)
   if (personel) renderUserInfo(personel.ad, personel.soyad)
   if (personel) hideAyarlarForNonAdmin(personel)
+  if (personel) applyViewerRestrictions(personel)
   document.getElementById('logout-btn').addEventListener('click', signOut)
 
   // ── State ─────────────────────────────────────────────
