@@ -44,16 +44,13 @@ test.describe('Sprint Perf Gos: Filtreler', () => {
     await expect(page.locator('#filter-sprint')).toBeVisible()
   })
 
-  test('yıl filtre dropdown görünmeli', async ({ page }) => {
-    await expect(page.locator('#filter-yil')).toBeVisible()
+  test('faaliyet filtre dropdown görünmeli', async ({ page }) => {
+    await expect(page.locator('#filter-faaliyet')).toBeVisible()
   })
 
-  test('yıl filtre dropdown 2024, 2025, 2026 seçeneklerini içermeli', async ({ page }) => {
-    const options = await page.locator('#filter-yil option').allTextContents()
-    const yillar = options.filter(o => o !== 'Tüm Yıllar' && o !== '')
-    expect(yillar).toContain('2024')
-    expect(yillar).toContain('2025')
-    expect(yillar).toContain('2026')
+  test('faaliyet filtre dropdown varsayılan "Tüm Sprint Faaliyetler" seçeneği içermeli', async ({ page }) => {
+    const options = await page.locator('#filter-faaliyet option').allTextContents()
+    expect(options[0]).toContain('Tüm')
   })
 
   test('sprint filtre değişince sayfa hata vermemeli', async ({ page }) => {
@@ -95,8 +92,8 @@ test.describe('Sprint Perf Gos: Yeni Gerçekleşme Butonu', () => {
       () => !document.getElementById('modal-gerceklesme')?.classList.contains('hidden'),
       { timeout: 5000 }
     )
-    await expect(page.locator('#g-sprint-donem')).toBeVisible()
-    await expect(page.locator('#g-cg-kod')).toBeVisible()
+    await expect(page.locator('#g-is-plani')).toBeVisible()
+    await expect(page.locator('#g-cg-kod-display')).toBeVisible()
     await expect(page.locator('#g-gerceklesme')).toBeVisible()
   })
 
