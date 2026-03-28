@@ -113,6 +113,9 @@
 
       <!-- ───── Perf. Göstergeleri ───── -->
       <div class="tab-panel metric-card" id="tab-perf-gostergeler" style="border-radius:0 6px 6px 6px;padding:0;overflow:hidden;">
+        <div style="padding:10px 16px;background:#f8fafc;border-bottom:1px solid #e2e8f0;display:flex;justify-content:flex-end;">
+          <button class="btn-gold" id="btn-pg-modal-open">+ Yeni Perf. Göstergesi Ekle</button>
+        </div>
         <table class="data-table">
           <thead>
             <tr>
@@ -128,13 +131,6 @@
             <tr><td colspan="6" style="text-align:center;color:#94a3b8;padding:24px;">Yükleniyor...</td></tr>
           </tbody>
         </table>
-        <div class="inline-form">
-          <select id="pg-skod" class="form-control" style="max-width:160px;"><option value="">SOP Seç...</option></select>
-          <select id="pg-kkod" class="form-control" style="max-width:160px;"><option value="">Kategori Seç...</option></select>
-          <input type="text" id="pg-cikti" class="form-control" placeholder="Çıktı Göstergesi" style="max-width:260px;">
-          <input type="text" id="pg-aciklama" class="form-control" placeholder="Açıklama (opsiyonel)" style="max-width:260px;">
-          <button class="btn-gold" id="btn-pg-ekle">+ Ekle</button>
-        </div>
       </div>
 
       <!-- ───── Personel ───── -->
@@ -238,11 +234,12 @@
               <th>B.Kod</th>
               <th>Kısa Ad</th>
               <th>Tam Ad</th>
+              <th>Durum</th>
               <th style="text-align:center;">İşlem</th>
             </tr>
           </thead>
           <tbody id="birimler-tbody">
-            <tr><td colspan="4" style="text-align:center;color:#94a3b8;padding:24px;">Yükleniyor...</td></tr>
+            <tr><td colspan="5" style="text-align:center;color:#94a3b8;padding:24px;">Yükleniyor...</td></tr>
           </tbody>
         </table>
         <div class="inline-form">
@@ -295,6 +292,50 @@
   </main>
 </div>
 
+<!-- Perf. Göstergesi Ekle Modalı -->
+<div class="modal-overlay hidden" id="modal-pg-ekle">
+  <div class="modal-box" style="max-width:560px;">
+    <h3>Yeni Perf. Göstergesi Ekle</h3>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+      <div class="form-group"><label>SOP <span style="color:#dc2626;">*</span></label>
+        <select id="pgm-skod" class="form-control"><option value="">SOP Seç...</option></select>
+      </div>
+      <div class="form-group"><label>Kategori <span style="color:#dc2626;">*</span></label>
+        <select id="pgm-kkod" class="form-control"><option value="">Kategori Seç...</option></select>
+      </div>
+    </div>
+    <div class="form-group"><label>Çıktı Göstergesi <span style="color:#dc2626;">*</span></label>
+      <input type="text" id="pgm-cikti" class="form-control" placeholder="Çıktı Göstergesi">
+    </div>
+    <div class="form-group"><label>Bileşen Adı</label>
+      <input type="text" id="pgm-bilesen-adi" class="form-control" placeholder="Bileşen Adı">
+    </div>
+    <div class="form-group"><label>Açıklama</label>
+      <input type="text" id="pgm-aciklama" class="form-control" placeholder="Açıklama (opsiyonel)">
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+      <div class="form-group"><label>Birim</label>
+        <input type="text" id="pgm-birim" class="form-control" placeholder="ör: Adet, %, TL">
+      </div>
+      <div class="form-group"><label>Hedef</label>
+        <input type="number" id="pgm-hedef" class="form-control" placeholder="0">
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+      <div class="form-group"><label>Tamamlanma Dönemi</label>
+        <input type="text" id="pgm-tamamlanma" class="form-control" placeholder="2026/3">
+      </div>
+      <div class="form-group"><label>Katkı/Sonuç Göstergesi</label>
+        <input type="text" id="pgm-katki" class="form-control" placeholder="Katkı/Sonuç Göstergesi">
+      </div>
+    </div>
+    <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:16px;">
+      <button class="btn-secondary" id="btn-pg-modal-kapat">İptal</button>
+      <button class="btn-gold" id="btn-pg-modal-kaydet">Kaydet</button>
+    </div>
+  </div>
+</div>
+
 <!-- Düzenleme Modalı (generic) -->
 <div class="modal-overlay hidden" id="modal-edit">
   <div class="modal-box" style="max-width:480px;">
@@ -342,7 +383,7 @@
       supabase.from('soplar').select('skod,kisa,sop_adi,baslangic,bitis').order('skod'),
       supabase.from('kategori_tipleri').select('kkod,kategori_adi').order('kkod'),
       supabase.from('faaliyetler').select('id,fkod,faaliyet').order('fkod'),
-      supabase.from('birimler').select('bkod,birim_kisa,birim_adi').order('bkod')
+      supabase.from('birimler').select('bkod,birim_kisa,birim_adi').eq('durum', 'Aktif').order('bkod')
     ])
     soplar = sData || []
     kategoriler = kData || []
@@ -445,29 +486,31 @@
   // ═══════════════════════════════════════════════════════
   // Perf. Göstergeleri
   // ═══════════════════════════════════════════════════════
-  function populatePgDropdowns() {
-    const skodSel = document.getElementById('pg-skod')
-    const kkodSel = document.getElementById('pg-kkod')
+  function populatePgModalDropdowns(skodSelId, kkodSelId, selectedSkod, selectedKkod) {
+    const skodSel = document.getElementById(skodSelId)
+    const kkodSel = document.getElementById(kkodSelId)
+    if (!skodSel || !kkodSel) return
     skodSel.innerHTML = '<option value="">SOP Seç...</option>'
     kkodSel.innerHTML = '<option value="">Kategori Seç...</option>'
     soplar.forEach(s => {
       const opt = document.createElement('option')
       opt.value = s.skod; opt.textContent = `${s.kisa} — ${s.sop_adi || ''}`
+      if (s.skod === selectedSkod) opt.selected = true
       skodSel.appendChild(opt)
     })
     kategoriler.forEach(k => {
       const opt = document.createElement('option')
       opt.value = k.kkod; opt.textContent = `${k.kkod} — ${k.kategori_adi}`
+      if (k.kkod === selectedKkod) opt.selected = true
       kkodSel.appendChild(opt)
     })
   }
 
   async function loadPerfGostergeler() {
     const tbody = document.getElementById('pg-tbody')
-    populatePgDropdowns()
     const { data, error } = await supabase
       .from('perf_gostergeler')
-      .select('id,cg_kod,skod,kkod,cikti_gostergesi,aciklama,soplar(kisa),kategori_tipleri(kategori_adi)')
+      .select('id,cg_kod,skod,kkod,cikti_gostergesi,aciklama,bilesen_adi,birim,hedef,tamamlanma_donemi,katki_sonuc_gostergesi,soplar(kisa),kategori_tipleri(kategori_adi)')
       .order('cg_kod')
     if (error) {
       tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:#dc2626;padding:24px;">Hata: ${error.message}</td></tr>`
@@ -485,26 +528,52 @@
         <td style="max-width:200px;">${r.cikti_gostergesi ?? '—'}</td>
         <td style="max-width:160px;color:#64748b;font-size:0.8rem;">${r.aciklama ?? '—'}</td>
         <td style="text-align:center;">
+          <button class="row-action row-edit" data-id="${r.id}" data-table="pg">Düzenle</button>
           <button class="row-action row-del" data-id="${r.id}" data-table="pg" style="margin-left:4px;">Sil</button>
         </td>
       </tr>
     `).join('')
   }
 
-  document.getElementById('btn-pg-ekle').addEventListener('click', async () => {
-    const skod   = parseInt(document.getElementById('pg-skod').value)
-    const kkod   = parseInt(document.getElementById('pg-kkod').value)
-    const cikti  = document.getElementById('pg-cikti').value.trim()
-    const aciklama = document.getElementById('pg-aciklama').value.trim()
+  document.getElementById('btn-pg-modal-open').addEventListener('click', () => {
+    populatePgModalDropdowns('pgm-skod', 'pgm-kkod')
+    ;['pgm-cikti','pgm-bilesen-adi','pgm-aciklama','pgm-birim','pgm-hedef','pgm-tamamlanma','pgm-katki'].forEach(id => {
+      const el = document.getElementById(id)
+      if (el) el.value = ''
+    })
+    document.getElementById('modal-pg-ekle').classList.remove('hidden')
+  })
+
+  document.getElementById('btn-pg-modal-kapat').addEventListener('click', () => {
+    document.getElementById('modal-pg-ekle').classList.add('hidden')
+  })
+
+  document.getElementById('btn-pg-modal-kaydet').addEventListener('click', async () => {
+    const skod              = parseInt(document.getElementById('pgm-skod').value)
+    const kkod              = parseInt(document.getElementById('pgm-kkod').value)
+    const cikti             = document.getElementById('pgm-cikti').value.trim()
+    const bilesen_adi       = document.getElementById('pgm-bilesen-adi').value.trim()
+    const aciklama          = document.getElementById('pgm-aciklama').value.trim()
+    const birim             = document.getElementById('pgm-birim').value.trim()
+    const hedef             = parseFloat(document.getElementById('pgm-hedef').value) || null
+    const tamamlanma_donemi = document.getElementById('pgm-tamamlanma').value.trim()
+    const katki_sonuc_gostergesi = document.getElementById('pgm-katki').value.trim()
     if (!skod || !kkod || !cikti) {
       showToast('SOP, Kategori ve Çıktı Göstergesi zorunludur.', 'error'); return
     }
-    const { error } = await supabase.from('perf_gostergeler').insert({ skod, kkod, cikti_gostergesi: cikti, aciklama: aciklama || null })
+    const { error } = await supabase.from('perf_gostergeler').insert({
+      skod, kkod,
+      cikti_gostergesi: cikti,
+      bilesen_adi: bilesen_adi || null,
+      aciklama: aciklama || null,
+      birim: birim || null,
+      hedef,
+      tamamlanma_donemi: tamamlanma_donemi || null,
+      katki_sonuc_gostergesi: katki_sonuc_gostergesi || null
+    })
     if (error) { showToast(error.message, 'error'); return }
     showToast('Gösterge eklendi (cg_kod otomatik üretildi).', 'success')
-    ;['pg-cikti','pg-aciklama'].forEach(id => document.getElementById(id).value = '')
-    document.getElementById('pg-skod').value = ''
-    document.getElementById('pg-kkod').value = ''
+    document.getElementById('modal-pg-ekle').classList.add('hidden')
     await loadPerfGostergeler()
   })
 
@@ -809,12 +878,57 @@
           <div class="form-group"><label>Süre (gün)</label><input id="edit-svsure" type="number" class="form-control" value="${r.sure_gun ?? ''}"></div>
           <div class="form-group"><label>Ekip</label><input id="edit-svekip" type="number" class="form-control" value="${r.ekip ?? ''}"></div>
         </div>`
+    } else if (table === 'pg') {
+      const { data: r } = await supabase.from('perf_gostergeler').select('*').eq('id', id).single()
+      title.textContent = 'Perf. Göstergesi Düzenle'
+      const sopOptions = soplar.map(s => `<option value="${s.skod}" ${r.skod===s.skod?'selected':''}>${s.kisa} — ${s.sop_adi||''}</option>`).join('')
+      const katOptions = kategoriler.map(k => `<option value="${k.kkod}" ${r.kkod===k.kkod?'selected':''}>${k.kkod} — ${k.kategori_adi}</option>`).join('')
+      body.innerHTML = `
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div class="form-group"><label>SOP</label>
+            <select id="edit-pg-skod" class="form-control"><option value="">SOP Seç...</option>${sopOptions}</select>
+          </div>
+          <div class="form-group"><label>Kategori</label>
+            <select id="edit-pg-kkod" class="form-control"><option value="">Kategori Seç...</option>${katOptions}</select>
+          </div>
+        </div>
+        <div class="form-group"><label>Çıktı Göstergesi</label>
+          <input id="edit-pg-cikti" class="form-control" value="${r.cikti_gostergesi ?? ''}">
+        </div>
+        <div class="form-group"><label>Bileşen Adı</label>
+          <input id="edit-pg-bilesen-adi" class="form-control" value="${r.bilesen_adi ?? ''}">
+        </div>
+        <div class="form-group"><label>Açıklama</label>
+          <input id="edit-pg-aciklama" class="form-control" value="${r.aciklama ?? ''}">
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div class="form-group"><label>Birim</label>
+            <input id="edit-pg-birim" class="form-control" value="${r.birim ?? ''}" placeholder="ör: Adet, %, TL">
+          </div>
+          <div class="form-group"><label>Hedef</label>
+            <input id="edit-pg-hedef" type="number" class="form-control" value="${r.hedef ?? ''}">
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div class="form-group"><label>Tamamlanma Dönemi</label>
+            <input id="edit-pg-tamamlanma" class="form-control" value="${r.tamamlanma_donemi ?? ''}" placeholder="2026/3">
+          </div>
+          <div class="form-group"><label>Katkı/Sonuç Göstergesi</label>
+            <input id="edit-pg-katki" class="form-control" value="${r.katki_sonuc_gostergesi ?? ''}">
+          </div>
+        </div>`
     } else if (table === 'birim') {
       const { data: r } = await supabase.from('birimler').select('*').eq('bkod', id).single()
       title.textContent = 'Birim Düzenle'
       body.innerHTML = `
         <div class="form-group"><label>Kısa Ad</label><input id="edit-birkisa" class="form-control" value="${r.birim_kisa ?? ''}"></div>
-        <div class="form-group"><label>Tam Ad</label><input id="edit-biradi" class="form-control" value="${r.birim_adi ?? ''}"></div>`
+        <div class="form-group"><label>Tam Ad</label><input id="edit-biradi" class="form-control" value="${r.birim_adi ?? ''}"></div>
+        <div class="form-group"><label>Durum</label>
+          <select id="edit-birdurum" class="form-control">
+            <option value="Aktif" ${(r.durum??'Aktif')==='Aktif'?'selected':''}>Aktif</option>
+            <option value="Pasif" ${r.durum==='Pasif'?'selected':''}>Pasif</option>
+          </select>
+        </div>`
     } else if (table === 'faaliyet') {
       const { data: r } = await supabase.from('faaliyetler').select('*').eq('id', id).single()
       title.textContent = 'Faaliyet Düzenle'
@@ -834,14 +948,47 @@
         <div class="form-group"><label>Faaliyet</label><textarea id="edit-faaliyet-metin" class="form-control" rows="3">${r.faaliyet ?? ''}</textarea></div>`
     } else if (table === 'alt-faaliyet') {
       const { data: r } = await supabase.from('alt_faaliyetler').select('*, faaliyetler(fkod)').eq('sno', id).single()
+      const { data: asRows } = await supabase.from('anahtar_sonuclar').select('*').eq('sno', id).order('as_no')
       title.textContent = 'Alt Faaliyet Düzenle'
+      const asHtml = (asRows || []).map(as => `
+        <div class="as-row" style="display:grid;grid-template-columns:1fr auto;gap:8px;margin-bottom:6px;" data-as-no="${as.as_no}">
+          <input type="text" class="form-control as-metin" value="${(as.anahtar_sonuc ?? '').replace(/"/g,'&quot;')}" placeholder="Anahtar Sonuç">
+          <select class="form-control as-durum" style="max-width:90px;">
+            <option value="Aktif" ${(as.durum??'Aktif')==='Aktif'?'selected':''}>Aktif</option>
+            <option value="Pasif" ${as.durum==='Pasif'?'selected':''}>Pasif</option>
+          </select>
+        </div>`).join('')
       body.innerHTML = `
         <div class="form-group"><label>Faaliyet Kodu</label><input class="form-control" value="${r.fkod ?? ''}" disabled></div>
         <div class="form-group"><label>Alt Faaliyet</label><textarea id="edit-af-metin" class="form-control" rows="3">${r.alt_faaliyet ?? ''}</textarea></div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
           <div class="form-group"><label>Plan Süre (gün)</label><input id="edit-af-psure" type="number" step="0.5" class="form-control" value="${r.p_sure ?? ''}"></div>
           <div class="form-group"><label>Tekrar Sayısı</label><input id="edit-af-tekrar" type="number" class="form-control" value="${r.tekrar_sayisi ?? ''}"></div>
+        </div>
+        <div style="border-top:1px solid #e2e8f0;margin-top:14px;padding-top:12px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+            <label style="font-weight:600;font-size:0.85rem;">Anahtar Sonuçlar</label>
+            <button type="button" id="btn-as-ekle" class="row-action row-edit" style="font-size:0.75rem;">+ Ekle</button>
+          </div>
+          <div id="as-list">${asHtml || '<p style="color:#94a3b8;font-size:0.8rem;">Henüz anahtar sonuç yok.</p>'}</div>
         </div>`
+      // + Ekle butonu için listener (modal içinde dinamik)
+      document.getElementById('btn-as-ekle').addEventListener('click', () => {
+        const list = document.getElementById('as-list')
+        const emptyMsg = list.querySelector('p')
+        if (emptyMsg) emptyMsg.remove()
+        const div = document.createElement('div')
+        div.className = 'as-row'
+        div.style.cssText = 'display:grid;grid-template-columns:1fr auto;gap:8px;margin-bottom:6px;'
+        div.dataset.asNo = 'new'
+        div.innerHTML = `
+          <input type="text" class="form-control as-metin" placeholder="Anahtar Sonuç">
+          <select class="form-control as-durum" style="max-width:90px;">
+            <option value="Aktif" selected>Aktif</option>
+            <option value="Pasif">Pasif</option>
+          </select>`
+        list.appendChild(div)
+      })
     }
 
     modal.classList.remove('hidden')
@@ -882,10 +1029,32 @@
       const ekip = parseInt(document.getElementById('edit-svekip').value) || null
       ;({ error } = await supabase.from('sprint_veri').update({ sprint_adi: adi, baslangic: bas, bitis: bit, sure_gun: sure, ekip }).eq('sprint_donem', id))
       if (!error) await loadSprintDonemler()
+    } else if (table === 'pg') {
+      const skod              = parseInt(document.getElementById('edit-pg-skod').value) || null
+      const kkod              = parseInt(document.getElementById('edit-pg-kkod').value) || null
+      const cikti             = document.getElementById('edit-pg-cikti').value.trim()
+      const bilesen_adi       = document.getElementById('edit-pg-bilesen-adi').value.trim()
+      const aciklama          = document.getElementById('edit-pg-aciklama').value.trim()
+      const birim             = document.getElementById('edit-pg-birim').value.trim()
+      const hedef             = parseFloat(document.getElementById('edit-pg-hedef').value) || null
+      const tamamlanma_donemi = document.getElementById('edit-pg-tamamlanma').value.trim()
+      const katki_sonuc_gostergesi = document.getElementById('edit-pg-katki').value.trim()
+      ;({ error } = await supabase.from('perf_gostergeler').update({
+        skod, kkod,
+        cikti_gostergesi: cikti || null,
+        bilesen_adi: bilesen_adi || null,
+        aciklama: aciklama || null,
+        birim: birim || null,
+        hedef,
+        tamamlanma_donemi: tamamlanma_donemi || null,
+        katki_sonuc_gostergesi: katki_sonuc_gostergesi || null
+      }).eq('id', id))
+      if (!error) await loadPerfGostergeler()
     } else if (table === 'birim') {
-      const kisa = document.getElementById('edit-birkisa').value.trim().toUpperCase()
-      const adi  = document.getElementById('edit-biradi').value.trim()
-      ;({ error } = await supabase.from('birimler').update({ birim_kisa: kisa, birim_adi: adi }).eq('bkod', id))
+      const kisa  = document.getElementById('edit-birkisa').value.trim().toUpperCase()
+      const adi   = document.getElementById('edit-biradi').value.trim()
+      const durum = document.getElementById('edit-birdurum').value || 'Aktif'
+      ;({ error } = await supabase.from('birimler').update({ birim_kisa: kisa, birim_adi: adi, durum }).eq('bkod', id))
       if (!error) { await loadBirimler(); await loadRefData() }
     } else if (table === 'faaliyet') {
       const skod    = document.getElementById('edit-faaliyet-skod').value || null
@@ -898,7 +1067,28 @@
       const p_sure        = parseFloat(document.getElementById('edit-af-psure').value) || null
       const tekrar_sayisi = parseInt(document.getElementById('edit-af-tekrar').value) || null
       ;({ error } = await supabase.from('alt_faaliyetler').update({ alt_faaliyet, p_sure, tekrar_sayisi }).eq('sno', id))
-      if (!error) await loadAltFaaliyetlerTab()
+      if (error) { showToast('Güncelleme hatası: ' + error.message, 'error'); return }
+      // Anahtar sonuçları kaydet
+      const sno = parseInt(id)
+      const asRows = document.querySelectorAll('#as-list .as-row')
+      // Mevcut max as_no'yu bul (yeni satırlar için)
+      const { data: existingAs } = await supabase.from('anahtar_sonuclar').select('as_no').eq('sno', sno).order('as_no', { ascending: false }).limit(1)
+      let nextAsNo = (existingAs?.[0]?.as_no ?? 0) + 1
+      for (const row of asRows) {
+        const asNo  = row.dataset.asNo
+        const metin = row.querySelector('.as-metin').value.trim()
+        const durum = row.querySelector('.as-durum').value
+        if (!metin) continue
+        if (asNo === 'new') {
+          await supabase.from('anahtar_sonuclar').insert({ sno, as_no: nextAsNo++, anahtar_sonuc: metin, durum })
+        } else {
+          await supabase.from('anahtar_sonuclar').update({ anahtar_sonuc: metin, durum }).eq('sno', sno).eq('as_no', parseInt(asNo))
+        }
+      }
+      await loadAltFaaliyetlerTab()
+      showToast('Kayıt güncellendi.', 'success')
+      document.getElementById('modal-edit').classList.add('hidden')
+      return
     }
 
     if (error) { showToast('Güncelleme hatası: ' + error.message, 'error'); return }
@@ -913,20 +1103,25 @@
     const tbody = document.getElementById('birimler-tbody')
     const { data, error } = await supabase.from('birimler').select('*').order('bkod')
     if (error || !data?.length) {
-      tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:#94a3b8;padding:24px;">Kayıt yok.</td></tr>'
+      tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#94a3b8;padding:24px;">Kayıt yok.</td></tr>'
       return
     }
-    tbody.innerHTML = data.map(r => `
+    tbody.innerHTML = data.map(r => {
+      const durumBadge = r.durum === 'Pasif'
+        ? '<span style="background:#f1f5f9;color:#64748b;border-radius:9999px;padding:2px 8px;font-size:0.72rem;">Pasif</span>'
+        : '<span style="background:#f0fdf4;color:#166534;border-radius:9999px;padding:2px 8px;font-size:0.72rem;">Aktif</span>'
+      return `
       <tr>
         <td style="color:#64748b;">${r.bkod}</td>
         <td><strong>${r.birim_kisa}</strong></td>
         <td>${r.birim_adi ?? '—'}</td>
+        <td>${durumBadge}</td>
         <td style="text-align:center;">
           <button class="row-action row-edit" data-id="${r.bkod}" data-table="birim">Düzenle</button>
           <button class="row-action row-del" data-id="${r.bkod}" data-table="birim" style="margin-left:4px;">Sil</button>
         </td>
-      </tr>
-    `).join('')
+      </tr>`
+    }).join('')
   }
 
   document.getElementById('btn-bir-ekle').addEventListener('click', async () => {

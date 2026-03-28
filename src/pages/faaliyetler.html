@@ -272,7 +272,7 @@
       ] = await Promise.all([
         faaliyetQuery,
         supabase.from('v_alt_faaliyet_ozet').select('*'),
-        supabase.from('anahtar_sonuclar').select('*')
+        supabase.from('anahtar_sonuclar').select('*').eq('durum', 'Aktif')
       ])
 
       // ── Render ─────────────────────────────────────────────────────
