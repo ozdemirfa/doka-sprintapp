@@ -186,11 +186,7 @@
   // isPlaniMap: id → display label
   const isPlaniMap = {}
   ;(isPlaniData || []).forEach(ip => {
-    const adSoyad = ip.personel ? `${ip.personel.ad} ${ip.personel.soyad}` : ''
-    const altFaaliyet = ip.alt_faaliyetler?.alt_faaliyet || (ip.sprint_faaliyetleri ? ip.sprint_faaliyetleri.substring(0, 40) : `S${ip.sno}`)
-    isPlaniMap[ip.id] = adSoyad
-      ? `[${ip.sprint_donem}] ${adSoyad} — ${altFaaliyet}`
-      : `[${ip.sprint_donem}] ${altFaaliyet}`
+    isPlaniMap[ip.id] = `${ip.sno}-${ip.sprint_faaliyetleri || ''}`
   })
 
   // Sprint filtre dropdown
@@ -204,22 +200,24 @@
 
   // Sprint Faaliyet filtre dropdown
   const filterFaaliyet = document.getElementById('filter-faaliyet')
-  const uniqueFaaliyetler = [...new Set(
-    (isPlaniData || []).filter(ip => ip.sprint_faaliyetleri).map(ip => ip.sprint_faaliyetleri)
-  )].sort()
-  uniqueFaaliyetler.forEach(f => {
-    const opt = document.createElement('option')
-    opt.value = f
-    opt.textContent = f.length > 70 ? f.substring(0, 67) + '...' : f
-    filterFaaliyet.appendChild(opt)
-  })
+  ;(isPlaniData || [])
+    .filter(ip => ip.sprint_faaliyetleri)
+    .sort((a, b) => a.sno - b.sno)
+    .forEach(ip => {
+      const opt = document.createElement('option')
+      opt.value = ip.id
+      opt.textContent = `${ip.sno}-${ip.sprint_faaliyetleri}`
+      filterFaaliyet.appendChild(opt)
+    })
 
   // URL parametresi: kanban'dan gelen ?faaliyet= ile filtre ön seçimi
   const urlParams = new URLSearchParams(window.location.search)
   const urlFaaliyet = urlParams.get('faaliyet')
   if (urlFaaliyet) {
     const matchOpt = [...filterFaaliyet.options].find(o =>
-      o.value === urlFaaliyet || o.value.includes(urlFaaliyet) || urlFaaliyet.includes(o.value)
+      o.textContent === urlFaaliyet ||
+      o.textContent.includes(urlFaaliyet) ||
+      urlFaaliyet.includes(o.textContent)
     )
     if (matchOpt) filterFaaliyet.value = matchOpt.value
   }
@@ -249,16 +247,7 @@
 
     // Sprint Faaliyet filtresi
     if (fv) {
-      const idsForFaaliyet = (isPlaniData || [])
-        .filter(ip => ip.sprint_faaliyetleri === fv)
-        .map(ip => ip.id)
-      if (idsForFaaliyet.length > 0) {
-        query = query.in('sprint_is_plani_id', idsForFaaliyet)
-      } else {
-        document.getElementById('perf-gos-tbody').innerHTML =
-          '<tr><td colspan="7" style="text-align:center;color:#94a3b8;padding:32px;">Kayıt bulunamadı.</td></tr>'
-        return
-      }
+      query = query.eq('sprint_is_plani_id', parseInt(fv))
     }
 
     const { data, error } = await query

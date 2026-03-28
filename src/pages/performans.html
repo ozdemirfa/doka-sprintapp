@@ -77,8 +77,8 @@
             <tr>
               <th>CG Kod</th>
               <th>Açıklama</th>
-              <th>Hedef 2026</th>
-              <th>Gerçek 2026</th>
+              <th id="th-hedef">Hedef 2026</th>
+              <th id="th-gercek">Gerçek 2026</th>
               <th>Kümülatif Hedef</th>
               <th>Kümülatif Gerçekleşme</th>
               <th style="min-width:140px;">İlerleme</th>
@@ -177,6 +177,10 @@
     const yilFilter = parseInt(document.getElementById('filter-yil').value) || null
     const rows = sopFilter ? perfData.filter(r => r.sop === sopFilter) : perfData
 
+    // Başlık güncelle
+    document.getElementById('th-hedef').textContent = yilFilter ? `Hedef ${yilFilter}` : 'Kümülatif Hedef'
+    document.getElementById('th-gercek').textContent = yilFilter ? `Gerçek ${yilFilter}` : 'Kümülatif Gerçekleşme'
+
     const tbody = document.getElementById('perf-tbody')
     if (!rows.length) {
       tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#94a3b8;padding:32px;">Veri bulunamadı.</td></tr>'
@@ -205,13 +209,15 @@
         const kumHedef = (r.hedef_2024 || 0) + (r.hedef_2025 || 0) + (r.hedef_2026 || 0)
         const kumGercek = r.kumulatif_gerceklesme ?? 0
         const pct = kumHedef > 0 ? Math.min((kumGercek / kumHedef) * 100, 100) : 0
+        const hedefVal = yilFilter ? (r[`hedef_${yilFilter}`] ?? '—') : (kumHedef > 0 ? kumHedef : '—')
+        const gercekVal = yilFilter ? (r[`gerceklesen_${yilFilter}`] ?? '—') : (kumGercek > 0 ? kumGercek : '—')
 
         html += `
           <tr>
             <td><span class="badge-sno">${r.cg_kod ?? '—'}</span></td>
             <td>${r.aciklama ?? '—'}</td>
-            <td style="text-align:right;">${r.hedef_2026 ?? '—'}</td>
-            <td style="text-align:right;">${r.gerceklesen_2026 ?? '—'}</td>
+            <td style="text-align:right;">${hedefVal}</td>
+            <td style="text-align:right;">${gercekVal}</td>
             <td style="text-align:right;">${kumHedef > 0 ? kumHedef : '—'}</td>
             <td style="text-align:right;">${kumGercek > 0 ? kumGercek : '—'}</td>
             <td>

@@ -74,7 +74,7 @@
           <thead>
             <tr>
               <th>ID</th>
-              <th>İş Planı</th>
+              <th>Sprint Faaliyet</th>
               <th>Açıklama</th>
               <th style="text-align:right;">KDV'li Tutar</th>
               <th>Ödeme Dönemi</th>
@@ -121,7 +121,7 @@
     <form id="form-harcama">
 
       <div class="form-group">
-        <label for="hir-is-plani">İş Planı Kalemi</label>
+        <label for="hir-is-plani">Sprint Faaliyeti</label>
         <select id="hir-is-plani" class="form-control" required>
           <option value="">Seçiniz...</option>
         </select>
@@ -202,11 +202,7 @@
 
     isPlaniMap = {}
     ;(isPlaniData || []).forEach(ip => {
-      const adSoyad = ip.personel ? `${ip.personel.ad} ${ip.personel.soyad}` : ''
-      const altFaaliyet = ip.alt_faaliyetler?.alt_faaliyet || (ip.sprint_faaliyetleri ? ip.sprint_faaliyetleri.substring(0, 40) : `S${ip.sno}`)
-      isPlaniMap[ip.id] = adSoyad
-        ? `[${ip.sprint_donem}] ${adSoyad} — ${altFaaliyet}`
-        : `[${ip.sprint_donem}] ${altFaaliyet}`
+      isPlaniMap[ip.id] = `${ip.sno}-${ip.sprint_faaliyetleri || ''}`
     })
 
     // Harcamalar
