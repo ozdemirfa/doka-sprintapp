@@ -13,13 +13,10 @@ Deno.serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!
     const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+    const anonKey = Deno.env.get('SUPABASE_ANON_KEY')!
 
-    // adminClient — tüm DB sorguları service role ile yapılır (RLS bypass)
-    const adminClient = createClient(supabaseUrl, serviceRoleKey, {
-      auth: { autoRefreshToken: false, persistSession: false }
-    })
-
-    // Caller'ın JWT'sini doğrula
+    // Caller'ın JWT'sini doğrula — Supabase önerilen pattern:
+    // anon key + user JWT header → auth.getUser() parametresiz
     const authHeader = req.headers.get('Authorization')
     if (!authHeader) {
       return new Response(JSON.stringify({ error: 'Yetkilendirme başlığı eksik.' }), {
@@ -27,16 +24,23 @@ Deno.serve(async (req) => {
       })
     }
 
-    const { data: { user: callerUser }, error: authErr } = await adminClient.auth.getUser(
-      authHeader.replace('Bearer ', '')
-    )
+    const callerClient = createClient(supabaseUrl, anonKey, {
+      global: { headers: { Authorization: authHeader } }
+    })
+
+    const { data: { user: callerUser }, error: authErr } = await callerClient.auth.getUser()
     if (authErr || !callerUser) {
       return new Response(JSON.stringify({ error: 'Oturum doğrulanamadı: ' + (authErr?.message ?? '') }), {
         status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       })
     }
 
-    // Caller'ın yönetici olduğunu doğrula (adminClient = service role, RLS yok)
+    // adminClient — tüm DB sorguları ve admin operasyonları service role ile (RLS bypass)
+    const adminClient = createClient(supabaseUrl, serviceRoleKey, {
+      auth: { autoRefreshToken: false, persistSession: false }
+    })
+
+    // Caller'ın yönetici olduğunu doğrula (service role ile, RLS yok)
     const { data: callerPersonel, error: rolErr } = await adminClient
       .from('personel')
       .select('rol_kodu')
