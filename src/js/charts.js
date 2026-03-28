@@ -2,7 +2,7 @@
 // Charts Modülü — TR90 Sprint Kanban
 // Chart.js ESM wrapper fonksiyonları
 // ============================================================
-import Chart from 'https://cdn.jsdelivr.net/npm/chart.js/+esm'
+import Chart from 'https://cdn.jsdelivr.net/npm/chart.js/auto/+esm'
 
 /**
  * Mevcut chart'ı temizler
