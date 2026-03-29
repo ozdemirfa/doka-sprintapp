@@ -271,7 +271,9 @@
       grouped[donem] = (grouped[donem] || 0) + (r.odenecek_kdvli ?? 0)
     })
 
-    const entries = Object.entries(grouped).sort((a, b) => a[0].localeCompare(b[0]))
+    const AY_SIRA = { Oca:1, 'Şub':2, Sub:2, Mar:3, Nis:4, May:5, Haz:6, Tem:7, 'Ağu':8, Agu:8, Eyl:9, Eki:10, Kas:11, Ara:12 }
+    const parseDonem = d => { const [yil, ay] = d.split('.'); return (parseInt(yil) || 0) * 100 + (AY_SIRA[ay] || 0) }
+    const entries = Object.entries(grouped).sort((a, b) => parseDonem(b[0]) - parseDonem(a[0]))
     if (!entries.length) {
       tbody.innerHTML = '<tr><td colspan="2" style="text-align:center;color:#94a3b8;padding:24px;">Veri bulunamadı.</td></tr>'
       return
