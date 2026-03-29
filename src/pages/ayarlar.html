@@ -527,7 +527,7 @@
     const tbody = document.getElementById('pg-tbody')
     const { data, error } = await supabase
       .from('perf_gostergeler')
-      .select('id,cg_kod,skod,kkod,cikti_gostergesi,aciklama,bilesen_adi,birim,hedef,tamamlanma_donemi,katki_sonuc_gostergesi,soplar(kisa),kategori_tipleri(kategori_adi)')
+      .select('id,cg_kod,skod,kkod,cikti_gostergesi,aciklama,bilesen_adi,birim,kumulatif_hedef,planlanan_tamamlanma_donemi,katki_sonuc_gostergesi,soplar(kisa),kategori_tipleri(kategori_adi)')
       .order('cg_kod')
     if (error) {
       tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:#dc2626;padding:24px;">Hata: ${error.message}</td></tr>`
@@ -587,8 +587,8 @@
       bilesen_adi: bilesen_adi || null,
       aciklama: aciklama || null,
       birim: birim || null,
-      hedef,
-      tamamlanma_donemi: tamamlanma_donemi || null,
+      kumulatif_hedef: hedef,
+      planlanan_tamamlanma_donemi: tamamlanma_donemi || null,
       katki_sonuc_gostergesi: katki_sonuc_gostergesi || null
     })
     if (error) { showToast(error.message, 'error'); return }
@@ -975,12 +975,12 @@
             <input id="edit-pg-birim" class="form-control" value="${r.birim ?? ''}" placeholder="ör: Adet, %, TL">
           </div>
           <div class="form-group"><label>Hedef</label>
-            <input id="edit-pg-hedef" type="number" class="form-control" value="${r.hedef ?? ''}">
+            <input id="edit-pg-hedef" type="number" class="form-control" value="${r.kumulatif_hedef ?? ''}">
           </div>
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
           <div class="form-group"><label>Tamamlanma Dönemi</label>
-            <input id="edit-pg-tamamlanma" class="form-control" value="${r.tamamlanma_donemi ?? ''}" placeholder="2026/3">
+            <input id="edit-pg-tamamlanma" class="form-control" value="${r.planlanan_tamamlanma_donemi ?? ''}" placeholder="2026/3">
           </div>
           <div class="form-group"><label>Katkı/Sonuç Göstergesi</label>
             <input id="edit-pg-katki" class="form-control" value="${r.katki_sonuc_gostergesi ?? ''}">
@@ -1118,8 +1118,8 @@
         bilesen_adi: bilesen_adi || null,
         aciklama: aciklama || null,
         birim: birim || null,
-        hedef,
-        tamamlanma_donemi: tamamlanma_donemi || null,
+        kumulatif_hedef: hedef,
+        planlanan_tamamlanma_donemi: tamamlanma_donemi || null,
         katki_sonuc_gostergesi: katki_sonuc_gostergesi || null
       }).eq('id', id))
       if (!error) await loadPerfGostergeler()

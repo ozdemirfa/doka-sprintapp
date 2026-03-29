@@ -47,9 +47,6 @@
         </select>
         <select id="filter-yil" class="form-control" style="width:auto;min-width:130px;">
           <option value="">Tüm Yıllar</option>
-          <option value="2024">2024</option>
-          <option value="2025">2025</option>
-          <option value="2026">2026</option>
         </select>
       </div>
     </div>
@@ -104,8 +101,8 @@
 
   async function loadData() {
     const { data, error } = await supabase
-      .from('perf_gostergeler')
-      .select('*, soplar(kisa)')
+      .from('v_perf_gosterge_ozet')
+      .select('*')
       .order('cg_kod')
 
     if (error) {
@@ -113,7 +110,7 @@
       return
     }
 
-    allData = (data || []).map(r => ({ ...r, sop: r.soplar?.kisa ?? null }))
+    allData = data || []
 
     // SOP filtre dropdown
     const sopSet = [...new Set(allData.map(r => r.sop).filter(Boolean))].sort()
@@ -126,15 +123,39 @@
       filterSop.appendChild(opt)
     })
 
+    rebuildYilFilter(filterSop.value)
     renderTable()
+  }
+
+  function rebuildYilFilter(sopSec) {
+    const yilSet = new Set()
+    const rows = sopSec ? allData.filter(r => r.sop === sopSec) : allData
+    rows.forEach(r => {
+      if (r.baslangic && r.bitis) {
+        for (let y = r.baslangic; y <= r.bitis; y++) yilSet.add(y)
+      } else if (r.baslangic) {
+        yilSet.add(r.baslangic)
+      } else if (r.bitis) {
+        yilSet.add(r.bitis)
+      }
+    })
+    const filterYil = document.getElementById('filter-yil')
+    const prevVal = filterYil.value
+    filterYil.innerHTML = '<option value="">Tüm Yıllar</option>'
+    ;[...yilSet].sort().forEach(y => {
+      const opt = document.createElement('option')
+      opt.value = y
+      opt.textContent = y
+      filterYil.appendChild(opt)
+    })
+    // Önceki seçim hâlâ geçerliyse koru
+    if ([...yilSet].map(String).includes(prevVal)) filterYil.value = prevVal
   }
 
   function fmt(v) {
     if (v == null) return '—'
     return Number(v).toLocaleString('tr-TR', { minimumFractionDigits: 0, maximumFractionDigits: 2 })
   }
-
-  const YEARS = [2024, 2025, 2026]
 
   function renderTable() {
     const sopFilter = document.getElementById('filter-sop').value
@@ -174,8 +195,8 @@
           <td style="max-width:160px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${r.bilesen_adi ?? ''}">${r.bilesen_adi ?? '—'}</td>
           <td style="max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${r.cikti_gostergesi ?? ''}">${r.cikti_gostergesi ?? '—'}</td>
           <td>${r.birim ?? '—'}</td>
-          <td style="text-align:right;">${fmt(r.hedef)}</td>
-          <td>${r.tamamlanma_donemi ?? '—'}</td>
+          <td style="text-align:right;">${fmt(r.kumulatif_hedef)}</td>
+          <td>${r.planlanan_tamamlanma_donemi ?? '—'}</td>
           <td style="max-width:160px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${r.katki_sonuc_gostergesi ?? ''}">${r.katki_sonuc_gostergesi ?? '—'}</td>
           <td style="text-align:right;">${fmt(r[`hedef_${yilFilter}`])}</td>
           <td style="text-align:right;">${fmt(r[`gerceklesen_${yilFilter}`])}</td>
@@ -211,8 +232,8 @@
             <td style="max-width:160px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${r.bilesen_adi ?? ''}">${r.bilesen_adi ?? '—'}</td>
             <td style="max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${r.cikti_gostergesi ?? ''}">${r.cikti_gostergesi ?? '—'}</td>
             <td>${r.birim ?? '—'}</td>
-            <td style="text-align:right;">${fmt(r.hedef)}</td>
-            <td>${r.tamamlanma_donemi ?? '—'}</td>
+            <td style="text-align:right;">${fmt(r.kumulatif_hedef)}</td>
+            <td>${r.planlanan_tamamlanma_donemi ?? '—'}</td>
             <td style="max-width:160px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${r.katki_sonuc_gostergesi ?? ''}">${r.katki_sonuc_gostergesi ?? '—'}</td>
             <td style="text-align:right;">${fmt(r.hedef_2024)}</td>
             <td style="text-align:right;">${fmt(r.hedef_2025)}</td>
@@ -227,7 +248,10 @@
     }
   }
 
-  document.getElementById('filter-sop').addEventListener('change', renderTable)
+  document.getElementById('filter-sop').addEventListener('change', () => {
+    rebuildYilFilter(document.getElementById('filter-sop').value)
+    renderTable()
+  })
   document.getElementById('filter-yil').addEventListener('change', renderTable)
 
   await loadData()
