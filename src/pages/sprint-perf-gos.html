@@ -46,6 +46,9 @@
 
       <!-- Filtreler -->
       <div style="display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap;">
+        <select id="filter-birim" class="form-control" style="width:auto;min-width:140px;">
+          <option value="">Tüm Birimler</option>
+        </select>
         <select id="filter-sprint" class="form-control" style="width:auto;min-width:220px;">
           <option value="">Tüm Sprintler</option>
         </select>
@@ -85,10 +88,13 @@
     <form id="form-gerceklesme">
 
       <div class="form-group">
-        <label for="g-is-plani">Sprint Faaliyet Kalemi</label>
-        <select id="g-is-plani" class="form-control" required>
-          <option value="">Seçiniz...</option>
-        </select>
+        <label>Sprint Faaliyet Kalemi *</label>
+        <input type="hidden" id="g-is-plani-hidden" required>
+        <div style="display:flex;gap:6px;">
+          <input type="text" id="g-is-plani-display" class="form-control" readonly
+            style="background:#f8fafc;cursor:pointer;flex:1;" placeholder="Sprint faaliyet seçin...">
+          <button type="button" id="btn-is-plani-ara" class="btn-secondary" style="white-space:nowrap;padding:0 12px;">Ara</button>
+        </div>
       </div>
 
       <div class="form-group">
@@ -125,6 +131,48 @@
         <button type="submit" class="btn-gold">Kaydet</button>
       </div>
     </form>
+  </div>
+</div>
+
+<!-- Sprint Faaliyet Arama Modalı -->
+<div class="modal-overlay hidden" id="ip-search-modal" style="z-index:1100;">
+  <div class="modal-box" style="max-width:760px;width:95%;">
+    <h3>Sprint Faaliyet Kalemi Ara</h3>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:12px;">
+      <div>
+        <label style="font-size:0.78rem;color:#64748b;">SOP</label>
+        <select id="ip-filter-sop" class="form-control"></select>
+      </div>
+      <div style="display:flex;align-items:flex-end;gap:6px;">
+        <label style="display:flex;align-items:center;gap:5px;font-size:0.78rem;color:#475569;cursor:pointer;padding-bottom:6px;">
+          <input type="checkbox" id="ip-cb-aktif-sop" checked style="width:14px;height:14px;">
+          Sadece Aktif SOPlar
+        </label>
+      </div>
+      <div>
+        <label style="font-size:0.78rem;color:#64748b;">Metin Ara</label>
+        <input type="text" id="ip-filter-metin" class="form-control" placeholder="Görev adı, SNo...">
+      </div>
+    </div>
+    <div style="overflow-x:auto;max-height:360px;overflow-y:auto;">
+      <table class="data-table" style="font-size:0.8rem;">
+        <thead>
+          <tr>
+            <th>SNo</th>
+            <th>SOP</th>
+            <th>Sprint Dönemi</th>
+            <th>Görev Açıklaması</th>
+            <th>Personel</th>
+          </tr>
+        </thead>
+        <tbody id="ip-list-tbody">
+          <tr><td colspan="5" style="text-align:center;color:#94a3b8;padding:16px;">Yükleniyor...</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div style="margin-top:14px;text-align:right;">
+      <button type="button" id="ip-modal-kapat" class="btn-secondary">İptal</button>
+    </div>
   </div>
 </div>
 
@@ -165,7 +213,7 @@
 <script type="module">
   import { supabase } from '../js/supabase.js'
   import { requireAuth, signOut } from '../js/auth.js'
-  import { formatDate, getPersonel, renderUserInfo, showToast, hideAyarlarForNonAdmin, applyViewerRestrictions } from '../js/utils.js'
+  import { formatDate, getPersonel, renderUserInfo, showToast, hideAyarlarForNonAdmin, applyViewerRestrictions, loadBirimler, populateBirimDropdown, loadActivePersonel } from '../js/utils.js'
 
   // ── Auth ──────────────────────────────────────────────────────────
   const session = await requireAuth()
@@ -176,20 +224,30 @@
   document.getElementById('logout-btn').addEventListener('click', () => signOut())
 
   // ── Referans veriler ──────────────────────────────────────────────
-  const [{ data: sprintler }, { data: perfGostergeler }, { data: isPlaniData }, { data: soplar }] = await Promise.all([
+  const [{ data: sprintler }, { data: perfGostergeler }, { data: isPlaniData }, { data: soplar }, birimRes, personelRes] = await Promise.all([
     supabase.from('sprint_veri').select('sprint_donem,sprint_adi').order('sprint_donem', { ascending: false }),
     supabase.from('perf_gostergeler').select('cg_kod,cikti_gostergesi,skod,soplar(kisa,durum)').order('cg_kod'),
     supabase.from('sprint_is_plani')
-      .select('id, sprint_donem, pkod, sno, sprint_faaliyetleri, personel(ad, soyad), alt_faaliyetler(sno, alt_faaliyet)')
+      .select('id, sprint_donem, pkod, sno, sprint_faaliyetleri, personel(ad, soyad), alt_faaliyetler(sno, alt_faaliyet, faaliyetler(skod, faaliyet, soplar(kisa, durum)))')
       .order('sprint_donem', { ascending: false }),
-    supabase.from('soplar').select('skod,kisa').eq('durum', 'Aktif').order('kisa')
+    supabase.from('soplar').select('skod,kisa').eq('durum', 'Aktif').order('kisa'),
+    loadBirimler(supabase),
+    loadActivePersonel(supabase)
   ])
+
+  const tümPersoneller = personelRes || []
+  populateBirimDropdown(document.getElementById('filter-birim'), birimRes || [])
 
   // isPlaniMap: id → display label
   const isPlaniMap = {}
   ;(isPlaniData || []).forEach(ip => {
     isPlaniMap[ip.id] = `${ip.sno}-${ip.sprint_faaliyetleri || ''}`
   })
+
+  // Personel adı haritası
+  const personelAdiMap = Object.fromEntries(
+    (isPlaniData || []).filter(ip => ip.personel).map(ip => [ip.id, `${ip.personel.ad} ${ip.personel.soyad}`])
+  )
 
   // Sprint filtre dropdown
   const filterSprint = document.getElementById('filter-sprint')
@@ -200,17 +258,28 @@
     filterSprint.appendChild(opt)
   })
 
-  // Sprint Faaliyet filtre dropdown
-  const filterFaaliyet = document.getElementById('filter-faaliyet')
-  ;(isPlaniData || [])
-    .filter(ip => ip.sprint_faaliyetleri)
-    .sort((a, b) => a.sno - b.sno)
-    .forEach(ip => {
-      const opt = document.createElement('option')
-      opt.value = ip.id
-      opt.textContent = `${ip.sno}-${ip.sprint_faaliyetleri}`
-      filterFaaliyet.appendChild(opt)
-    })
+  // Sprint Faaliyet filtre dropdown — birime göre yeniden oluşturulabilir
+  function rebuildFaaliyetFilter(bkodFilter = null) {
+    const filterFaaliyet = document.getElementById('filter-faaliyet')
+    const prevVal = filterFaaliyet.value
+    filterFaaliyet.innerHTML = '<option value="">Tüm Sprint Faaliyetler</option>'
+    const birimPkods = bkodFilter
+      ? new Set(tümPersoneller.filter(p => p.bkod === Number(bkodFilter)).map(p => p.pkod))
+      : null
+    ;(isPlaniData || [])
+      .filter(ip => ip.sprint_faaliyetleri && (!birimPkods || birimPkods.has(ip.pkod)))
+      .sort((a, b) => a.sno - b.sno)
+      .forEach(ip => {
+        const opt = document.createElement('option')
+        opt.value = ip.id
+        opt.textContent = `${ip.sno}-${ip.sprint_faaliyetleri}`
+        filterFaaliyet.appendChild(opt)
+      })
+    const stillExists = [...filterFaaliyet.options].some(o => o.value === prevVal)
+    filterFaaliyet.value = stillExists ? prevVal : ''
+  }
+
+  rebuildFaaliyetFilter()
 
   // URL parametresi: kanban'dan gelen ?faaliyet= ile filtre ön seçimi
   const urlParams = new URLSearchParams(window.location.search)
@@ -229,17 +298,26 @@
 
   // ── Veri yükle ────────────────────────────────────────────────────
   async function loadData() {
-    const sv  = filterSprint.value
-    const fv  = filterFaaliyet.value
+    const sv      = filterSprint.value
+    const fv      = document.getElementById('filter-faaliyet').value
+    const birimVal = document.getElementById('filter-birim').value
     let query = supabase.from('sprint_perf_gos').select('*').order('id', { ascending: false })
 
-    // Sprint filtresi
-    if (sv) {
-      const idsInSprint = (isPlaniData || [])
-        .filter(ip => String(ip.sprint_donem) === String(sv))
+    // Birim filtresi: birim seçiliyse ilgili is_plani idlerini belirle
+    const birimPkods = birimVal
+      ? new Set(tümPersoneller.filter(p => p.bkod === Number(birimVal)).map(p => p.pkod))
+      : null
+
+    // Sprint + birim filtresi
+    if (sv || birimPkods) {
+      const idsInFilter = (isPlaniData || [])
+        .filter(ip =>
+          (!sv || String(ip.sprint_donem) === String(sv)) &&
+          (!birimPkods || birimPkods.has(ip.pkod))
+        )
         .map(ip => ip.id)
-      if (idsInSprint.length > 0) {
-        query = query.in('sprint_is_plani_id', idsInSprint)
+      if (idsInFilter.length > 0) {
+        query = query.in('sprint_is_plani_id', idsInFilter)
       } else {
         document.getElementById('perf-gos-tbody').innerHTML =
           '<tr><td colspan="7" style="text-align:center;color:#94a3b8;padding:32px;">Kayıt bulunamadı.</td></tr>'
@@ -293,7 +371,12 @@
 
   await loadData()
   filterSprint.addEventListener('change', loadData)
-  filterFaaliyet.addEventListener('change', loadData)
+  document.getElementById('filter-faaliyet').addEventListener('change', loadData)
+  document.getElementById('filter-birim').addEventListener('change', () => {
+    const bkod = document.getElementById('filter-birim').value
+    rebuildFaaliyetFilter(bkod || null)
+    loadData()
+  })
 
   // Silme + Düzenleme
   document.getElementById('perf-gos-tbody').addEventListener('click', async (e) => {
@@ -314,17 +397,10 @@
     editId = parseInt(editBtn.dataset.id)
     document.getElementById('modal-gerceklesme-title').textContent = 'Gerçekleşme Düzenle'
 
-    // İş planı dropdown
-    const isSel = document.getElementById('g-is-plani')
-    isSel.innerHTML = '<option value="">Seçiniz...</option>'
-    Object.entries(isPlaniMap)
-      .sort((a, b) => a[1].localeCompare(b[1]))
-      .forEach(([id, label]) => {
-        const opt = document.createElement('option')
-        opt.value = id; opt.textContent = label
-        isSel.appendChild(opt)
-      })
-    isSel.value = editBtn.dataset.isPlaniId
+    // Faaliyet alanını doldur
+    const ipId = editBtn.dataset.isPlaniId
+    document.getElementById('g-is-plani-hidden').value  = ipId
+    document.getElementById('g-is-plani-display').value = ipId ? (isPlaniMap[ipId] ?? `#${ipId}`) : ''
 
     document.getElementById('g-cg-kod-hidden').value  = editBtn.dataset.cgKod
     document.getElementById('g-cg-kod-display').value = editBtn.dataset.cgKod
@@ -337,22 +413,12 @@
 
   // ── Modal ─────────────────────────────────────────────────────────
   function openModal() {
-    // İş planı dropdown
-    const isSel = document.getElementById('g-is-plani')
-    isSel.innerHTML = '<option value="">Seçiniz...</option>'
-    Object.entries(isPlaniMap)
-      .sort((a, b) => a[1].localeCompare(b[1]))
-      .forEach(([id, label]) => {
-        const opt = document.createElement('option')
-        opt.value = id
-        opt.textContent = label
-        isSel.appendChild(opt)
-      })
-
+    // Faaliyet alanını temizle
+    document.getElementById('g-is-plani-hidden').value  = ''
+    document.getElementById('g-is-plani-display').value = ''
     // ÇG Kod alanını temizle
-    document.getElementById('g-cg-kod-hidden').value = ''
+    document.getElementById('g-cg-kod-hidden').value  = ''
     document.getElementById('g-cg-kod-display').value = ''
-
     document.getElementById('modal-gerceklesme-error').classList.add('hidden')
     document.getElementById('modal-gerceklesme').classList.remove('hidden')
   }
@@ -370,7 +436,7 @@
 
   document.getElementById('form-gerceklesme').addEventListener('submit', async (e) => {
     e.preventDefault()
-    const sprintIsPlaniId = Number(document.getElementById('g-is-plani').value)
+    const sprintIsPlaniId = Number(document.getElementById('g-is-plani-hidden').value)
     const cgKod           = document.getElementById('g-cg-kod-hidden').value
     const aciklama        = document.getElementById('g-aciklama').value.trim()
     const gerceklesme     = parseFloat(document.getElementById('g-gerceklesme').value)
@@ -409,6 +475,87 @@
     editId = null
     document.getElementById('modal-gerceklesme').classList.add('hidden')
     await loadData()
+  })
+
+  // ── Sprint Faaliyet Arama Modalı ──────────────────────────────────
+  function renderIpList() {
+    const sopVal  = document.getElementById('ip-filter-sop').value
+    const txtVal  = document.getElementById('ip-filter-metin').value.trim().toLowerCase()
+    const aktifOnly = document.getElementById('ip-cb-aktif-sop').checked
+    const tbody   = document.getElementById('ip-list-tbody')
+
+    const filtered = (isPlaniData || []).filter(ip => {
+      const sopKisa = ip.alt_faaliyetler?.faaliyetler?.soplar?.kisa
+      const sopDurum = ip.alt_faaliyetler?.faaliyetler?.soplar?.durum
+      if (aktifOnly && sopDurum && sopDurum !== 'Aktif') return false
+      if (sopVal && sopKisa !== sopVal) return false
+      if (txtVal) {
+        const inFaaliyet = (ip.sprint_faaliyetleri || '').toLowerCase().includes(txtVal)
+        const inSno = String(ip.sno || '').includes(txtVal)
+        const inSop = (sopKisa || '').toLowerCase().includes(txtVal)
+        if (!inFaaliyet && !inSno && !inSop) return false
+      }
+      return true
+    })
+
+    if (!filtered.length) {
+      tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#94a3b8;padding:16px;">Sonuç bulunamadı.</td></tr>'
+      return
+    }
+
+    tbody.innerHTML = filtered.slice(0, 150).map(ip => {
+      const sopKisa = ip.alt_faaliyetler?.faaliyetler?.soplar?.kisa ?? '—'
+      const adSoyad = ip.personel ? `${ip.personel.ad} ${ip.personel.soyad}` : '—'
+      const label = `${ip.sno}-${ip.sprint_faaliyetleri || ''}`
+      return `
+        <tr style="cursor:pointer;" data-id="${ip.id}" data-label="${label.replace(/"/g,'&quot;')}">
+          <td><span class="badge-sno">${ip.sno ?? '?'}</span></td>
+          <td style="font-size:0.75rem;color:#64748b;">${sopKisa}</td>
+          <td style="font-size:0.75rem;">${ip.sprint_donem ?? '—'}</td>
+          <td style="font-size:0.78rem;max-width:280px;">${ip.sprint_faaliyetleri ?? '—'}</td>
+          <td style="font-size:0.75rem;">${adSoyad}</td>
+        </tr>
+      `
+    }).join('')
+  }
+
+  function openIpModal() {
+    // SOP dropdown'u doldur
+    const aktifOnly = document.getElementById('ip-cb-aktif-sop').checked
+    const ipSopSel = document.getElementById('ip-filter-sop')
+    ipSopSel.innerHTML = '<option value="">Tüm SOPlar</option>'
+    const sopSet = new Set()
+    ;(isPlaniData || []).forEach(ip => {
+      const kisa = ip.alt_faaliyetler?.faaliyetler?.soplar?.kisa
+      const durum = ip.alt_faaliyetler?.faaliyetler?.soplar?.durum
+      if (kisa && (!aktifOnly || durum === 'Aktif')) sopSet.add(kisa)
+    })
+    ;[...sopSet].sort().forEach(s => {
+      const opt = document.createElement('option')
+      opt.value = s; opt.textContent = s
+      ipSopSel.appendChild(opt)
+    })
+    document.getElementById('ip-filter-metin').value = ''
+    renderIpList()
+    document.getElementById('ip-search-modal').classList.remove('hidden')
+  }
+
+  document.getElementById('btn-is-plani-ara').addEventListener('click', openIpModal)
+  document.getElementById('ip-modal-kapat').addEventListener('click', () => {
+    document.getElementById('ip-search-modal').classList.add('hidden')
+  })
+  document.getElementById('ip-filter-sop').addEventListener('change', renderIpList)
+  document.getElementById('ip-filter-metin').addEventListener('input', renderIpList)
+  document.getElementById('ip-cb-aktif-sop').addEventListener('change', () => {
+    // SOP dropdown'u yeniden doldur
+    openIpModal()
+  })
+  document.getElementById('ip-list-tbody').addEventListener('click', (e) => {
+    const row = e.target.closest('tr[data-id]')
+    if (!row) return
+    document.getElementById('g-is-plani-hidden').value  = row.dataset.id
+    document.getElementById('g-is-plani-display').value = row.dataset.label
+    document.getElementById('ip-search-modal').classList.add('hidden')
   })
 
   // ── ÇG Kodu Arama Modalı ──────────────────────────────────────────

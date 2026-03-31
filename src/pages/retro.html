@@ -108,8 +108,11 @@
         <!-- Sağ: Geçmiş Tablo -->
         <div style="flex:1;min-width:0;">
           <div class="metric-card" style="padding:0;overflow:hidden;">
-            <div style="padding:16px 20px;border-bottom:1px solid #e2e8f0;">
-              <h3 style="font-size:1rem;font-weight:700;color:var(--navy);margin:0;">Geçmiş Retro Kayıtları</h3>
+            <div style="padding:12px 20px;border-bottom:1px solid #e2e8f0;display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+              <h3 style="font-size:1rem;font-weight:700;color:var(--navy);margin:0;flex:1;">Geçmiş Retro Kayıtları</h3>
+              <select id="filter-birim" class="form-control" style="width:auto;min-width:140px;">
+                <option value="">Tüm Birimler</option>
+              </select>
             </div>
             <div style="overflow-x:auto;">
               <table class="data-table">
@@ -141,7 +144,7 @@
 <script type="module">
   import { supabase } from '../js/supabase.js'
   import { requireAuth, signOut } from '../js/auth.js'
-  import { formatDate, getPersonel, renderUserInfo, populateSprintDropdown, showToast, calcGort, hideAyarlarForNonAdmin, applyViewerRestrictions } from '../js/utils.js'
+  import { formatDate, getPersonel, renderUserInfo, populateSprintDropdown, showToast, calcGort, hideAyarlarForNonAdmin, applyViewerRestrictions, loadBirimler, populateBirimDropdown } from '../js/utils.js'
 
   // ── Auth ─────────────────────────────────────────────────────────
   const session = await requireAuth()
@@ -156,11 +159,15 @@
   // ── Personel Listesi (ad lookup için) ────────────────────────────
   const { data: personelListesi } = await supabase
     .from('personel')
-    .select('pkod, ad, soyad')
+    .select('pkod, ad, soyad, bkod')
     .order('ad')
   const personelMap = Object.fromEntries(
     (personelListesi || []).map(p => [p.pkod, `${p.ad} ${p.soyad}`])
   )
+
+  // ── Birim Filtresi ────────────────────────────────────────────────
+  const birimler = await loadBirimler(supabase)
+  populateBirimDropdown(document.getElementById('filter-birim'), birimler)
 
   document.getElementById('logout-btn').addEventListener('click', () => signOut())
 
@@ -218,12 +225,20 @@
 
     const tbody = document.getElementById('retro-tablo-body')
 
-    if (error || !data || data.length === 0) {
+    const birimVal = document.getElementById('filter-birim').value
+    const birimPkods = birimVal
+      ? new Set((personelListesi || []).filter(p => p.bkod === Number(birimVal)).map(p => p.pkod))
+      : null
+    const filtered = birimPkods
+      ? (data || []).filter(r => birimPkods.has(r.pkod))
+      : (data || [])
+
+    if (error || !filtered.length) {
       tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#94a3b8;padding:24px;">Kayıt bulunamadı.</td></tr>'
       return
     }
 
-    tbody.innerHTML = data.map(r => {
+    tbody.innerHTML = filtered.map(r => {
       const kisi = r.pkod ? (personelMap[r.pkod] ?? `#${r.pkod}`) : '—'
       const aort = r.aort ?? calcGort(r.ajanstaki_rolu || 0, r.ajans_hakkinda || 0)
       return `
@@ -241,6 +256,8 @@
   }
 
   await loadRetroTable()
+
+  document.getElementById('filter-birim').addEventListener('change', loadRetroTable)
 
   // ── Form Submit ───────────────────────────────────────────────────
   document.getElementById('retro-form').addEventListener('submit', async (e) => {

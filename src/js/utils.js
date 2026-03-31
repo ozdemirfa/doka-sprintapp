@@ -197,3 +197,32 @@ export async function loadActivePersonel(supabase) {
     .order('ad')
   return data || []
 }
+
+/**
+ * Aktif birimleri döndürür
+ * @param {object} supabase
+ * @returns {Promise<Array>}
+ */
+export async function loadBirimler(supabase) {
+  const { data } = await supabase
+    .from('birimler')
+    .select('bkod,birim_kisa,birim_adi')
+    .eq('durum', 'Aktif')
+    .order('birim_kisa')
+  return data || []
+}
+
+/**
+ * Birim dropdown'ını doldurur
+ * @param {HTMLSelectElement} selectEl
+ * @param {Array} birimler
+ */
+export function populateBirimDropdown(selectEl, birimler) {
+  selectEl.innerHTML = '<option value="">Tüm Birimler</option>'
+  birimler.forEach(b => {
+    const opt = document.createElement('option')
+    opt.value = b.bkod
+    opt.textContent = b.birim_kisa
+    selectEl.appendChild(opt)
+  })
+}

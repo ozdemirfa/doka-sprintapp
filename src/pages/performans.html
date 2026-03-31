@@ -64,7 +64,10 @@
   <main class="main-content">
     <div class="page-header">
       <h2>🎯 Performans Göstergeleri</h2>
-      <div style="display:flex;gap:10px;align-items:center;">
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+        <select id="filter-birim" class="form-control" style="width:auto;min-width:140px;">
+          <option value="">Tüm Birimler</option>
+        </select>
         <select id="filter-sop" class="form-control" style="width:auto;min-width:130px;">
           <option value="">Tüm SOPlar</option>
         </select>
@@ -115,7 +118,7 @@
 
 <script type="module">
   import { requireAuth, signOut } from '../js/auth.js'
-  import { getPersonel, renderUserInfo, formatPercent, showToast, hideAyarlarForNonAdmin, applyViewerRestrictions } from '../js/utils.js'
+  import { getPersonel, renderUserInfo, formatPercent, showToast, hideAyarlarForNonAdmin, applyViewerRestrictions, loadBirimler, populateBirimDropdown } from '../js/utils.js'
   import { supabase } from '../js/supabase.js'
   import Chart from 'https://cdn.jsdelivr.net/npm/chart.js/auto/+esm'
 
@@ -129,12 +132,14 @@
 
   // ── State ─────────────────────────────────────────────
   let perfData = []
+  let tumSoplar = []
 
   // ── Veri çekme ────────────────────────────────────────
   async function loadData() {
-    const [perfRes, sopRes] = await Promise.all([
+    const [perfRes, sopRes, birimRes] = await Promise.all([
       supabase.from('v_perf_gosterge_ozet').select('*').order('cg_kod'),
-      supabase.from('soplar').select('skod,kisa,baslangic,bitis').eq('durum', 'Aktif').order('kisa')
+      supabase.from('soplar').select('skod,kisa,baslangic,bitis,bkod').eq('durum', 'Aktif').order('kisa'),
+      loadBirimler(supabase)
     ])
 
     if (perfRes.error) {
@@ -142,25 +147,40 @@
       return
     }
 
-    const soplar = sopRes.data || []
-    const sopMap = Object.fromEntries(soplar.map(s => [s.skod, s.kisa]))
+    tumSoplar = sopRes.data || []
+    populateBirimDropdown(document.getElementById('filter-birim'), birimRes || [])
+
+    const sopMap = Object.fromEntries(tumSoplar.map(s => [s.skod, s.kisa]))
     perfData = (perfRes.data || []).map(r => ({ ...r, sop: sopMap[r.skod] ?? null }))
 
-    // SOP filtresi — perf_gostergeler'deki skod'ları kullan
+    populateSopFilter()
+    populateYilFilter()
+    renderTable()
+    renderCharts(perfData)
+  }
+
+  function populateSopFilter(bkodFilter = null) {
     const filterSop = document.getElementById('filter-sop')
+    const prevVal = filterSop.value
     filterSop.innerHTML = '<option value="">Tüm SOPlar</option>'
-    const sopSet = [...new Set(perfData.map(r => r.sop).filter(Boolean))].sort()
+    const allowedSkods = bkodFilter
+      ? new Set(tumSoplar.filter(s => s.bkod === Number(bkodFilter)).map(s => s.kisa))
+      : null
+    const sopSet = [...new Set(perfData.map(r => r.sop).filter(s => s && (!allowedSkods || allowedSkods.has(s))))].sort()
     sopSet.forEach(s => {
       const opt = document.createElement('option')
       opt.value = s; opt.textContent = s
       filterSop.appendChild(opt)
     })
+    const stillExists = [...filterSop.options].some(o => o.value === prevVal)
+    filterSop.value = stillExists ? prevVal : ''
+  }
 
-    // Yıl filtresi — SOP geçerlilik yıllarından
+  function populateYilFilter() {
     const filterYil = document.getElementById('filter-yil')
     filterYil.innerHTML = '<option value="">Tüm Yıllar</option>'
     const yilSet = new Set()
-    soplar.forEach(s => {
+    tumSoplar.forEach(s => {
       if (s.baslangic) yilSet.add(s.baslangic)
       if (s.bitis) yilSet.add(s.bitis)
       if (s.baslangic && s.bitis) {
@@ -172,16 +192,18 @@
       opt.value = y; opt.textContent = y
       filterYil.appendChild(opt)
     })
-
-    renderTable()
-    renderCharts(perfData)
   }
 
   // ── Tablo render (SOP bazında gruplandırılmış) ────────
   function renderTable() {
-    const sopFilter = document.getElementById('filter-sop').value
-    const yilFilter = parseInt(document.getElementById('filter-yil').value) || null
-    const rows = sopFilter ? perfData.filter(r => r.sop === sopFilter) : perfData
+    const sopFilter  = document.getElementById('filter-sop').value
+    const yilFilter  = parseInt(document.getElementById('filter-yil').value) || null
+    const birimVal   = document.getElementById('filter-birim').value
+    const allowedSops = birimVal
+      ? new Set(tumSoplar.filter(s => s.bkod === Number(birimVal)).map(s => s.kisa))
+      : null
+    let rows = birimVal ? perfData.filter(r => r.sop && allowedSops.has(r.sop)) : perfData
+    if (sopFilter) rows = rows.filter(r => r.sop === sopFilter)
 
     // Başlık güncelle
     document.getElementById('th-hedef').textContent = yilFilter ? `Hedef ${yilFilter}` : 'Kümülatif Hedef'
@@ -347,6 +369,12 @@
   // ── Event Listeners ───────────────────────────────────
   document.getElementById('filter-sop').addEventListener('change', () => { renderTable(); renderCharts(perfData) })
   document.getElementById('filter-yil').addEventListener('change', () => { renderTable(); renderCharts(perfData) })
+  document.getElementById('filter-birim').addEventListener('change', () => {
+    const bkod = document.getElementById('filter-birim').value
+    populateSopFilter(bkod || null)
+    renderTable()
+    renderCharts(perfData)
+  })
 
   // ── Başlat ────────────────────────────────────────────
   await loadData()

@@ -171,6 +171,11 @@
   <div class="main-content">
     <div class="page-header">
       <h2>İzinler & Saha Görevleri</h2>
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+        <select id="filter-birim" class="form-control" style="width:auto;min-width:140px;">
+          <option value="">Tüm Birimler</option>
+        </select>
+      </div>
     </div>
 
     <div class="page-body">
@@ -349,7 +354,7 @@
 <script type="module">
   import { supabase } from '../js/supabase.js'
   import { requireAuth, signOut } from '../js/auth.js'
-  import { formatDate, getPersonel, renderUserInfo, populateSprintDropdown, showToast, todayISO, hideAyarlarForNonAdmin, applyViewerRestrictions, loadActivePersonel } from '../js/utils.js'
+  import { formatDate, getPersonel, renderUserInfo, populateSprintDropdown, showToast, todayISO, hideAyarlarForNonAdmin, applyViewerRestrictions, loadActivePersonel, loadBirimler, populateBirimDropdown } from '../js/utils.js'
 
   // ── Auth ─────────────────────────────────────────────────────────
   const session = await requireAuth()
@@ -383,6 +388,16 @@
 
   // pkod → ad soyad haritası
   const personelMap = Object.fromEntries((personelListesi || []).map(p => [p.pkod, `${p.ad} ${p.soyad}`]))
+
+  // ── Birim Filtresi ────────────────────────────────────────────────
+  const birimler = await loadBirimler(supabase)
+  populateBirimDropdown(document.getElementById('filter-birim'), birimler)
+
+  function getBirimPkodSet() {
+    const bkod = document.getElementById('filter-birim').value
+    if (!bkod) return null
+    return new Set(personelListesi.filter(p => p.bkod === Number(bkod)).map(p => p.pkod))
+  }
 
   function personelOpsHTML() {
     if (!personelListesi || personelListesi.length === 0) return '<option value="">Personel bulunamadı</option>'
@@ -449,13 +464,17 @@
       .order('izin_basl', { ascending: false })
 
     const tbody = document.getElementById('izinler-tbody')
+    const birimPkods = getBirimPkodSet()
+    const filtered = birimPkods
+      ? (data || []).filter(r => birimPkods.has(r.pkod))
+      : (data || [])
 
-    if (error || !data || data.length === 0) {
+    if (error || !filtered.length) {
       tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#94a3b8;padding:24px;">Kayıt bulunamadı.</td></tr>'
       return
     }
 
-    tbody.innerHTML = data.map(r => {
+    tbody.innerHTML = filtered.map(r => {
       const islemBtn = isFatih
         ? `<div style="display:flex;gap:6px;justify-content:center;">
              <button class="btn-edit" data-id="${r.id}" data-action="edit-izin">Düzenle</button>
@@ -549,16 +568,20 @@
       .order('tarih', { ascending: false })
 
     const tbody = document.getElementById('saha-tbody')
+    const birimPkods = getBirimPkodSet()
+    const filtered = birimPkods
+      ? (data || []).filter(r => birimPkods.has(r.pkod))
+      : (data || [])
 
-    if (error || !data || data.length === 0) {
+    if (error || !filtered.length) {
       tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#94a3b8;padding:24px;">Kayıt bulunamadı.</td></tr>'
       renderSahaOzet([])
       return
     }
 
-    renderSahaOzet(data)
+    renderSahaOzet(filtered)
 
-    tbody.innerHTML = data.map(r => {
+    tbody.innerHTML = filtered.map(r => {
       const islemBtn = isFatih
         ? `<div style="display:flex;gap:6px;justify-content:center;">
              <button class="btn-edit" data-id="${r.id}" data-action="edit-saha">Düzenle</button>
@@ -580,6 +603,12 @@
   }
 
   await loadSahaGorevleri()
+
+  // ── Birim Filtresi ────────────────────────────────────────────────
+  document.getElementById('filter-birim').addEventListener('change', () => {
+    loadIzinler()
+    loadSahaGorevleri()
+  })
 
   // ── Sil (event delegation) ────────────────────────────────────────
   document.addEventListener('click', async (e) => {

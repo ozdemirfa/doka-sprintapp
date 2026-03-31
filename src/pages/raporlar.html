@@ -81,6 +81,12 @@
   <div class="main-content">
     <div class="page-header">
       <h2>Raporlar</h2>
+      <div style="display:flex;gap:10px;align-items:center;">
+        <label style="font-size:0.82rem;color:#64748b;white-space:nowrap;">Birim:</label>
+        <select id="r-birim" class="form-control" style="width:auto;min-width:140px;">
+          <option value="">Tüm Birimler</option>
+        </select>
+      </div>
     </div>
 
     <div class="page-body">
@@ -228,7 +234,7 @@
 <script type="module">
   import { supabase } from '../js/supabase.js'
   import { requireAuth, signOut } from '../js/auth.js'
-  import { getPersonel, renderUserInfo, showToast, hideAyarlarForNonAdmin, applyViewerRestrictions } from '../js/utils.js'
+  import { getPersonel, renderUserInfo, showToast, hideAyarlarForNonAdmin, applyViewerRestrictions, loadBirimler, populateBirimDropdown, loadActivePersonel } from '../js/utils.js'
 
   // ── Auth ────────────────────────────────────────────────────────────
   const session = await requireAuth()
@@ -291,10 +297,27 @@
   }
 
   // ── Referans Veriler ────────────────────────────────────────────────
-  const [{ data: soplar }, { data: sprintler }] = await Promise.all([
-    supabase.from('soplar').select('skod,kisa,durum').order('kisa'),
-    supabase.from('sprint_veri').select('sprint_donem,sprint_adi').order('sprint_donem', { ascending: false })
+  const [{ data: soplar }, { data: sprintler }, birimRes, personelRes] = await Promise.all([
+    supabase.from('soplar').select('skod,kisa,durum,bkod').order('kisa'),
+    supabase.from('sprint_veri').select('sprint_donem,sprint_adi').order('sprint_donem', { ascending: false }),
+    loadBirimler(supabase),
+    loadActivePersonel(supabase)
   ])
+
+  const tümPersoneller = personelRes || []
+  populateBirimDropdown(document.getElementById('r-birim'), birimRes || [])
+
+  // Birim filtresi yardımcıları
+  function getBirimSkods() {
+    const bkod = document.getElementById('r-birim').value
+    if (!bkod) return null
+    return new Set((soplar || []).filter(s => s.bkod === Number(bkod)).map(s => s.skod))
+  }
+  function getBirimPkods() {
+    const bkod = document.getElementById('r-birim').value
+    if (!bkod) return null
+    return new Set(tümPersoneller.filter(p => p.bkod === Number(bkod)).map(p => p.pkod))
+  }
 
   // SOP dropdown'larını doldur (sadece aktif SOPlar)
   const aktifSoplar = (soplar || []).filter(s => s.durum === 'Aktif')
@@ -332,13 +355,15 @@
   let rFaalData = []
   document.getElementById('btn-faal-yukle').addEventListener('click', async () => {
     const skod = document.getElementById('r-faal-sop').value
+    const birimSkods = getBirimSkods()
     let q = supabase.from('v_faaliyet_ozet').select('*').order('fkod')
     if (skod) q = q.eq('skod', skod)
     const { data, error } = await q
     if (error) { showToast('Hata: ' + error.message, 'error'); return }
     const { data: katData } = await supabase.from('kategori_tipleri').select('kkod,kategori_adi')
     const katMap = Object.fromEntries((katData || []).map(k => [k.kkod, k.kategori_adi]))
-    rFaalData = (data || []).map(r => ({
+    let rows = (data || []).filter(r => !birimSkods || birimSkods.has(r.skod))
+    rFaalData = rows.map(r => ({
       'SOP':             sopMap[r.skod] ?? r.skod ?? '—',
       'Kategori':        katMap[r.kkod] ?? r.kkod ?? '—',
       'Faaliyet':        r.faaliyet ?? '—',
@@ -396,7 +421,9 @@
         'İş Durum (%)':       r.is_durum_oran != null ? (r.is_durum_oran * 100).toFixed(0) : '—'
       }
     })
+    const birimSkods = getBirimSkods()
     if (skod) rows = rows.filter(r => String(r.skod) === String(skod))
+    if (birimSkods) rows = rows.filter(r => birimSkods.has(r.skod))
     rAltFData = rows.map(({ skod: _, ...rest }) => rest)
     renderTable('prev-alt-faaliyetler', rAltFData)
     document.getElementById('r-altf-sayi').textContent = `${rAltFData.length} kayıt`
@@ -440,7 +467,9 @@
         'Gerçekleşme':      r.gerceklesen ?? '—'
       }
     })
+    const birimSkods = getBirimSkods()
     if (skod) rows = rows.filter(r => String(r._skod) === String(skod))
+    if (birimSkods) rows = rows.filter(r => birimSkods.has(r._skod))
     rPerfData = rows.map(({ _skod: _, ...rest }) => rest)
     renderTable('prev-perf-gerceklesme', rPerfData)
     document.getElementById('r-perf-sayi').textContent = `${rPerfData.length} kayıt`
@@ -454,8 +483,10 @@
   let rSipData = []
   document.getElementById('btn-sip-yukle').addEventListener('click', async () => {
     const sprintVal = document.getElementById('r-sip-sprint').value
+    const birimPkods = getBirimPkods()
     let q = supabase.from('sprint_is_plani').select('*').order('id')
     if (sprintVal) q = q.eq('sprint_donem', sprintVal)
+    if (birimPkods) q = q.in('pkod', [...birimPkods])
     const { data, error } = await q
     if (error) { showToast('Hata: ' + error.message, 'error'); return }
     rSipData = (data || []).map(r => ({
@@ -485,13 +516,14 @@
   let rSpgData = []
   document.getElementById('btn-spg-yukle').addEventListener('click', async () => {
     const sprintVal = document.getElementById('r-spg-sprint').value
+    const birimPkods = getBirimPkods()
     let q = supabase.from('sprint_perf_gos').select('*').order('id')
-    if (sprintVal) {
-      // sprint_is_plani üzerinden sprint_donem filtresi
-      const { data: sipIds } = await supabase
-        .from('sprint_is_plani')
-        .select('id')
-        .eq('sprint_donem', sprintVal)
+    if (sprintVal || birimPkods) {
+      // sprint_is_plani üzerinden sprint_donem + birim filtresi
+      let sipQ = supabase.from('sprint_is_plani').select('id')
+      if (sprintVal) sipQ = sipQ.eq('sprint_donem', sprintVal)
+      if (birimPkods) sipQ = sipQ.in('pkod', [...birimPkods])
+      const { data: sipIds } = await sipQ
       const ids = (sipIds || []).map(r => r.id)
       if (ids.length) q = q.in('sprint_is_plani_id', ids)
       else { rSpgData = []; renderTable('prev-sprint-perf', []); document.getElementById('r-spg-sayi').textContent = '0 kayıt'; return }
@@ -525,10 +557,12 @@
     const sprintVal = document.getElementById('r-tam-sprint').value
     const { data: pData } = await supabase.from('personel').select('pkod,ad,soyad')
     const pMap = Object.fromEntries((pData || []).map(p => [p.pkod, `${p.ad} ${p.soyad}`]))
+    const birimPkods = getBirimPkods()
     let q = supabase.from('sprint_is_plani')
       .select('pkod,plan_sure,gercek_sure,is_durum')
       .order('pkod')
     if (sprintVal) q = q.eq('sprint_donem', sprintVal)
+    if (birimPkods) q = q.in('pkod', [...birimPkods])
     const { data, error } = await q
     if (error) { showToast('Hata: ' + error.message, 'error'); return }
 
