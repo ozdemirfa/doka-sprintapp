@@ -154,21 +154,8 @@
             <tr><td colspan="7" style="text-align:center;color:#94a3b8;padding:24px;">Yükleniyor...</td></tr>
           </tbody>
         </table>
-        <div class="inline-form">
-          <input type="text" id="p-ad" class="form-control" placeholder="Ad" style="max-width:140px;">
-          <input type="text" id="p-soyad" class="form-control" placeholder="Soyad" style="max-width:140px;">
-          <select id="p-bkod" class="form-control" style="max-width:160px;"><option value="">Birim Seç...</option></select>
-          <select id="p-rol" class="form-control" style="max-width:140px;">
-            <option value="standart">Standart</option>
-            <option value="gs">GS</option>
-            <option value="yönetici">Yönetici</option>
-            <option value="izleyici">İzleyici</option>
-          </select>
-          <select id="p-durum" class="form-control" style="max-width:110px;">
-            <option value="Aktif">Aktif</option>
-            <option value="Pasif">Pasif</option>
-          </select>
-          <button class="btn-gold" id="btn-p-ekle">+ Ekle</button>
+        <div style="padding:12px 16px;border-top:1px solid #e2e8f0;">
+          <button class="btn-gold" id="btn-p-ekle">+ Yeni Personel</button>
         </div>
       </div>
 
@@ -688,22 +675,42 @@
     }
   })
 
-  document.getElementById('btn-p-ekle').addEventListener('click', async () => {
-    const ad    = document.getElementById('p-ad').value.trim()
-    const soyad = document.getElementById('p-soyad').value.trim()
-    const bkod  = parseInt(document.getElementById('p-bkod').value) || null
-    const rol   = document.getElementById('p-rol').value
-    const durum = document.getElementById('p-durum').value || 'Aktif'
-    if (!ad || !soyad) { showToast('Ad ve Soyad zorunludur.', 'error'); return }
-    // pkod otomatik üret (MAX + 1)
-    const { data: maxData } = await supabase.from('personel').select('pkod').order('pkod', { ascending: false }).limit(1)
-    const newPkod = maxData?.length > 0 ? maxData[0].pkod + 1 : 1
-    const { error } = await supabase.from('personel').insert({ pkod: newPkod, ad, soyad, bkod, rol_kodu: rol, durum })
-    if (error) { showToast(error.message, 'error'); return }
-    showToast('Personel eklendi.', 'success')
-    ;['p-ad','p-soyad'].forEach(id => document.getElementById(id).value = '')
-    document.getElementById('p-bkod').value = ''
-    await loadPersonel()
+  document.getElementById('btn-p-ekle').addEventListener('click', () => {
+    editState = { table: 'personel', id: null }
+    const title = document.getElementById('edit-modal-title')
+    const body  = document.getElementById('edit-modal-body')
+    title.textContent = 'Yeni Personel Ekle'
+    body.innerHTML = `
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div class="form-group"><label>Ad <span style="color:#dc2626;">*</span></label><input id="edit-pad" class="form-control" value=""></div>
+        <div class="form-group"><label>Soyad <span style="color:#dc2626;">*</span></label><input id="edit-psoyad" class="form-control" value=""></div>
+      </div>
+      <div class="form-group"><label>Birim</label>
+        <select id="edit-pbkod" class="form-control">
+          <option value="">Seçin...</option>
+          ${birimler.map(b => `<option value="${b.bkod}">${b.birim_kisa} — ${b.birim_adi||''}</option>`).join('')}
+        </select>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div class="form-group"><label>Rol</label>
+          <select id="edit-prol" class="form-control">
+            <option value="standart" selected>Standart</option>
+            <option value="gs">GS</option>
+            <option value="yönetici">Yönetici</option>
+            <option value="izleyici">İzleyici</option>
+          </select>
+        </div>
+        <div class="form-group"><label>Durum</label>
+          <select id="edit-pdurum" class="form-control">
+            <option value="Aktif" selected>Aktif</option>
+            <option value="Pasif">Pasif</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group"><label>E-posta</label>
+        <input id="edit-peposta" class="form-control" type="email" value="" placeholder="ornek@kurum.gov.tr">
+      </div>`
+    document.getElementById('modal-edit').classList.remove('hidden')
   })
 
   // ═══════════════════════════════════════════════════════
@@ -935,6 +942,7 @@
           <div class="form-group"><label>Rol</label>
             <select id="edit-prol" class="form-control">
               <option value="standart" ${r.rol_kodu==='standart'||r.rol_kodu==='uye'?'selected':''}>Standart</option>
+              <option value="gs" ${r.rol_kodu==='gs'?'selected':''}>GS</option>
               <option value="yönetici" ${r.rol_kodu==='yönetici'?'selected':''}>Yönetici</option>
               <option value="izleyici" ${r.rol_kodu==='izleyici'?'selected':''}>İzleyici</option>
             </select>
@@ -1101,11 +1109,19 @@
     } else if (table === 'personel') {
       const ad    = document.getElementById('edit-pad').value.trim()
       const soyad = document.getElementById('edit-psoyad').value.trim()
-      const bkod  = document.getElementById('edit-pbkod').value.trim() || null
+      const bkod  = parseInt(document.getElementById('edit-pbkod').value) || null
       const rol    = document.getElementById('edit-prol').value
       const durum  = document.getElementById('edit-pdurum').value || 'Aktif'
       const eposta = document.getElementById('edit-peposta').value.trim() || null
-      ;({ error } = await supabase.from('personel').update({ ad, soyad, bkod, rol_kodu: rol, durum, eposta }).eq('pkod', id))
+      if (!ad || !soyad) { showToast('Ad ve Soyad zorunludur.', 'error'); return }
+      if (id == null) {
+        // Yeni personel ekle
+        const { data: maxData } = await supabase.from('personel').select('pkod').order('pkod', { ascending: false }).limit(1)
+        const newPkod = (maxData?.[0]?.pkod ?? 0) + 1
+        ;({ error } = await supabase.from('personel').insert({ pkod: newPkod, ad, soyad, bkod, rol_kodu: rol, durum, eposta }))
+      } else {
+        ;({ error } = await supabase.from('personel').update({ ad, soyad, bkod, rol_kodu: rol, durum, eposta }).eq('pkod', id))
+      }
       if (!error) await loadPersonel()
     } else if (table === 'sprint') {
       const adi  = document.getElementById('edit-svadi').value.trim()
