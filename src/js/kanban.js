@@ -47,7 +47,7 @@ async function loadReferenceData() {
     supabase.from('sprint_veri').select('sprint_donem,sprint_adi,baslangic,bitis').order('sprint_donem', { ascending: false }),
     loadActivePersonel(supabase),
     supabase.from('alt_faaliyetler')
-      .select('sno,fkod,alt_faaliyet,p_sure,faaliyetler(skod,kkod,faaliyet,soplar(kisa),kategori_tipleri(kategori_adi))')
+      .select('sno,fkod,alt_faaliyet,p_sure,faaliyetler(skod,kkod,faaliyet,soplar(kisa,durum),kategori_tipleri(kategori_adi))')
       .order('sno')
   ])
 
@@ -488,9 +488,10 @@ function openAltFaaliyetModal() {
   const modal = document.getElementById('af-search-modal')
   if (!modal) return
 
-  // Dropdown'ları doldur (nested faaliyetler verisi üzerinden)
-  const sopSet = [...new Set(altFaaliyetler.map(a => a.faaliyetler?.soplar?.kisa).filter(Boolean))]
-  const katSet = [...new Set(altFaaliyetler.map(a => a.faaliyetler?.kategori_tipleri?.kategori_adi).filter(Boolean))]
+  // Dropdown'ları doldur — sadece aktif SOP'lar
+  const aktifAltFaaliyetler = altFaaliyetler.filter(a => a.faaliyetler?.soplar?.durum === 'Aktif')
+  const sopSet = [...new Set(aktifAltFaaliyetler.map(a => a.faaliyetler?.soplar?.kisa).filter(Boolean))]
+  const katSet = [...new Set(aktifAltFaaliyetler.map(a => a.faaliyetler?.kategori_tipleri?.kategori_adi).filter(Boolean))]
 
   const sopSel = document.getElementById('af-filter-sop')
   sopSel.innerHTML = '<option value="">Tüm SOPlar</option>'
@@ -511,9 +512,11 @@ function renderAltFaaliyetList() {
   const metin = document.getElementById('af-filter-metin').value.toLowerCase()
 
   const filtered = altFaaliyetler.filter(af => {
-    const afSop = af.faaliyetler?.soplar?.kisa
-    const afKat = af.faaliyetler?.kategori_tipleri?.kategori_adi
+    const afSop    = af.faaliyetler?.soplar?.kisa
+    const afSopDurum = af.faaliyetler?.soplar?.durum
+    const afKat    = af.faaliyetler?.kategori_tipleri?.kategori_adi
     const afFaaliyet = af.faaliyetler?.faaliyet
+    if (afSopDurum && afSopDurum !== 'Aktif') return false  // pasif SOP'ları gizle
     if (sop && afSop !== sop) return false
     if (kat && afKat !== kat) return false
     if (metin && !af.alt_faaliyet?.toLowerCase().includes(metin) && !String(af.sno).includes(metin) && !afFaaliyet?.toLowerCase().includes(metin)) return false

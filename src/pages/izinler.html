@@ -123,6 +123,18 @@
     }
     .btn-danger:hover { background: #fecaca; }
 
+    .btn-edit {
+      padding: 4px 12px;
+      background: #e0f2fe;
+      color: #0369a1;
+      border: none;
+      border-radius: 5px;
+      font-size: 0.78rem;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    .btn-edit:hover { background: #bae6fd; }
+
     /* 81 il datalist input */
     datalist option { font-size: 0.875rem; }
   </style>
@@ -140,11 +152,12 @@
       <a href="../index.html"><span class="icon">📋</span> Kanban Board</a>
       <a href="sprint-ozet.html"><span class="icon">📊</span> Sprint Özet</a>
       <a href="faaliyetler.html"><span class="icon">📁</span> Faaliyetler</a>
-      <a href="retro.html"><span class="icon">🔁</span> Retrospektif</a>
       <a href="performans.html"><span class="icon">🎯</span> Perf. Özeti</a>
       <a href="sprint-perf-gos.html"><span class="icon">📈</span> Perf. Gerçekleşmeleri</a>
       <a href="harcamalar.html"><span class="icon">💰</span> Harcamalar</a>
       <a href="izinler.html" class="active"><span class="icon">🗓️</span> İzinler & Saha</a>
+      <a href="retro.html"><span class="icon">🔁</span> Retrospektif</a>
+      <a href="raporlar.html"><span class="icon">📑</span> Raporlar</a>
       <a href="parola.html"><span class="icon">🔑</span> Parola İşlemleri</a>
       <a href="ayarlar.html"><span class="icon">⚙️</span> Ayarlar</a>
     </nav>
@@ -245,12 +258,13 @@
   </div>
 </div>
 
-<!-- ────────────────── MODAL: YENİ İZİN ────────────────── -->
+<!-- ────────────────── MODAL: YENİ / DÜZENLE İZİN ────────────────── -->
 <div class="modal-overlay" id="izin-modal">
   <div class="modal-box">
     <button class="modal-close" id="izin-modal-close">✕</button>
-    <h3>Yeni İzin Ekle</h3>
+    <h3 id="izin-modal-title">Yeni İzin Ekle</h3>
     <form id="izin-form">
+      <input type="hidden" id="izin-editing-id" value="">
       <div class="form-group">
         <label for="izin-personel">Personel</label>
         <select id="izin-personel" class="form-control" required></select>
@@ -289,12 +303,13 @@
   </div>
 </div>
 
-<!-- ────────────────── MODAL: YENİ SAHA GÖREVİ ────────────────── -->
+<!-- ────────────────── MODAL: YENİ / DÜZENLE SAHA GÖREVİ ────────────────── -->
 <div class="modal-overlay" id="saha-modal">
   <div class="modal-box">
     <button class="modal-close" id="saha-modal-close">✕</button>
-    <h3>Yeni Saha Görevi Ekle</h3>
+    <h3 id="saha-modal-title">Yeni Saha Görevi Ekle</h3>
     <form id="saha-form">
+      <input type="hidden" id="saha-editing-id" value="">
       <div class="form-group">
         <label for="saha-personel">Personel</label>
         <select id="saha-personel" class="form-control" required></select>
@@ -404,6 +419,8 @@
 
   document.getElementById('yeni-izin-btn').addEventListener('click', () => {
     document.getElementById('izin-form').reset()
+    document.getElementById('izin-editing-id').value = ''
+    document.getElementById('izin-modal-title').textContent = 'Yeni İzin Ekle'
     openModal('izin-modal')
   })
   document.getElementById('izin-modal-close').addEventListener('click', () => closeModal('izin-modal'))
@@ -414,6 +431,8 @@
 
   document.getElementById('yeni-saha-btn').addEventListener('click', () => {
     document.getElementById('saha-form').reset()
+    document.getElementById('saha-editing-id').value = ''
+    document.getElementById('saha-modal-title').textContent = 'Yeni Saha Görevi Ekle'
     openModal('saha-modal')
   })
   document.getElementById('saha-modal-close').addEventListener('click', () => closeModal('saha-modal'))
@@ -437,8 +456,11 @@
     }
 
     tbody.innerHTML = data.map(r => {
-      const silBtn = isFatih
-        ? `<button class="btn-danger" data-id="${r.id}" data-table="izinler">Sil</button>`
+      const islemBtn = isFatih
+        ? `<div style="display:flex;gap:6px;justify-content:center;">
+             <button class="btn-edit" data-id="${r.id}" data-action="edit-izin">Düzenle</button>
+             <button class="btn-danger" data-id="${r.id}" data-table="izinler">Sil</button>
+           </div>`
         : '—'
       const adSoyad = r.pkod ? (personelMap[r.pkod] ?? `pkod:${r.pkod}`) : '—'
       return `
@@ -454,7 +476,7 @@
             </span>
           </td>
           <td style="max-width:220px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${r.aciklama ?? '—'}</td>
-          <td style="text-align:center;">${silBtn}</td>
+          <td style="text-align:center;">${islemBtn}</td>
         </tr>
       `
     }).join('')
@@ -537,8 +559,11 @@
     renderSahaOzet(data)
 
     tbody.innerHTML = data.map(r => {
-      const silBtn = isFatih
-        ? `<button class="btn-danger" data-id="${r.id}" data-table="saha_gorevleri">Sil</button>`
+      const islemBtn = isFatih
+        ? `<div style="display:flex;gap:6px;justify-content:center;">
+             <button class="btn-edit" data-id="${r.id}" data-action="edit-saha">Düzenle</button>
+             <button class="btn-danger" data-id="${r.id}" data-table="saha_gorevleri">Sil</button>
+           </div>`
         : '—'
       const adSoyad = r.pkod ? (personelMap[r.pkod] ?? `pkod:${r.pkod}`) : '—'
       return `
@@ -548,7 +573,7 @@
           <td style="text-align:center;font-weight:700;color:var(--navy);">${r.gorev_gun ?? 1}</td>
           <td>${r.gorevli_il ?? '—'}</td>
           <td style="max-width:280px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${r.aciklama ?? '—'}</td>
-          <td style="text-align:center;">${silBtn}</td>
+          <td style="text-align:center;">${islemBtn}</td>
         </tr>
       `
     }).join('')
@@ -574,9 +599,44 @@
     else await loadSahaGorevleri()
   })
 
+  // ── Düzenle (event delegation) ───────────────────────────────────
+  document.addEventListener('click', async (e) => {
+    const btn = e.target.closest('.btn-edit[data-action]')
+    if (!btn) return
+    const id     = btn.dataset.id
+    const action = btn.dataset.action
+
+    if (action === 'edit-izin') {
+      const { data: r, error } = await supabase.from('izinler').select('*').eq('id', id).single()
+      if (error || !r) { showToast('Kayıt yüklenemedi.', 'error'); return }
+      document.getElementById('izin-editing-id').value = r.id
+      document.getElementById('izin-modal-title').textContent = 'İzin Düzenle'
+      document.getElementById('izin-personel').value    = r.pkod ?? ''
+      document.getElementById('izin-baslangic').value   = r.izin_basl ?? ''
+      document.getElementById('izin-bitis').value       = r.izin_bitis ?? ''
+      document.getElementById('izin-gun-sayi').value    = r.izin_gun_sayi ?? ''
+      document.getElementById('izin-tur').value         = r.tur ?? ''
+      document.getElementById('izin-aciklama').value    = r.aciklama ?? ''
+      openModal('izin-modal')
+
+    } else if (action === 'edit-saha') {
+      const { data: r, error } = await supabase.from('saha_gorevleri').select('*').eq('id', id).single()
+      if (error || !r) { showToast('Kayıt yüklenemedi.', 'error'); return }
+      document.getElementById('saha-editing-id').value  = r.id
+      document.getElementById('saha-modal-title').textContent = 'Saha Görevi Düzenle'
+      document.getElementById('saha-personel').value    = r.pkod ?? ''
+      document.getElementById('saha-tarih').value       = r.tarih ?? ''
+      document.getElementById('saha-gorev-gun').value   = r.gorev_gun ?? 1
+      document.getElementById('saha-il').value          = r.gorevli_il ?? ''
+      document.getElementById('saha-aciklama').value    = r.aciklama ?? ''
+      openModal('saha-modal')
+    }
+  })
+
   // ── İzin Form Submit ──────────────────────────────────────────────
   document.getElementById('izin-form').addEventListener('submit', async (e) => {
     e.preventDefault()
+    const editingId  = document.getElementById('izin-editing-id').value
     const pkod       = parseInt(document.getElementById('izin-personel').value)
     const baslangic  = document.getElementById('izin-baslangic').value
     const bitis      = document.getElementById('izin-bitis').value
@@ -601,14 +661,21 @@
     btn.disabled = true
     btn.textContent = 'Kaydediliyor...'
 
-    const { error } = await supabase.from('izinler').insert({
+    const payload = {
       pkod:          pkod,
       izin_basl:     baslangic,
       izin_bitis:    bitis,
       izin_gun_sayi: gunSayi,
       tur:           tur,
       aciklama:      aciklama || null
-    })
+    }
+
+    let error
+    if (editingId) {
+      ;({ error } = await supabase.from('izinler').update(payload).eq('id', editingId))
+    } else {
+      ;({ error } = await supabase.from('izinler').insert(payload))
+    }
 
     btn.disabled = false
     btn.textContent = 'Kaydet'
@@ -618,7 +685,7 @@
       return
     }
 
-    showToast('İzin başarıyla eklendi.', 'success')
+    showToast(editingId ? 'İzin güncellendi.' : 'İzin başarıyla eklendi.', 'success')
     closeModal('izin-modal')
     await loadIzinler()
     if (sprintSelectIzin.value) await hesaplaSprintOzet()
@@ -627,11 +694,12 @@
   // ── Saha Görevi Form Submit ───────────────────────────────────────
   document.getElementById('saha-form').addEventListener('submit', async (e) => {
     e.preventDefault()
-    const pkod     = parseInt(document.getElementById('saha-personel').value)
-    const tarih    = document.getElementById('saha-tarih').value
-    const gorevGun = parseInt(document.getElementById('saha-gorev-gun').value) || 1
-    const il       = document.getElementById('saha-il').value.trim()
-    const aciklama = document.getElementById('saha-aciklama').value.trim()
+    const editingId = document.getElementById('saha-editing-id').value
+    const pkod      = parseInt(document.getElementById('saha-personel').value)
+    const tarih     = document.getElementById('saha-tarih').value
+    const gorevGun  = parseInt(document.getElementById('saha-gorev-gun').value) || 1
+    const il        = document.getElementById('saha-il').value.trim()
+    const aciklama  = document.getElementById('saha-aciklama').value.trim()
 
     if (!pkod || !tarih || !il) {
       showToast('Lütfen zorunlu alanları doldurun.', 'warning')
@@ -642,13 +710,20 @@
     btn.disabled = true
     btn.textContent = 'Kaydediliyor...'
 
-    const { error } = await supabase.from('saha_gorevleri').insert({
+    const payload = {
       pkod:        pkod,
       tarih:       tarih,
       gorev_gun:   gorevGun,
       gorevli_il:  il,
       aciklama:    aciklama || null
-    })
+    }
+
+    let error
+    if (editingId) {
+      ;({ error } = await supabase.from('saha_gorevleri').update(payload).eq('id', editingId))
+    } else {
+      ;({ error } = await supabase.from('saha_gorevleri').insert(payload))
+    }
 
     btn.disabled = false
     btn.textContent = 'Kaydet'
@@ -658,7 +733,7 @@
       return
     }
 
-    showToast('Saha görevi başarıyla eklendi.', 'success')
+    showToast(editingId ? 'Saha görevi güncellendi.' : 'Saha görevi başarıyla eklendi.', 'success')
     closeModal('saha-modal')
     await loadSahaGorevleri()
     if (sprintSelectIzin.value) await hesaplaSprintOzet()
@@ -755,18 +830,8 @@
       `
     }
 
-    // sprint_veri güncelle
-    const { error: updateErr } = await supabase
-      .from('sprint_veri')
-      .update({ izin: totalIzin, saha: totalSaha })
-      .eq('sprint_donem', selectedSprint)
-
-    if (updateErr) {
-      showToast('sprint_veri güncellenemedi: ' + updateErr.message, 'error')
-      return
-    }
-
-    // Not: sprint_veri.izin ve sprint_veri.saha kaldırıldı — v_sprint_ozet view'ından otomatik hesaplanır
+    // Not: sprint_veri.izin ve sprint_veri.saha migration 007'de kaldırıldı.
+    // v_sprint_ozet view'u bu değerleri izinler/saha_gorevleri tablolarından canlı hesaplar.
     showToast(`Özet hesaplandı — İzin: ${totalIzin} gün, Saha: ${totalSaha} gün`, 'success')
   }
 

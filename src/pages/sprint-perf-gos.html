@@ -20,11 +20,12 @@
       <a href="../index.html"><span class="icon">📋</span> Kanban Board</a>
       <a href="sprint-ozet.html"><span class="icon">📊</span> Sprint Özet</a>
       <a href="faaliyetler.html"><span class="icon">📁</span> Faaliyetler</a>
-      <a href="retro.html"><span class="icon">🔁</span> Retrospektif</a>
       <a href="performans.html"><span class="icon">🎯</span> Perf. Özeti</a>
       <a href="sprint-perf-gos.html" class="active"><span class="icon">📈</span> Perf. Gerçekleşmeleri</a>
       <a href="harcamalar.html"><span class="icon">💰</span> Harcamalar</a>
       <a href="izinler.html"><span class="icon">🗓️</span> İzinler & Saha</a>
+      <a href="retro.html"><span class="icon">🔁</span> Retrospektif</a>
+      <a href="raporlar.html"><span class="icon">📑</span> Raporlar</a>
       <a href="parola.html"><span class="icon">🔑</span> Parola İşlemleri</a>
       <a href="ayarlar.html"><span class="icon">⚙️</span> Ayarlar</a>
     </nav>
@@ -177,11 +178,11 @@
   // ── Referans veriler ──────────────────────────────────────────────
   const [{ data: sprintler }, { data: perfGostergeler }, { data: isPlaniData }, { data: soplar }] = await Promise.all([
     supabase.from('sprint_veri').select('sprint_donem,sprint_adi').order('sprint_donem', { ascending: false }),
-    supabase.from('perf_gostergeler').select('cg_kod,cikti_gostergesi,skod,soplar(kisa)').order('cg_kod'),
+    supabase.from('perf_gostergeler').select('cg_kod,cikti_gostergesi,skod,soplar(kisa,durum)').order('cg_kod'),
     supabase.from('sprint_is_plani')
       .select('id, sprint_donem, pkod, sno, sprint_faaliyetleri, personel(ad, soyad), alt_faaliyetler(sno, alt_faaliyet)')
       .order('sprint_donem', { ascending: false }),
-    supabase.from('soplar').select('skod,kisa').order('kisa')
+    supabase.from('soplar').select('skod,kisa').eq('durum', 'Aktif').order('kisa')
   ])
 
   // isPlaniMap: id → display label
@@ -416,6 +417,7 @@
     const txtVal  = document.getElementById('cg-filter-metin').value.trim().toLowerCase()
     const tbody   = document.getElementById('cg-list-tbody')
     const filtered = (perfGostergeler || []).filter(pg => {
+      if (pg.soplar?.durum && pg.soplar.durum !== 'Aktif') return false  // pasif SOP'ları gizle
       const sopMatch  = !sopVal || String(pg.skod) === String(sopVal)
       const txtMatch  = !txtVal || (pg.cikti_gostergesi || '').toLowerCase().includes(txtVal)
                                 || String(pg.cg_kod).toLowerCase().includes(txtVal)
