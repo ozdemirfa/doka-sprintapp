@@ -93,6 +93,7 @@
         <button class="tab-btn" data-tab="sprint-is-plani">Sprint İş Planı</button>
         <button class="tab-btn" data-tab="sprint-perf">Sprint Perf. Gerçekleşme</button>
         <button class="tab-btn" data-tab="sprint-tamamlanma">Sprint Tamamlanma</button>
+        <button class="tab-btn" id="tab-btn-auditlog" data-tab="auditlog" style="display:none;">Audit Log</button>
       </div>
 
       <!-- ─── TAB: Faaliyetler ─── -->
@@ -172,6 +173,35 @@
           <span id="r-spg-sayi" style="font-size:0.8rem;color:#64748b;"></span>
         </div>
         <div class="rapor-preview" id="prev-sprint-perf">
+          <p style="padding:24px;color:#94a3b8;font-size:0.85rem;">Verileri Yükle butonuna tıklayın.</p>
+        </div>
+      </div>
+
+      <!-- ─── TAB: Audit Log (yönetici) ─── -->
+      <div class="tab-content" id="tab-auditlog">
+        <div class="rapor-toolbar">
+          <label style="font-size:0.8rem;color:#64748b;">Başlangıç:</label>
+          <input type="date" id="r-audit-bas" class="form-control" style="width:auto;">
+          <label style="font-size:0.8rem;color:#64748b;">Bitiş:</label>
+          <input type="date" id="r-audit-bit" class="form-control" style="width:auto;">
+          <select id="r-audit-tablo" class="form-control" style="width:auto;min-width:160px;">
+            <option value="">Tüm Tablolar</option>
+            <option value="faaliyetler">faaliyetler</option>
+            <option value="alt_faaliyetler">alt_faaliyetler</option>
+            <option value="soplar">soplar</option>
+            <option value="sprint_is_plani">sprint_is_plani</option>
+            <option value="sprint_veri">sprint_veri</option>
+            <option value="sprint_perf_gos">sprint_perf_gos</option>
+            <option value="perf_gostergeler">perf_gostergeler</option>
+            <option value="harcamalar">harcamalar</option>
+            <option value="izinler">izinler</option>
+            <option value="saha_gorevleri">saha_gorevleri</option>
+          </select>
+          <button class="btn-gold" id="btn-audit-yukle">Verileri Yükle</button>
+          <button class="btn-secondary" id="btn-audit-indir" disabled>CSV İndir</button>
+          <span id="r-audit-sayi" style="font-size:0.8rem;color:#64748b;"></span>
+        </div>
+        <div class="rapor-preview" id="prev-auditlog">
           <p style="padding:24px;color:#94a3b8;font-size:0.85rem;">Verileri Yükle butonuna tıklayın.</p>
         </div>
       </div>
@@ -288,6 +318,13 @@
     })
   })
 
+  // Yönetici ise Audit Log sekmesini göster + bitiş tarihini bugüne set et
+  if (personel?.rol_kodu === 'yönetici') {
+    document.getElementById('tab-btn-auditlog').style.display = ''
+    const today = new Date().toISOString().slice(0, 10)
+    document.getElementById('r-audit-bit').value = today
+  }
+
   // skod → kisa harita
   const sopMap = Object.fromEntries((soplar || []).map(s => [s.skod, s.kisa]))
 
@@ -376,7 +413,7 @@
     const yil  = document.getElementById('r-perf-yil').value
 
     let q = supabase.from('perf_gost_yillik')
-      .select('cg_kod,yil,hedef,gerceklesen,perf_gostergeler(skod,bilesen_kodu,bilesen_adi,cikti_gostergesi,birim,soplar(kisa))')
+      .select('cg_kod,yil,hedef,gerceklesen,perf_gostergeler!perf_gostergeler_id(skod,bilesen_kodu,bilesen_adi,cikti_gostergesi,birim,soplar(kisa))')
       .order('cg_kod')
     if (yil) q = q.eq('yil', yil)
     const { data, error } = await q
@@ -477,9 +514,11 @@
   let rTamData = []
   document.getElementById('btn-tam-yukle').addEventListener('click', async () => {
     const sprintVal = document.getElementById('r-tam-sprint').value
+    const { data: pData } = await supabase.from('personel').select('pkod,ad,soyad')
+    const pMap = Object.fromEntries((pData || []).map(p => [p.pkod, `${p.ad} ${p.soyad}`]))
     let q = supabase.from('sprint_is_plani')
-      .select('ekip_uyesi,plan_sure,gercek_sure,is_durum')
-      .order('ekip_uyesi')
+      .select('pkod,plan_sure,gercek_sure,is_durum')
+      .order('pkod')
     if (sprintVal) q = q.eq('sprint_donem', sprintVal)
     const { data, error } = await q
     if (error) { showToast('Hata: ' + error.message, 'error'); return }
@@ -487,7 +526,7 @@
     // Personel bazlı özet
     const ozet = {}
     ;(data || []).forEach(r => {
-      const ad = r.ekip_uyesi || 'Bilinmiyor'
+      const ad = pMap[r.pkod] || `#${r.pkod || 'Bilinmiyor'}`
       if (!ozet[ad]) ozet[ad] = { planToplam: 0, gercekToplam: 0, tamamlanan: 0, toplam: 0 }
       ozet[ad].planToplam  += r.plan_sure || 0
       ozet[ad].gercekToplam += r.gercek_sure || 0
@@ -509,6 +548,39 @@
   })
   document.getElementById('btn-tam-indir').addEventListener('click', () => {
     downloadCSV('sprint_tamamlanma_raporu.csv', rTamData)
+  })
+
+  // ── RAPOR 7: Audit Log ──────────────────────────────────────────────
+  let rAuditData = []
+  document.getElementById('btn-audit-yukle').addEventListener('click', async () => {
+    if (personel?.rol_kodu !== 'yönetici') { showToast('Bu rapor yalnızca yöneticiye açıktır.', 'error'); return }
+    const bas   = document.getElementById('r-audit-bas').value
+    const bit   = document.getElementById('r-audit-bit').value
+    const tablo = document.getElementById('r-audit-tablo').value
+
+    let q = supabase.from('audit_log').select('*').order('islem_zamani', { ascending: false }).limit(2000)
+    if (bas)   q = q.gte('islem_zamani', bas)
+    if (bit)   q = q.lte('islem_zamani', bit + 'T23:59:59')
+    if (tablo) q = q.eq('tablo', tablo)
+
+    const { data, error } = await q
+    if (error) { showToast('Hata: ' + error.message, 'error'); return }
+
+    rAuditData = (data || []).map(r => ({
+      'ID':             r.id ?? '—',
+      'Tablo':          r.tablo ?? '—',
+      'İşlem':          r.islem ?? '—',
+      'Kayıt ID':       r.kayit_id ?? '—',
+      'Kullanıcı':      r.kullanici_ad ?? '—',
+      'Değişen Alanlar': r.degisen_alanlar ? JSON.stringify(r.degisen_alanlar) : '—',
+      'İşlem Zamanı':   r.islem_zamani ? new Date(r.islem_zamani).toLocaleString('tr-TR') : '—'
+    }))
+    renderTable('prev-auditlog', rAuditData)
+    document.getElementById('r-audit-sayi').textContent = `${rAuditData.length} kayıt`
+    document.getElementById('btn-audit-indir').disabled = !rAuditData.length
+  })
+  document.getElementById('btn-audit-indir').addEventListener('click', () => {
+    downloadCSV('audit_log.csv', rAuditData)
   })
 </script>
 </body>
