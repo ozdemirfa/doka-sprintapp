@@ -77,11 +77,12 @@
               <th>SOP Adı</th>
               <th>Başlangıç Yılı</th>
               <th>Bitiş Yılı</th>
+              <th>Durum</th>
               <th style="text-align:center;">İşlem</th>
             </tr>
           </thead>
           <tbody id="soplar-tbody">
-            <tr><td colspan="6" style="text-align:center;color:#94a3b8;padding:24px;">Yükleniyor...</td></tr>
+            <tr><td colspan="7" style="text-align:center;color:#94a3b8;padding:24px;">Yükleniyor...</td></tr>
           </tbody>
         </table>
         <div class="inline-form" id="soplar-form-area">
@@ -159,6 +160,7 @@
           <select id="p-bkod" class="form-control" style="max-width:160px;"><option value="">Birim Seç...</option></select>
           <select id="p-rol" class="form-control" style="max-width:140px;">
             <option value="standart">Standart</option>
+            <option value="gs">GS</option>
             <option value="yönetici">Yönetici</option>
             <option value="izleyici">İzleyici</option>
           </select>
@@ -428,22 +430,27 @@
     const tbody = document.getElementById('soplar-tbody')
     const { data, error } = await supabase.from('soplar').select('*').order('skod')
     if (error || !data?.length) {
-      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#94a3b8;padding:24px;">Kayıt yok.</td></tr>'
+      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#94a3b8;padding:24px;">Kayıt yok.</td></tr>'
       return
     }
-    tbody.innerHTML = data.map(r => `
+    tbody.innerHTML = data.map(r => {
+      const durumBadge = r.durum === 'Pasif'
+        ? '<span style="background:#f1f5f9;color:#64748b;border-radius:9999px;padding:2px 8px;font-size:0.72rem;">Pasif</span>'
+        : '<span style="background:#f0fdf4;color:#166534;border-radius:9999px;padding:2px 8px;font-size:0.72rem;">Aktif</span>'
+      return `
       <tr>
         <td style="color:#64748b;">${r.skod}</td>
         <td><strong>${r.kisa}</strong></td>
         <td>${r.sop_adi ?? '—'}</td>
         <td>${r.baslangic ?? '—'}</td>
         <td>${r.bitis ?? '—'}</td>
+        <td>${durumBadge}</td>
         <td style="text-align:center;">
           <button class="row-action row-edit" data-id="${r.skod}" data-table="soplar">Düzenle</button>
           <button class="row-action row-del" data-id="${r.skod}" data-table="soplar" style="margin-left:4px;">Sil</button>
         </td>
       </tr>
-    `).join('')
+    `}).join('')
   }
 
   document.getElementById('btn-sop-ekle').addEventListener('click', async () => {
@@ -611,6 +618,7 @@
     const birimMap = Object.fromEntries(birimler.map(b => [b.bkod, b.birim_kisa]))
     const rolRenk = {
       'yönetici': { bg:'#fef3c7', fg:'#92400e' },
+      'gs':        { bg:'#f5f3ff', fg:'#6d28d9' },
       'standart':  { bg:'#f0fdf4', fg:'#166534' },
       'izleyici':  { bg:'#eff6ff', fg:'#1d4ed8' }
     }
@@ -898,6 +906,12 @@
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
           <div class="form-group"><label>Başlangıç</label><input id="edit-bas" class="form-control" type="number" value="${r.baslangic ?? ''}"></div>
           <div class="form-group"><label>Bitiş</label><input id="edit-bit" class="form-control" type="number" value="${r.bitis ?? ''}"></div>
+        </div>
+        <div class="form-group"><label>Durum</label>
+          <select id="edit-durum" class="form-control">
+            <option value="Aktif" ${(r.durum ?? 'Aktif') === 'Aktif' ? 'selected' : ''}>Aktif</option>
+            <option value="Pasif" ${r.durum === 'Pasif' ? 'selected' : ''}>Pasif</option>
+          </select>
         </div>`
     } else if (table === 'kategoriler') {
       const { data: r } = await supabase.from('kategori_tipleri').select('*').eq('kkod', id).single()
@@ -1073,11 +1087,12 @@
     let error
 
     if (table === 'soplar') {
-      const kisa = document.getElementById('edit-kisa').value.trim().toUpperCase()
-      const adi  = document.getElementById('edit-adi').value.trim()
-      const bas  = parseInt(document.getElementById('edit-bas').value) || null
-      const bit  = parseInt(document.getElementById('edit-bit').value) || null
-      ;({ error } = await supabase.from('soplar').update({ kisa, sop_adi: adi, baslangic: bas, bitis: bit }).eq('skod', id))
+      const kisa  = document.getElementById('edit-kisa').value.trim().toUpperCase()
+      const adi   = document.getElementById('edit-adi').value.trim()
+      const bas   = parseInt(document.getElementById('edit-bas').value) || null
+      const bit   = parseInt(document.getElementById('edit-bit').value) || null
+      const durum = document.getElementById('edit-durum').value
+      ;({ error } = await supabase.from('soplar').update({ kisa, sop_adi: adi, baslangic: bas, bitis: bit, durum }).eq('skod', id))
       if (!error) await loadSoplar()
     } else if (table === 'kategoriler') {
       const adi = document.getElementById('edit-katadi').value.trim()
