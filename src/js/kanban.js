@@ -3,13 +3,14 @@
 // ============================================================
 import { supabase } from './supabase.js'
 import { requireAuth, signOut } from './auth.js'
-import { formatDate, formatCurrency, getPersonel, renderUserInfo, showToast, todayISO, populateSprintDropdown, hideAyarlarForNonAdmin, isReadOnly, applyViewerRestrictions, loadActivePersonel } from './utils.js'
+import { formatDate, formatCurrency, getPersonel, renderUserInfo, showToast, todayISO, populateSprintDropdown, hideAyarlarForNonAdmin, isReadOnly, applyViewerRestrictions, loadActivePersonel, loadBirimler, populateBirimDropdown } from './utils.js'
 import Sortable from 'https://cdn.jsdelivr.net/npm/sortablejs/+esm'
 
 // ── State ────────────────────────────────────────────────────
 let allGorevler = []
 let sprints = []
 let personeller = []
+let birimler = []
 let altFaaliyetler = []
 let currentSprint = null
 let currentUser = null
@@ -43,17 +44,19 @@ try {
 // ── Veri Yükleme ─────────────────────────────────────────────
 
 async function loadReferenceData() {
-  const [sprintRes, personelRes, altFaalRes] = await Promise.all([
+  const [sprintRes, personelRes, altFaalRes, birimRes] = await Promise.all([
     supabase.from('sprint_veri').select('sprint_donem,sprint_adi,baslangic,bitis').order('sprint_donem', { ascending: false }),
     loadActivePersonel(supabase),
     supabase.from('alt_faaliyetler')
       .select('sno,fkod,alt_faaliyet,p_sure,faaliyetler(skod,kkod,faaliyet,soplar(kisa,durum),kategori_tipleri(kategori_adi))')
-      .order('sno')
+      .order('sno'),
+    loadBirimler(supabase)
   ])
 
   sprints = sprintRes.data || []
   personeller = personelRes || []
   altFaaliyetler = altFaalRes.data || []
+  birimler = birimRes || []
 
   // Sprint filtre dropdown
   const sprintFilter = document.getElementById('filter-sprint')
@@ -72,29 +75,57 @@ async function loadReferenceData() {
     sprintFilter.value = currentSprint
   }
 
-  // Ekip filtresi
+  // Birim filtresi
+  populateBirimDropdown(document.getElementById('filter-birim'), birimler)
+
+  // Ekip filtresi (gs hariç)
+  rebuildEkipFilter()
+
+  // Kendi pkod'unu varsayılan seç
+  if (currentPersonel) {
+    document.getElementById('filter-ekip').value = currentPersonel.pkod
+  }
+}
+
+// Ekip filtre dropdown'ını (yeniden) oluşturur — birime ve gs hariç kuralına göre
+function rebuildEkipFilter(bkodFilter = null) {
   const ekipFilter = document.getElementById('filter-ekip')
-  personeller.forEach(p => {
+  const prevVal = ekipFilter.value
+  ekipFilter.innerHTML = '<option value="">Tüm Üyeler</option>'
+  const filtered = personeller.filter(p =>
+    p.rol_kodu !== 'gs' &&
+    (bkodFilter === null || bkodFilter === '' || p.bkod === Number(bkodFilter))
+  )
+  filtered.forEach(p => {
     const opt = document.createElement('option')
     opt.value = p.pkod
     opt.textContent = `${p.ad} ${p.soyad}`
     ekipFilter.appendChild(opt)
   })
-
-  // Kendi pkod'unu varsayılan seç
-  if (currentPersonel) {
-    ekipFilter.value = currentPersonel.pkod
-  }
+  // Önceki seçim hâlâ listede mi?
+  const stillExists = [...ekipFilter.options].some(o => o.value === prevVal)
+  ekipFilter.value = stillExists ? prevVal : ''
 }
 
 async function loadBoard() {
   let query = supabase.from('sprint_is_plani').select('*').order('id')
 
   const sprintVal = document.getElementById('filter-sprint').value
-  const ekipVal = document.getElementById('filter-ekip').value
+  const ekipVal   = document.getElementById('filter-ekip').value
+  const birimVal  = document.getElementById('filter-birim').value
 
   if (sprintVal) query = query.eq('sprint_donem', sprintVal)
-  if (ekipVal) query = query.eq('pkod', ekipVal)
+  if (ekipVal) {
+    query = query.eq('pkod', ekipVal)
+  } else if (birimVal) {
+    // Birim seçili ama ekip seçili değilse → birim üyelerinin tümü
+    const birimPkods = personeller
+      .filter(p => p.bkod === Number(birimVal) && p.rol_kodu !== 'gs')
+      .map(p => p.pkod)
+    if (birimPkods.length > 0) {
+      query = query.in('pkod', birimPkods)
+    }
+  }
 
   const { data, error } = await query
 
@@ -313,6 +344,20 @@ function getColEl(durum) {
 function initFilters() {
   document.getElementById('filter-sprint').addEventListener('change', loadBoard)
   document.getElementById('filter-ekip').addEventListener('change', loadBoard)
+
+  document.getElementById('filter-birim').addEventListener('change', () => {
+    const bkod = document.getElementById('filter-birim').value
+    rebuildEkipFilter(bkod || null)
+    loadBoard()
+  })
+
+  document.getElementById('btn-filtre-temizle').addEventListener('click', () => {
+    document.getElementById('filter-birim').value  = ''
+    document.getElementById('filter-sprint').value = ''
+    rebuildEkipFilter(null)
+    document.getElementById('filter-ekip').value = ''
+    loadBoard()
+  })
 }
 
 // ── Modal ─────────────────────────────────────────────────────
@@ -328,10 +373,10 @@ function initModal() {
   // Alt faaliyet arama butonu
   document.getElementById('btn-alt-faaliyet-ara').addEventListener('click', () => openAltFaaliyetModal())
 
-  // Ekip üyesi dropdown — standart kullanıcı sadece kendini seçebilir
+  // Ekip üyesi dropdown — gs rolündekiler görünmez, standart kullanıcı sadece kendini seçebilir
   const gEkip = document.getElementById('g-ekip')
   const isGsOrYonetici = ['yönetici', 'gs'].includes(currentPersonel?.rol_kodu)
-  personeller.forEach(p => {
+  personeller.filter(p => p.rol_kodu !== 'gs').forEach(p => {
     const opt = document.createElement('option')
     opt.value = p.pkod
     opt.textContent = `${p.ad} ${p.soyad}`

@@ -42,6 +42,9 @@
       <div class="page-header">
         <h2>Faaliyetler</h2>
         <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+          <select id="filter-birim" class="form-control" style="width:auto;min-width:140px;">
+            <option value="">Tüm Birimler</option>
+          </select>
           <label style="display:flex;align-items:center;gap:6px;font-size:0.82rem;color:#475569;cursor:pointer;">
             <input type="checkbox" id="cb-aktif-sop" checked style="width:15px;height:15px;cursor:pointer;">
             Sadece aktif SOPlar
@@ -125,7 +128,7 @@
   <script type="module">
     import { supabase } from '../js/supabase.js'
     import { requireAuth, signOut } from '../js/auth.js'
-    import { formatCurrency, getPersonel, renderUserInfo, showToast, hideAyarlarForNonAdmin, applyViewerRestrictions } from '../js/utils.js'
+    import { formatCurrency, getPersonel, renderUserInfo, showToast, hideAyarlarForNonAdmin, applyViewerRestrictions, loadBirimler, populateBirimDropdown } from '../js/utils.js'
 
     // ── Auth ─────────────────────────────────────────────────────────
     const session = await requireAuth()
@@ -137,8 +140,11 @@
     document.getElementById('logout-btn').addEventListener('click', () => signOut())
 
     // ── Referans Veri Yükle ───────────────────────────────────────────
+    const birimler = await loadBirimler(supabase)
+    populateBirimDropdown(document.getElementById('filter-birim'), birimler)
+
     const [{ data: tumSoplar }, { data: kategoriListesi }] = await Promise.all([
-      supabase.from('soplar').select('skod,kisa,sop_adi,durum').order('kisa'),
+      supabase.from('soplar').select('skod,kisa,sop_adi,durum,bkod').order('kisa'),
       supabase.from('kategori_tipleri').select('kkod,kategori_adi').order('kkod')
     ])
 
@@ -158,23 +164,24 @@
     }
     populateModalSoplar()
 
-    // SOP filtre dropdown — checkbox'a göre güncellenir
+    // SOP filtre dropdown — checkbox ve birim filtresine göre güncellenir
     const filterSop = document.getElementById('filter-sop')
+    const filterBirim = document.getElementById('filter-birim')
     const cbAktifSop = document.getElementById('cb-aktif-sop')
 
     function populateFilterSoplar() {
       const aktifOnly = cbAktifSop.checked
+      const bkodVal = filterBirim.value ? Number(filterBirim.value) : null
       const mevcutDeger = filterSop.value
       filterSop.innerHTML = '<option value="">Tüm SOPlar</option>'
       ;(tumSoplar || [])
-        .filter(s => !aktifOnly || s.durum === 'Aktif')
+        .filter(s => (!aktifOnly || s.durum === 'Aktif') && (bkodVal === null || s.bkod === bkodVal))
         .forEach(s => {
           const opt = document.createElement('option')
           opt.value = s.skod
           opt.textContent = s.durum === 'Aktif' ? s.kisa : `${s.kisa} (Pasif)`
           filterSop.appendChild(opt)
         })
-      // Seçimi koru (pasif SOP filtredeyken kaldırılmışsa sıfırla)
       if ([...filterSop.options].some(o => o.value === mevcutDeger)) {
         filterSop.value = mevcutDeger
       }
@@ -182,6 +189,11 @@
     populateFilterSoplar()
 
     cbAktifSop.addEventListener('change', () => {
+      populateFilterSoplar()
+      renderPage()
+    })
+
+    filterBirim.addEventListener('change', () => {
       populateFilterSoplar()
       renderPage()
     })

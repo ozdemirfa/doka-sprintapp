@@ -65,6 +65,9 @@
 
       <!-- Filtreler -->
       <div style="display:flex;gap:12px;margin-bottom:16px;align-items:center;flex-wrap:wrap;">
+        <select id="filter-birim" class="form-control" style="width:auto;min-width:140px;">
+          <option value="">Tüm Birimler</option>
+        </select>
         <select id="filter-sprint" class="form-control" style="width:auto;min-width:220px;">
           <option value="">Tüm Sprintler</option>
         </select>
@@ -162,7 +165,7 @@
 
 <script type="module">
   import { requireAuth, signOut } from '../js/auth.js'
-  import { getPersonel, renderUserInfo, formatCurrency, formatDate, showToast, todayISO, hideAyarlarForNonAdmin, applyViewerRestrictions } from '../js/utils.js'
+  import { getPersonel, renderUserInfo, formatCurrency, formatDate, showToast, todayISO, hideAyarlarForNonAdmin, applyViewerRestrictions, loadBirimler, populateBirimDropdown, loadActivePersonel } from '../js/utils.js'
   import { supabase } from '../js/supabase.js'
 
   // ── Auth guard ────────────────────────────────────────
@@ -176,7 +179,14 @@
   // ── State ─────────────────────────────────────────────
   let allHarcamalar = []
   let isPlaniMap = {}   // id → label string
+  let isPlaniPkodMap = {}  // id → pkod
   let sprintler = []
+  let tümPersoneller = []
+
+  // ── Birimler yükle ────────────────────────────────────
+  const birimler = await loadBirimler(supabase)
+  populateBirimDropdown(document.getElementById('filter-birim'), birimler)
+  tümPersoneller = await loadActivePersonel(supabase)
 
   // ── Veri çekme ────────────────────────────────────────
   async function loadData() {
@@ -203,8 +213,10 @@
       .order('sprint_donem')
 
     isPlaniMap = {}
+    isPlaniPkodMap = {}
     ;(isPlaniData || []).forEach(ip => {
       isPlaniMap[ip.id] = `${ip.sno}-${ip.sprint_faaliyetleri || ''}`
+      isPlaniPkodMap[ip.id] = ip.pkod
     })
 
     // Harcamalar
@@ -289,26 +301,32 @@
   }
 
   // ── Filtreler ─────────────────────────────────────────
-  document.getElementById('filter-sprint').addEventListener('change', async () => {
+  function applyFilters() {
     const sprintVal = document.getElementById('filter-sprint').value
+    const birimVal  = document.getElementById('filter-birim').value
     let filtered = allHarcamalar
 
-    if (sprintVal) {
-      // sprint_is_plani_id üzerinden sprint filtresi
-      const idsInSprint = Object.entries(isPlaniMap)
-        .filter(([, label]) => label.startsWith(`[${sprintVal}]`))
-        .map(([id]) => Number(id))
-      filtered = filtered.filter(r => idsInSprint.includes(r.sprint_is_plani_id))
+    if (sprintVal || birimVal) {
+      const birimPkods = birimVal
+        ? new Set(tümPersoneller.filter(p => p.bkod === Number(birimVal)).map(p => p.pkod))
+        : null
+      filtered = filtered.filter(r => {
+        const pkod = isPlaniPkodMap[r.sprint_is_plani_id]
+        const ip = r.sprint_is_plani_id
+        // Sprint filtresi — sprint_donem bilgisi isPlaniPkodMap içinde yok; sprint_donem'i harcamalar'dan al
+        const sprintOk = !sprintVal || String(r.sprint_donem) === String(sprintVal)
+        const birimOk  = !birimPkods || birimPkods.has(pkod)
+        return sprintOk && birimOk
+      })
     }
 
     renderTable(filtered)
     renderOdemeDonemiOzet(filtered)
+    updateMetrics(filtered, Object.entries(isPlaniPkodMap).map(([id, pkod]) => ({ id: Number(id), pkod })))
+  }
 
-    const { data: isPlaniData } = await supabase
-      .from('sprint_is_plani')
-      .select('id, sprint_donem')
-    updateMetrics(filtered, isPlaniData || [])
-  })
+  document.getElementById('filter-sprint').addEventListener('change', applyFilters)
+  document.getElementById('filter-birim').addEventListener('change', applyFilters)
 
   // ── Modal: Yeni Harcama ───────────────────────────────
   document.getElementById('btn-yeni-harcama').addEventListener('click', async () => {

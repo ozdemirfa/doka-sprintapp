@@ -66,7 +66,10 @@
     <main class="main-content">
       <div class="page-header">
         <h2>📊 Sprint Özet</h2>
-        <div style="display:flex;gap:10px;align-items:center;">
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+          <select id="filter-birim" class="form-control" style="width:auto;min-width:140px;">
+            <option value="">Tüm Birimler</option>
+          </select>
           <select id="filter-sprint" class="form-control" style="width:auto;min-width:220px;"></select>
         </div>
       </div>
@@ -139,13 +142,14 @@
 
   <script type="module">
     import { requireAuth, signOut } from '../js/auth.js'
-    import { getPersonel, renderUserInfo, populateSprintDropdown, formatPercent, formatDate, showToast, hideAyarlarForNonAdmin, applyViewerRestrictions } from '../js/utils.js'
+    import { getPersonel, renderUserInfo, populateSprintDropdown, formatPercent, formatDate, showToast, hideAyarlarForNonAdmin, applyViewerRestrictions, loadBirimler, populateBirimDropdown, loadActivePersonel } from '../js/utils.js'
     import { renderGkiHepiniss, renderPlanGerceklesme, renderOrgPuan } from '../js/charts.js'
     import { supabase } from '../js/supabase.js'
 
     // ── State ─────────────────────────────────────────────
     let allData = []
     let selectedDonem = null
+    let personelListesi = []
 
     // ── Auth guard ────────────────────────────────────────
     let session
@@ -168,17 +172,21 @@
 
     // ── Veri çekme ────────────────────────────────────────
     async function loadData() {
-      const { data, error } = await supabase
-        .from('v_sprint_ozet')
-        .select('*')
-        .order('sprint_donem')
+      const [ozRes, birimRes, personelRes] = await Promise.all([
+        supabase.from('v_sprint_ozet').select('*').order('sprint_donem'),
+        loadBirimler(supabase),
+        loadActivePersonel(supabase)
+      ])
 
-      if (error) {
-        showToast('Sprint verileri yüklenemedi: ' + error.message, 'error')
+      if (ozRes.error) {
+        showToast('Sprint verileri yüklenemedi: ' + ozRes.error.message, 'error')
         return
       }
 
-      allData = data || []
+      allData = ozRes.data || []
+      personelListesi = personelRes || []
+
+      populateBirimDropdown(document.getElementById('filter-birim'), birimRes || [])
 
       if (allData.length === 0) {
         showToast('Gösterilecek sprint verisi bulunamadı.', 'warning')
@@ -199,12 +207,64 @@
       )
       selectedDonem = String(defaultDonem)
 
-      // Grafikleri tüm veriyle çiz (bir kez)
       renderAllCharts(allData)
-
-      // Metrik kartlarını ve tabloyu güncelle
       updateMetrics(selectedDonem)
       renderTable(allData)
+    }
+
+    // ── Birim filtreli sprint verisi hesapla ──────────────
+    async function loadBirimData(bkod) {
+      const birimPkods = personelListesi
+        .filter(p => p.bkod === Number(bkod))
+        .map(p => p.pkod)
+      if (!birimPkods.length) return []
+
+      const [sipRes, retroRes] = await Promise.all([
+        supabase.from('sprint_is_plani')
+          .select('sprint_donem, plan_sure, is_durum')
+          .in('pkod', birimPkods),
+        supabase.from('sprint_retro')
+          .select('sprint_donem, organizasyon_puan, aort')
+          .in('pkod', birimPkods)
+      ])
+
+      const sipRows = sipRes.data || []
+      const retroRows = retroRes.data || []
+
+      // sprint_donem bazında grupla
+      const sipByDonem = {}
+      sipRows.forEach(r => {
+        const d = String(r.sprint_donem)
+        if (!sipByDonem[d]) sipByDonem[d] = { plan: 0, total: 0, done: 0 }
+        sipByDonem[d].plan  += r.plan_sure || 0
+        sipByDonem[d].total += 1
+        if (r.is_durum === 'Tamamlandı') sipByDonem[d].done += 1
+      })
+
+      const retroByDonem = {}
+      retroRows.forEach(r => {
+        const d = String(r.sprint_donem)
+        if (!retroByDonem[d]) retroByDonem[d] = { hepiniss: [], org: [] }
+        if (r.aort) retroByDonem[d].hepiniss.push(r.aort)
+        if (r.organizasyon_puan) retroByDonem[d].org.push(r.organizasyon_puan)
+      })
+
+      const geoMean = arr => arr.length ? Math.exp(arr.reduce((s, x) => s + Math.log(x), 0) / arr.length) : null
+
+      return allData.map(sv => {
+        const d = String(sv.sprint_donem)
+        const sip = sipByDonem[d]
+        const retro = retroByDonem[d]
+        const gki = sip ? (sip.total > 0 ? (sip.done / sip.total) * 100 : null) : null
+        return {
+          ...sv,
+          plan_toplam: sip ? sip.plan : null,
+          gki,
+          hepiniss:  retro ? geoMean(retro.hepiniss) : null,
+          org_puan:  retro ? geoMean(retro.org) : null,
+          t_skor:    null
+        }
+      })
     }
 
     // ── Grafikleri çiz ────────────────────────────────────
@@ -226,8 +286,9 @@
     }
 
     // ── Metrik kartlarını güncelle ────────────────────────
-    function updateMetrics(donem) {
-      const row = allData.find(r => String(r.sprint_donem) === String(donem))
+    function updateMetrics(donem, data = null) {
+      const src = data || allData
+      const row = src.find(r => String(r.sprint_donem) === String(donem))
       if (!row) return
 
       document.getElementById('metric-gki').textContent = formatPercent(row.gki, 2)
@@ -262,10 +323,24 @@
     `).join('')
     }
 
-    // ── Sprint filtre değişikliği (sadece metrik kartları) ─
+    // ── Sprint filtre değişikliği ──────────────────────────
     document.getElementById('filter-sprint').addEventListener('change', (e) => {
       selectedDonem = e.target.value
       updateMetrics(selectedDonem)
+    })
+
+    // ── Birim filtre değişikliği ───────────────────────────
+    document.getElementById('filter-birim').addEventListener('change', async (e) => {
+      const bkod = e.target.value
+      let displayData
+      if (bkod) {
+        displayData = await loadBirimData(bkod)
+      } else {
+        displayData = allData
+      }
+      renderAllCharts(displayData)
+      updateMetrics(selectedDonem, displayData)
+      renderTable(displayData)
     })
 
     // ── Başlat ────────────────────────────────────────────
