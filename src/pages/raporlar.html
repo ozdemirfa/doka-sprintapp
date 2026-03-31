@@ -412,27 +412,36 @@
     const skod = document.getElementById('r-perf-sop').value
     const yil  = document.getElementById('r-perf-yil').value
 
+    // İki ayrı sorgu (perf_gost_yillik → perf_gostergeler çift FK nedeniyle join hata verir)
     let q = supabase.from('perf_gost_yillik')
-      .select('cg_kod,yil,hedef,gerceklesen,perf_gostergeler!perf_gostergeler_id(skod,bilesen_kodu,bilesen_adi,cikti_gostergesi,birim,soplar(kisa))')
+      .select('id,perf_gostergeler_id,cg_kod,yil,hedef,gerceklesen')
       .order('cg_kod')
     if (yil) q = q.eq('yil', yil)
-    const { data, error } = await q
+    const { data: pgYillik, error } = await q
     if (error) { showToast('Hata: ' + error.message, 'error'); return }
 
-    let rows = (data || []).map(r => ({
-      skod: r.perf_gostergeler?.skod,
-      'ÇGKod':            r.cg_kod ?? '—',
-      'SOP':              r.perf_gostergeler?.soplar?.kisa ?? r.perf_gostergeler?.skod ?? '—',
-      'Bileşen Kodu':     r.perf_gostergeler?.bilesen_kodu ?? '—',
-      'Bileşen Adı':      r.perf_gostergeler?.bilesen_adi ?? '—',
-      'Çıktı Göstergesi': r.perf_gostergeler?.cikti_gostergesi ?? '—',
-      'Birim':            r.perf_gostergeler?.birim ?? '—',
-      'Yıl':              r.yil ?? '—',
-      'Hedef':            r.hedef ?? '—',
-      'Gerçekleşme':      r.gerceklesen ?? '—'
-    }))
-    if (skod) rows = rows.filter(r => String(r.skod) === String(skod))
-    rPerfData = rows.map(({ skod: _, ...rest }) => rest)
+    const { data: pgData } = await supabase
+      .from('perf_gostergeler')
+      .select('id,skod,bilesen_kodu,bilesen_adi,cikti_gostergesi,birim')
+    const pgMap = Object.fromEntries((pgData || []).map(p => [p.id, p]))
+
+    let rows = (pgYillik || []).map(r => {
+      const pg = pgMap[r.perf_gostergeler_id] || {}
+      return {
+        _skod:              pg.skod,
+        'ÇGKod':            r.cg_kod ?? '—',
+        'SOP':              sopMap[pg.skod] ?? pg.skod ?? '—',
+        'Bileşen Kodu':     pg.bilesen_kodu ?? '—',
+        'Bileşen Adı':      pg.bilesen_adi ?? '—',
+        'Çıktı Göstergesi': pg.cikti_gostergesi ?? '—',
+        'Birim':            pg.birim ?? '—',
+        'Yıl':              r.yil ?? '—',
+        'Hedef':            r.hedef ?? '—',
+        'Gerçekleşme':      r.gerceklesen ?? '—'
+      }
+    })
+    if (skod) rows = rows.filter(r => String(r._skod) === String(skod))
+    rPerfData = rows.map(({ _skod: _, ...rest }) => rest)
     renderTable('prev-perf-gerceklesme', rPerfData)
     document.getElementById('r-perf-sayi').textContent = `${rPerfData.length} kayıt`
     document.getElementById('btn-perf-indir').disabled = !rPerfData.length
