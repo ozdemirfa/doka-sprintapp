@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Raporlar — DOKA Sprint Kanban</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="../css/app.css" />
+  <style>
+    .tab-bar {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+    .tab-btn {
+      padding: 7px 14px;
+      border: 2px solid var(--navy);
+      border-radius: 6px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      background: transparent;
+      color: var(--navy);
+      transition: background 0.15s, color 0.15s;
+    }
+    .tab-btn.active {
+      background: var(--navy);
+      color: var(--gold);
+    }
+    .tab-btn:not(.active):hover { background: #f1f5f9; }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+    .rapor-toolbar {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+    .rapor-preview {
+      overflow-x: auto;
+      max-height: 480px;
+      overflow-y: auto;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+    }
+    .rapor-preview table { min-width: 700px; }
+    .data-table th { position: sticky; top: 0; background: var(--navy); z-index: 1; }
+  </style>
+</head>
+<body>
+<div class="app-layout">
+
+  <!-- Sidebar -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <h1>DOKA</h1>
+      <p>Sprint Kanban Sistemi</p>
+    </div>
+    <nav>
+      <a href="../index.html"><span class="icon">📋</span> Kanban Board</a>
+      <a href="sprint-ozet.html"><span class="icon">📊</span> Sprint Özet</a>
+      <a href="faaliyetler.html"><span class="icon">📁</span> Faaliyetler</a>
+      <a href="performans.html"><span class="icon">🎯</span> Perf. Özeti</a>
+      <a href="sprint-perf-gos.html"><span class="icon">📈</span> Perf. Gerçekleşmeleri</a>
+      <a href="harcamalar.html"><span class="icon">💰</span> Harcamalar</a>
+      <a href="izinler.html"><span class="icon">🗓️</span> İzinler & Saha</a>
+      <a href="retro.html"><span class="icon">🔁</span> Retrospektif</a>
+      <a href="raporlar.html" class="active"><span class="icon">📑</span> Raporlar</a>
+      <a href="parola.html"><span class="icon">🔑</span> Parola İşlemleri</a>
+      <a href="ayarlar.html"><span class="icon">⚙️</span> Ayarlar</a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="user-info"><strong id="user-name">Yükleniyor...</strong>Ekip Üyesi</div>
+      <button class="btn-logout" id="logout-btn">⇐ Çıkış Yap</button>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <div class="main-content">
+    <div class="page-header">
+      <h2>Raporlar</h2>
+    </div>
+
+    <div class="page-body">
+
+      <!-- Tab Bar -->
+      <div class="tab-bar">
+        <button class="tab-btn active" data-tab="faaliyetler">Faaliyetler</button>
+        <button class="tab-btn" data-tab="alt-faaliyetler">Alt Faaliyetler</button>
+        <button class="tab-btn" data-tab="perf-gerceklesme">Perf. Gerçekleşmeleri</button>
+        <button class="tab-btn" data-tab="sprint-is-plani">Sprint İş Planı</button>
+        <button class="tab-btn" data-tab="sprint-perf">Sprint Perf. Gerçekleşme</button>
+        <button class="tab-btn" data-tab="sprint-tamamlanma">Sprint Tamamlanma</button>
+      </div>
+
+      <!-- ─── TAB: Faaliyetler ─── -->
+      <div class="tab-content active" id="tab-faaliyetler">
+        <div class="rapor-toolbar">
+          <select id="r-faal-sop" class="form-control" style="width:auto;min-width:120px;">
+            <option value="">Tüm SOPlar</option>
+          </select>
+          <button class="btn-gold" id="btn-faal-yukle">Verileri Yükle</button>
+          <button class="btn-secondary" id="btn-faal-indir" disabled>CSV İndir</button>
+          <span id="r-faal-sayi" style="font-size:0.8rem;color:#64748b;"></span>
+        </div>
+        <div class="rapor-preview" id="prev-faaliyetler">
+          <p style="padding:24px;color:#94a3b8;font-size:0.85rem;">Verileri Yükle butonuna tıklayın.</p>
+        </div>
+      </div>
+
+      <!-- ─── TAB: Alt Faaliyetler ─── -->
+      <div class="tab-content" id="tab-alt-faaliyetler">
+        <div class="rapor-toolbar">
+          <select id="r-altf-sop" class="form-control" style="width:auto;min-width:120px;">
+            <option value="">Tüm SOPlar</option>
+          </select>
+          <button class="btn-gold" id="btn-altf-yukle">Verileri Yükle</button>
+          <button class="btn-secondary" id="btn-altf-indir" disabled>CSV İndir</button>
+          <span id="r-altf-sayi" style="font-size:0.8rem;color:#64748b;"></span>
+        </div>
+        <div class="rapor-preview" id="prev-alt-faaliyetler">
+          <p style="padding:24px;color:#94a3b8;font-size:0.85rem;">Verileri Yükle butonuna tıklayın.</p>
+        </div>
+      </div>
+
+      <!-- ─── TAB: Perf. Gerçekleşmeleri ─── -->
+      <div class="tab-content" id="tab-perf-gerceklesme">
+        <div class="rapor-toolbar">
+          <select id="r-perf-sop" class="form-control" style="width:auto;min-width:120px;">
+            <option value="">Tüm SOPlar</option>
+          </select>
+          <select id="r-perf-yil" class="form-control" style="width:auto;min-width:100px;">
+            <option value="">Tüm Yıllar</option>
+            <option value="2024">2024</option>
+            <option value="2025">2025</option>
+            <option value="2026">2026</option>
+          </select>
+          <button class="btn-gold" id="btn-perf-yukle">Verileri Yükle</button>
+          <button class="btn-secondary" id="btn-perf-indir" disabled>CSV İndir</button>
+          <span id="r-perf-sayi" style="font-size:0.8rem;color:#64748b;"></span>
+        </div>
+        <div class="rapor-preview" id="prev-perf-gerceklesme">
+          <p style="padding:24px;color:#94a3b8;font-size:0.85rem;">Verileri Yükle butonuna tıklayın.</p>
+        </div>
+      </div>
+
+      <!-- ─── TAB: Sprint İş Planı ─── -->
+      <div class="tab-content" id="tab-sprint-is-plani">
+        <div class="rapor-toolbar">
+          <select id="r-sip-sprint" class="form-control" style="width:auto;min-width:180px;">
+            <option value="">Tüm Sprintler</option>
+          </select>
+          <button class="btn-gold" id="btn-sip-yukle">Verileri Yükle</button>
+          <button class="btn-secondary" id="btn-sip-indir" disabled>CSV İndir</button>
+          <span id="r-sip-sayi" style="font-size:0.8rem;color:#64748b;"></span>
+        </div>
+        <div class="rapor-preview" id="prev-sprint-is-plani">
+          <p style="padding:24px;color:#94a3b8;font-size:0.85rem;">Verileri Yükle butonuna tıklayın.</p>
+        </div>
+      </div>
+
+      <!-- ─── TAB: Sprint Perf. Gerçekleşme ─── -->
+      <div class="tab-content" id="tab-sprint-perf">
+        <div class="rapor-toolbar">
+          <select id="r-spg-sprint" class="form-control" style="width:auto;min-width:180px;">
+            <option value="">Tüm Sprintler</option>
+          </select>
+          <button class="btn-gold" id="btn-spg-yukle">Verileri Yükle</button>
+          <button class="btn-secondary" id="btn-spg-indir" disabled>CSV İndir</button>
+          <span id="r-spg-sayi" style="font-size:0.8rem;color:#64748b;"></span>
+        </div>
+        <div class="rapor-preview" id="prev-sprint-perf">
+          <p style="padding:24px;color:#94a3b8;font-size:0.85rem;">Verileri Yükle butonuna tıklayın.</p>
+        </div>
+      </div>
+
+      <!-- ─── TAB: Sprint Tamamlanma ─── -->
+      <div class="tab-content" id="tab-sprint-tamamlanma">
+        <div class="rapor-toolbar">
+          <select id="r-tam-sprint" class="form-control" style="width:auto;min-width:180px;">
+            <option value="">Tüm Sprintler</option>
+          </select>
+          <button class="btn-gold" id="btn-tam-yukle">Verileri Yükle</button>
+          <button class="btn-secondary" id="btn-tam-indir" disabled>CSV İndir</button>
+          <span id="r-tam-sayi" style="font-size:0.8rem;color:#64748b;"></span>
+        </div>
+        <div class="rapor-preview" id="prev-sprint-tamamlanma">
+          <p style="padding:24px;color:#94a3b8;font-size:0.85rem;">Verileri Yükle butonuna tıklayın.</p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script type="module">
+  import { supabase } from '../js/supabase.js'
+  import { requireAuth, signOut } from '../js/auth.js'
+  import { getPersonel, renderUserInfo, showToast, hideAyarlarForNonAdmin, applyViewerRestrictions } from '../js/utils.js'
+
+  // ── Auth ────────────────────────────────────────────────────────────
+  const session = await requireAuth()
+  const personel = await getPersonel(supabase, session.user.id)
+  if (personel) renderUserInfo(personel.ad, personel.soyad)
+  if (personel) hideAyarlarForNonAdmin(personel)
+  if (personel) applyViewerRestrictions(personel)
+  document.getElementById('logout-btn').addEventListener('click', () => signOut())
+
+  // ── Tab Toggle ──────────────────────────────────────────────────────
+  document.querySelectorAll('.tab-btn[data-tab]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'))
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'))
+      btn.classList.add('active')
+      document.getElementById('tab-' + btn.dataset.tab).classList.add('active')
+    })
+  })
+
+  // ── CSV Yardımcı ────────────────────────────────────────────────────
+  function downloadCSV(filename, rows) {
+    if (!rows.length) { showToast('İndirilecek veri yok.', 'warning'); return }
+    const headers = Object.keys(rows[0])
+    const bom = '\uFEFF'
+    const lines = [
+      headers.map(h => `"${h}"`).join(';'),
+      ...rows.map(r => headers.map(h => {
+        const v = r[h] ?? ''
+        return `"${String(v).replace(/"/g, '""')}"`
+      }).join(';'))
+    ]
+    const csv = bom + lines.join('\r\n')
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+    const url  = URL.createObjectURL(blob)
+    const a    = document.createElement('a')
+    a.href     = url
+    a.download = filename
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
+  function renderTable(containerId, rows) {
+    const el = document.getElementById(containerId)
+    if (!rows.length) {
+      el.innerHTML = '<p style="padding:24px;color:#94a3b8;font-size:0.85rem;">Kayıt bulunamadı.</p>'
+      return
+    }
+    const headers = Object.keys(rows[0])
+    el.innerHTML = `
+      <table class="data-table" style="font-size:0.78rem;">
+        <thead><tr>${headers.map(h => `<th style="white-space:nowrap;">${h}</th>`).join('')}</tr></thead>
+        <tbody>
+          ${rows.slice(0, 200).map(r =>
+            `<tr>${headers.map(h => `<td style="white-space:nowrap;">${r[h] ?? '—'}</td>`).join('')}</tr>`
+          ).join('')}
+        </tbody>
+      </table>
+      ${rows.length > 200 ? `<p style="padding:8px 12px;font-size:0.75rem;color:#94a3b8;">İlk 200 satır gösteriliyor (toplam: ${rows.length}). Tamamını indirmek için CSV İndir'i kullanın.</p>` : ''}
+    `
+  }
+
+  // ── Referans Veriler ────────────────────────────────────────────────
+  const [{ data: soplar }, { data: sprintler }] = await Promise.all([
+    supabase.from('soplar').select('skod,kisa,durum').order('kisa'),
+    supabase.from('sprint_veri').select('sprint_donem,sprint_adi').order('sprint_donem', { ascending: false })
+  ])
+
+  // SOP dropdown'larını doldur (sadece aktif SOPlar)
+  const aktifSoplar = (soplar || []).filter(s => s.durum === 'Aktif')
+  ;['r-faal-sop','r-altf-sop','r-perf-sop'].forEach(id => {
+    const sel = document.getElementById(id)
+    aktifSoplar.forEach(s => {
+      const opt = document.createElement('option')
+      opt.value = s.skod; opt.textContent = s.kisa
+      sel.appendChild(opt)
+    })
+  })
+
+  // Sprint dropdown'larını doldur
+  ;['r-sip-sprint','r-spg-sprint','r-tam-sprint'].forEach(id => {
+    const sel = document.getElementById(id)
+    ;(sprintler || []).forEach(s => {
+      const opt = document.createElement('option')
+      opt.value = s.sprint_donem
+      opt.textContent = `${s.sprint_donem} — ${s.sprint_adi || ''}`
+      sel.appendChild(opt)
+    })
+  })
+
+  // skod → kisa harita
+  const sopMap = Object.fromEntries((soplar || []).map(s => [s.skod, s.kisa]))
+
+  // ── RAPOR 1: Faaliyetler ────────────────────────────────────────────
+  let rFaalData = []
+  document.getElementById('btn-faal-yukle').addEventListener('click', async () => {
+    const skod = document.getElementById('r-faal-sop').value
+    let q = supabase.from('v_faaliyet_ozet').select('*').order('fkod')
+    if (skod) q = q.eq('skod', skod)
+    const { data, error } = await q
+    if (error) { showToast('Hata: ' + error.message, 'error'); return }
+    const { data: katData } = await supabase.from('kategori_tipleri').select('kkod,kategori_adi')
+    const katMap = Object.fromEntries((katData || []).map(k => [k.kkod, k.kategori_adi]))
+    rFaalData = (data || []).map(r => ({
+      'SOP':             sopMap[r.skod] ?? r.skod ?? '—',
+      'Kategori':        katMap[r.kkod] ?? r.kkod ?? '—',
+      'Faaliyet':        r.faaliyet ?? '—',
+      'Fkod':            r.fkod ?? '—',
+      'İş Durumu (%)':   r.is_durum_ort != null ? (r.is_durum_ort * 100).toFixed(0) : '—',
+      'Yıl Bütçe (TL)':  r.sop_butce ?? 0,
+      'Harcanan Bütçe (TL)': r.harcanan_butce_toplam ?? 0
+    }))
+    renderTable('prev-faaliyetler', rFaalData)
+    document.getElementById('r-faal-sayi').textContent = `${rFaalData.length} kayıt`
+    document.getElementById('btn-faal-indir').disabled = !rFaalData.length
+  })
+  document.getElementById('btn-faal-indir').addEventListener('click', () => {
+    downloadCSV('faaliyetler_raporu.csv', rFaalData)
+  })
+
+  // ── RAPOR 2: Alt Faaliyetler ────────────────────────────────────────
+  let rAltFData = []
+  document.getElementById('btn-altf-yukle').addEventListener('click', async () => {
+    const skod = document.getElementById('r-altf-sop').value
+    // Alt faaliyetler view'unu faaliyetler ile join
+    const { data: afData, error: afErr } = await supabase
+      .from('v_alt_faaliyet_ozet').select('*').order('sno')
+    if (afErr) { showToast('Hata: ' + afErr.message, 'error'); return }
+
+    const { data: fData } = await supabase
+      .from('faaliyetler').select('fkod,skod,kkod,faaliyet')
+    const { data: katData } = await supabase.from('kategori_tipleri').select('kkod,kategori_adi')
+    const fMap  = Object.fromEntries((fData || []).map(f => [f.fkod, f]))
+    const katMap = Object.fromEntries((katData || []).map(k => [k.kkod, k.kategori_adi]))
+
+    const { data: asAll } = await supabase.from('anahtar_sonuclar').select('sno,anahtar_sonuc').eq('durum','Aktif')
+    const asMap = {}
+    ;(asAll || []).forEach(a => {
+      if (!asMap[a.sno]) asMap[a.sno] = []
+      asMap[a.sno].push(a.anahtar_sonuc)
+    })
+
+    let rows = (afData || []).map(r => {
+      const f = fMap[r.fkod] || {}
+      return {
+        skod: f.skod,
+        'SOP':                sopMap[f.skod] ?? '—',
+        'Kategori':           katMap[f.kkod] ?? f.kkod ?? '—',
+        'Faaliyet':           f.faaliyet ?? '—',
+        'Fkod':               r.fkod ?? '—',
+        'S.No':               r.sno ?? '—',
+        'Alt Faaliyet':       r.alt_faaliyet ?? '—',
+        'Anahtar Sonuçlar':   (asMap[r.sno] || []).join(' | '),
+        'Plan Süre (gün)':    r.p_sure ?? '—',
+        'Tekrar Sayısı':      r.tekrar_sayisi ?? '—',
+        'İş Yükü':            r.is_yuku ?? '—',
+        'Gerçekleşme Sayı':   r.gerceklesme_sayi ?? 0,
+        'Gerçek İş Yükü':     r.gercek_is_yuku ?? 0,
+        'İş Durum (%)':       r.is_durum_oran != null ? (r.is_durum_oran * 100).toFixed(0) : '—'
+      }
+    })
+    if (skod) rows = rows.filter(r => String(r.skod) === String(skod))
+    rAltFData = rows.map(({ skod: _, ...rest }) => rest)
+    renderTable('prev-alt-faaliyetler', rAltFData)
+    document.getElementById('r-altf-sayi').textContent = `${rAltFData.length} kayıt`
+    document.getElementById('btn-altf-indir').disabled = !rAltFData.length
+  })
+  document.getElementById('btn-altf-indir').addEventListener('click', () => {
+    downloadCSV('alt_faaliyetler_raporu.csv', rAltFData)
+  })
+
+  // ── RAPOR 3: Perf. Gerçekleşmeleri ─────────────────────────────────
+  let rPerfData = []
+  document.getElementById('btn-perf-yukle').addEventListener('click', async () => {
+    const skod = document.getElementById('r-perf-sop').value
+    const yil  = document.getElementById('r-perf-yil').value
+
+    let q = supabase.from('perf_gost_yillik')
+      .select('cg_kod,yil,hedef,gerceklesen,perf_gostergeler(skod,bilesen_kodu,bilesen_adi,cikti_gostergesi,birim,soplar(kisa))')
+      .order('cg_kod')
+    if (yil) q = q.eq('yil', yil)
+    const { data, error } = await q
+    if (error) { showToast('Hata: ' + error.message, 'error'); return }
+
+    let rows = (data || []).map(r => ({
+      skod: r.perf_gostergeler?.skod,
+      'ÇGKod':            r.cg_kod ?? '—',
+      'SOP':              r.perf_gostergeler?.soplar?.kisa ?? r.perf_gostergeler?.skod ?? '—',
+      'Bileşen Kodu':     r.perf_gostergeler?.bilesen_kodu ?? '—',
+      'Bileşen Adı':      r.perf_gostergeler?.bilesen_adi ?? '—',
+      'Çıktı Göstergesi': r.perf_gostergeler?.cikti_gostergesi ?? '—',
+      'Birim':            r.perf_gostergeler?.birim ?? '—',
+      'Yıl':              r.yil ?? '—',
+      'Hedef':            r.hedef ?? '—',
+      'Gerçekleşme':      r.gerceklesen ?? '—'
+    }))
+    if (skod) rows = rows.filter(r => String(r.skod) === String(skod))
+    rPerfData = rows.map(({ skod: _, ...rest }) => rest)
+    renderTable('prev-perf-gerceklesme', rPerfData)
+    document.getElementById('r-perf-sayi').textContent = `${rPerfData.length} kayıt`
+    document.getElementById('btn-perf-indir').disabled = !rPerfData.length
+  })
+  document.getElementById('btn-perf-indir').addEventListener('click', () => {
+    downloadCSV('perf_gerceklesmeleri_raporu.csv', rPerfData)
+  })
+
+  // ── RAPOR 4: Sprint İş Planı ────────────────────────────────────────
+  let rSipData = []
+  document.getElementById('btn-sip-yukle').addEventListener('click', async () => {
+    const sprintVal = document.getElementById('r-sip-sprint').value
+    let q = supabase.from('sprint_is_plani').select('*').order('id')
+    if (sprintVal) q = q.eq('sprint_donem', sprintVal)
+    const { data, error } = await q
+    if (error) { showToast('Hata: ' + error.message, 'error'); return }
+    rSipData = (data || []).map(r => ({
+      'ID':                    r.id ?? '—',
+      'Sprint Dönem':          r.sprint_donem ?? '—',
+      'Bitiş Dönem':           r.bitis_donem ?? '—',
+      'Sprint Faaliyetleri':   r.sprint_faaliyetleri ?? '—',
+      'S.No':                  r.sno ?? '—',
+      'Plan Süre':             r.plan_sure ?? '—',
+      'İş Durum':              r.is_durum ?? '—',
+      'Ekip Üyesi':            r.ekip_uyesi ?? '—',
+      'Gerçek Süre':           r.gercek_sure ?? '—',
+      'Harcanan Bütçe':        r.harcanan_butce ?? '—',
+      'Güncelleme Tarihi':     r.guncel_tarih ?? '—',
+      'Güncelleyen':           r.guncelleyen ?? '—',
+      'Performans Göstergeler': r.performans_gostergeler ?? '—'
+    }))
+    renderTable('prev-sprint-is-plani', rSipData)
+    document.getElementById('r-sip-sayi').textContent = `${rSipData.length} kayıt`
+    document.getElementById('btn-sip-indir').disabled = !rSipData.length
+  })
+  document.getElementById('btn-sip-indir').addEventListener('click', () => {
+    downloadCSV('sprint_is_plani_raporu.csv', rSipData)
+  })
+
+  // ── RAPOR 5: Sprint Performans Gerçekleşme ──────────────────────────
+  let rSpgData = []
+  document.getElementById('btn-spg-yukle').addEventListener('click', async () => {
+    const sprintVal = document.getElementById('r-spg-sprint').value
+    let q = supabase.from('sprint_perf_gos').select('*').order('id')
+    if (sprintVal) {
+      // sprint_is_plani üzerinden sprint_donem filtresi
+      const { data: sipIds } = await supabase
+        .from('sprint_is_plani')
+        .select('id')
+        .eq('sprint_donem', sprintVal)
+      const ids = (sipIds || []).map(r => r.id)
+      if (ids.length) q = q.in('sprint_is_plani_id', ids)
+      else { rSpgData = []; renderTable('prev-sprint-perf', []); document.getElementById('r-spg-sayi').textContent = '0 kayıt'; return }
+    }
+    const { data, error } = await q
+    if (error) { showToast('Hata: ' + error.message, 'error'); return }
+    rSpgData = (data || []).map(r => ({
+      'Sprint Faaliyet':     r.sprint_faaliyet ?? '—',
+      'S.No':                r.sno ?? '—',
+      'ÇGKod':               r.cg_kod ?? '—',
+      'Bileşen Adı':         r.bilesen_adi ?? '—',
+      'Çıktı Göstergesi':    r.cikti_gostergesi ?? '—',
+      'Açıklama':            r.aciklama ?? '—',
+      'Birim':               r.birim ?? '—',
+      'Gerçekleşme':         r.gerceklesme ?? '—',
+      'Tamamlanma Dönemi':   r.tamamlanma_donemi ?? '—',
+      'Tamamlanma Tarihi':   r.tamamlanma_tarihi ?? '—',
+      'Yıl':                 r.yil ?? '—'
+    }))
+    renderTable('prev-sprint-perf', rSpgData)
+    document.getElementById('r-spg-sayi').textContent = `${rSpgData.length} kayıt`
+    document.getElementById('btn-spg-indir').disabled = !rSpgData.length
+  })
+  document.getElementById('btn-spg-indir').addEventListener('click', () => {
+    downloadCSV('sprint_perf_gerceklesme_raporu.csv', rSpgData)
+  })
+
+  // ── RAPOR 6: Sprint Tamamlanma ──────────────────────────────────────
+  let rTamData = []
+  document.getElementById('btn-tam-yukle').addEventListener('click', async () => {
+    const sprintVal = document.getElementById('r-tam-sprint').value
+    let q = supabase.from('sprint_is_plani')
+      .select('ekip_uyesi,plan_sure,gercek_sure,is_durum')
+      .order('ekip_uyesi')
+    if (sprintVal) q = q.eq('sprint_donem', sprintVal)
+    const { data, error } = await q
+    if (error) { showToast('Hata: ' + error.message, 'error'); return }
+
+    // Personel bazlı özet
+    const ozet = {}
+    ;(data || []).forEach(r => {
+      const ad = r.ekip_uyesi || 'Bilinmiyor'
+      if (!ozet[ad]) ozet[ad] = { planToplam: 0, gercekToplam: 0, tamamlanan: 0, toplam: 0 }
+      ozet[ad].planToplam  += r.plan_sure || 0
+      ozet[ad].gercekToplam += r.gercek_sure || 0
+      ozet[ad].toplam++
+      if (r.is_durum === 'Tamamlandı') ozet[ad].tamamlanan++
+    })
+    rTamData = Object.entries(ozet)
+      .sort((a, b) => b[1].planToplam - a[1].planToplam)
+      .map(([ad, v]) => ({
+        'Personel':            ad,
+        'Toplam Plan Süre':    v.planToplam,
+        'Toplam Gerçek Süre':  v.gercekToplam,
+        'Tamamlanan Görev':    v.tamamlanan,
+        'Toplam Görev':        v.toplam
+      }))
+    renderTable('prev-sprint-tamamlanma', rTamData)
+    document.getElementById('r-tam-sayi').textContent = `${rTamData.length} personel`
+    document.getElementById('btn-tam-indir').disabled = !rTamData.length
+  })
+  document.getElementById('btn-tam-indir').addEventListener('click', () => {
+    downloadCSV('sprint_tamamlanma_raporu.csv', rTamData)
+  })
+</script>
+</body>
+</html>
