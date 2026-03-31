@@ -196,8 +196,8 @@ async function handleDragEnd(evt) {
   if (eskiDurum === newDurum) return
 
   // Standart kullanıcı yalnızca kendi görevini taşıyabilir
-  const isYonetici = currentPersonel?.rol_kodu === 'yönetici'
-  if (!isYonetici && gorev.pkod !== currentPersonel?.pkod) {
+  const isGsOrYonetici = ['yönetici', 'gs'].includes(currentPersonel?.rol_kodu)
+  if (!isGsOrYonetici && gorev.pkod !== currentPersonel?.pkod) {
     showToast('Sadece yönetici başkasının görevini taşıyabilir.', 'error')
     await loadBoard()
     return
@@ -330,12 +330,12 @@ function initModal() {
 
   // Ekip üyesi dropdown — standart kullanıcı sadece kendini seçebilir
   const gEkip = document.getElementById('g-ekip')
-  const isYonetici = currentPersonel?.rol_kodu === 'yönetici'
+  const isGsOrYonetici = ['yönetici', 'gs'].includes(currentPersonel?.rol_kodu)
   personeller.forEach(p => {
     const opt = document.createElement('option')
     opt.value = p.pkod
     opt.textContent = `${p.ad} ${p.soyad}`
-    if (!isYonetici && currentPersonel && p.pkod !== currentPersonel.pkod) {
+    if (!isGsOrYonetici && currentPersonel && p.pkod !== currentPersonel.pkod) {
       opt.disabled = true
     }
     gEkip.appendChild(opt)
