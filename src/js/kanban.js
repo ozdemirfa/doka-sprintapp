@@ -118,13 +118,8 @@ async function loadBoard() {
   if (ekipVal) {
     query = query.eq('pkod', ekipVal)
   } else if (birimVal) {
-    // Birim seçili ama ekip seçili değilse → birim üyelerinin tümü
-    const birimPkods = personeller
-      .filter(p => p.bkod === Number(birimVal) && p.rol_kodu !== 'gs')
-      .map(p => p.pkod)
-    if (birimPkods.length > 0) {
-      query = query.in('pkod', birimPkods)
-    }
+    // Birim seçili ama ekip seçili değilse → andaki_birim sütununa göre filtrele
+    query = query.eq('andaki_birim', birimVal)
   }
 
   const { data, error } = await query
@@ -226,9 +221,12 @@ async function handleDragEnd(evt) {
   const eskiDurum = gorev.is_durum || null
   if (eskiDurum === newDurum) return
 
-  // Standart kullanıcı yalnızca kendi görevini taşıyabilir
+  // Taşıma yetkisi: yönetici/gs herkesi, başkan kendi birimini, standart yalnızca kendini taşıyabilir
   const isGsOrYonetici = ['yönetici', 'gs'].includes(currentPersonel?.rol_kodu)
-  if (!isGsOrYonetici && gorev.pkod !== currentPersonel?.pkod) {
+  const isBaskanDrag = currentPersonel?.rol_kodu === 'başkan'
+  const gorevPersonel = isBaskanDrag ? personeller.find(p => p.pkod === gorev.pkod) : null
+  const baskanCanDrag = isBaskanDrag && gorevPersonel?.bkod === currentPersonel?.bkod
+  if (!isGsOrYonetici && !baskanCanDrag && gorev.pkod !== currentPersonel?.pkod) {
     showToast('Sadece yönetici başkasının görevini taşıyabilir.', 'error')
     await loadBoard()
     return
@@ -346,8 +344,7 @@ function initFilters() {
   document.getElementById('filter-ekip').addEventListener('change', loadBoard)
 
   document.getElementById('filter-birim').addEventListener('change', () => {
-    const bkod = document.getElementById('filter-birim').value
-    rebuildEkipFilter(bkod || null)
+    rebuildEkipFilter()
     loadBoard()
   })
 
@@ -373,15 +370,24 @@ function initModal() {
   // Alt faaliyet arama butonu
   document.getElementById('btn-alt-faaliyet-ara').addEventListener('click', () => openAltFaaliyetModal())
 
-  // Ekip üyesi dropdown — gs rolündekiler görünmez, standart kullanıcı sadece kendini seçebilir
+  // Ekip üyesi dropdown — gs rolündekiler görünmez
+  // yönetici/gs: herkesi seçebilir; başkan: kendi birimini seçebilir; standart: sadece kendini
   const gEkip = document.getElementById('g-ekip')
   const isGsOrYonetici = ['yönetici', 'gs'].includes(currentPersonel?.rol_kodu)
+  const isBaskan = currentPersonel?.rol_kodu === 'başkan'
   personeller.filter(p => p.rol_kodu !== 'gs').forEach(p => {
     const opt = document.createElement('option')
     opt.value = p.pkod
     opt.textContent = `${p.ad} ${p.soyad}`
-    if (!isGsOrYonetici && currentPersonel && p.pkod !== currentPersonel.pkod) {
-      opt.disabled = true
+    if (!isGsOrYonetici) {
+      if (isBaskan) {
+        // Başkan: sadece kendi birimindeki aktif personeli seçebilir
+        if (p.bkod !== currentPersonel.bkod || p.durum !== 'Aktif') {
+          opt.disabled = true
+        }
+      } else if (currentPersonel && p.pkod !== currentPersonel.pkod) {
+        opt.disabled = true
+      }
     }
     gEkip.appendChild(opt)
   })

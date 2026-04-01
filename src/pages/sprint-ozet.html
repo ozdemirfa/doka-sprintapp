@@ -217,15 +217,16 @@
       const birimPkods = personelListesi
         .filter(p => p.bkod === Number(bkod))
         .map(p => p.pkod)
-      if (!birimPkods.length) return []
 
       const [sipRes, retroRes] = await Promise.all([
         supabase.from('sprint_is_plani')
           .select('sprint_donem, plan_sure, is_durum')
-          .in('pkod', birimPkods),
-        supabase.from('sprint_retro')
-          .select('sprint_donem, organizasyon_puan, aort')
-          .in('pkod', birimPkods)
+          .eq('andaki_birim', Number(bkod)),
+        birimPkods.length
+          ? supabase.from('sprint_retro')
+              .select('sprint_donem, organizasyon_puan, aort')
+              .in('pkod', birimPkods)
+          : Promise.resolve({ data: [] })
       ])
 
       const sipRows = sipRes.data || []

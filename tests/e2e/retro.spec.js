@@ -3,7 +3,19 @@
 // US-7: Retrospektif (sprint dropdown, form alanları, G.ort)
 // ============================================================
 const { test, expect } = require('@playwright/test')
-const { mockSupabase } = require('./helpers/auth')
+const { mockSupabase, SUPABASE_URL } = require('./helpers/auth')
+
+// Belirli bir rol ile personel mock'u oluşturmak için yardımcı
+async function mockPersonelWithRole(page, rolKodu) {
+  await page.route(
+    (url) => url.toString().includes('/rest/v1/personel'),
+    (route) => route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify([{ pkod: 2, ad: 'Test', soyad: 'Kullanıcı', bkod: 1, rol_kodu: rolKodu }])
+    })
+  )
+}
 
 test.describe('Retro: Sayfa Yüklenmesi', () => {
   test.beforeEach(async ({ page }) => {
@@ -101,5 +113,49 @@ test.describe('Retro: Form Alanları', () => {
 
   test('retro geçmiş kayıtlar tablosu görünür olmalı', async ({ page }) => {
     await expect(page.locator('#retro-tablo-body')).toBeAttached()
+  })
+})
+
+test.describe('Retro: Yetki — gs Redirect', () => {
+  test('gs rolüyle retro sayfası açılınca index.html\'ye yönlendirilmeli', async ({ page }) => {
+    await mockSupabase(page)
+    await mockPersonelWithRole(page, 'gs')
+    await page.goto('/pages/retro.html')
+    // ../index.html → kök URL veya /index.html'e yönlendirilir
+    await page.waitForFunction(
+      () => !window.location.pathname.includes('retro.html'),
+      { timeout: 10000 }
+    )
+    expect(page.url()).not.toContain('retro.html')
+  })
+})
+
+test.describe('Retro: Yetki — Geçmiş Tablo Görünürlüğü', () => {
+  test('yönetici rolünde #gecmis-retro-panel görünmeli', async ({ page }) => {
+    await mockSupabase(page)
+    await page.goto('/pages/retro.html')
+    await page.waitForSelector('#retro-form', { timeout: 10000 })
+    await page.waitForFunction(
+      () => document.getElementById('gecmis-retro-panel') !== null,
+      { timeout: 5000 }
+    )
+    const display = await page.locator('#gecmis-retro-panel').evaluate(el => el.style.display)
+    expect(display).not.toBe('none')
+  })
+
+  test('standart rolünde #gecmis-retro-panel gizlenmeli', async ({ page }) => {
+    await mockSupabase(page)
+    await mockPersonelWithRole(page, 'standart')
+    await page.goto('/pages/retro.html')
+    await page.waitForSelector('#retro-form', { timeout: 10000 })
+    await page.waitForFunction(
+      () => {
+        const el = document.getElementById('gecmis-retro-panel')
+        return el && el.style.display === 'none'
+      },
+      { timeout: 5000 }
+    )
+    const display = await page.locator('#gecmis-retro-panel').evaluate(el => el.style.display)
+    expect(display).toBe('none')
   })
 })

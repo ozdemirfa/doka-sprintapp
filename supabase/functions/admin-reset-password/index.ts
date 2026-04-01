@@ -74,20 +74,48 @@ Deno.serve(async (req) => {
     // Hedef kullanıcının auth_id'sini bul
     const { data: targetPersonel, error: targetErr } = await adminClient
       .from('personel')
-      .select('auth_id, ad, soyad')
+      .select('auth_id, ad, soyad, eposta')
       .eq('pkod', pkod)
       .single()
 
-    if (targetErr || !targetPersonel?.auth_id) {
+    if (targetErr || !targetPersonel) {
       return new Response(JSON.stringify({
-        error: 'Kullanıcı bulunamadı veya auth_id eksik.',
+        error: 'Kullanıcı bulunamadı.',
         detail: targetErr?.message ?? null
       }), {
         status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       })
     }
 
-    // Şifreyi güncelle
+    // auth_id yoksa → yeni Supabase Auth kullanıcısı oluştur
+    if (!targetPersonel.auth_id) {
+      if (!targetPersonel.eposta) {
+        return new Response(JSON.stringify({
+          error: 'Bu kullanıcının e-posta adresi eksik. Önce Ayarlar sayfasından e-posta adresini ekleyin.'
+        }), {
+          status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        })
+      }
+      const { data: newUser, error: createErr } = await adminClient.auth.admin.createUser({
+        email: targetPersonel.eposta,
+        password: new_password,
+        email_confirm: true
+      })
+      if (createErr || !newUser?.user) {
+        return new Response(JSON.stringify({
+          error: createErr?.message ?? 'Kullanıcı hesabı oluşturulamadı.'
+        }), {
+          status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        })
+      }
+      await adminClient.from('personel').update({ auth_id: newUser.user.id }).eq('pkod', pkod)
+      return new Response(
+        JSON.stringify({ success: true, message: `${targetPersonel.ad} ${targetPersonel.soyad} için hesap oluşturuldu ve şifre belirlendi.` }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    // auth_id varsa → mevcut şifreyi güncelle
     const { error: updateErr } = await adminClient.auth.admin.updateUserById(
       targetPersonel.auth_id,
       { password: new_password }

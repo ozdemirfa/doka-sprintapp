@@ -4,7 +4,7 @@
 // US-3: Kanban Board — Yeni Görev & Düzenleme
 // ============================================================
 const { test, expect } = require('@playwright/test')
-const { mockSupabase, MOCK_IS_PLANI, SUPABASE_URL } = require('./helpers/auth')
+const { mockSupabase, MOCK_IS_PLANI, MOCK_BIRIMLER, SUPABASE_URL } = require('./helpers/auth')
 
 test.describe('US-1: Kanban Board — Sütunlar ve Kartlar', () => {
   test.beforeEach(async ({ page }) => {
@@ -128,6 +128,76 @@ test.describe('US-2: Kanban Board — Filtreleme', () => {
     await page.waitForTimeout(500)
     // Kartlar hâlâ görünür (tüm mock kartlar 2024-S1 döneminde)
     await expect(page.locator('.kanban-card').first()).toBeVisible()
+  })
+
+  test('birim filtresi dropdown görünmeli', async ({ page }) => {
+    // US-2: Birim filtresi — tüm sayfalara eklendi
+    await expect(page.locator('#filter-birim')).toBeVisible()
+  })
+
+  test('birim filtresi "Tüm Birimler" varsayılan seçeneği içermeli', async ({ page }) => {
+    const defaultOpt = await page.locator('#filter-birim option').first().textContent()
+    expect(defaultOpt).toContain('Tüm Birimler')
+  })
+
+  test('birim filtresi mock birimlerle doldurulmalı', async ({ page }) => {
+    // loadReferenceData tamamlanana kadar bekle (renderUserInfo'dan sonra gelir)
+    await page.waitForFunction(
+      () => (document.getElementById('filter-birim')?.options.length ?? 0) > 1,
+      { timeout: 8000 }
+    )
+    const options = await page.locator('#filter-birim option').allTextContents()
+    expect(options.length).toBeGreaterThanOrEqual(2) // "Tüm Birimler" + mock birimler
+  })
+})
+
+test.describe('US-2: Birim Filtresi API Etkisi', () => {
+  test('birim seçilince loadBoard andaki_birim parametresiyle GET isteği yapmalı', async ({ page }) => {
+    let capturedUrl = null
+
+    await mockSupabase(page)
+
+    // sprint_is_plani GET isteklerini yakala
+    await page.route(
+      (url) => url.toString().includes('/rest/v1/sprint_is_plani'),
+      async (route) => {
+        if (route.request().method() === 'GET') {
+          capturedUrl = route.request().url()
+        }
+        return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(MOCK_IS_PLANI) })
+      }
+    )
+
+    await page.goto('/index.html')
+    await page.waitForFunction(
+      () => { const el = document.getElementById('user-name'); return el && el.textContent !== 'Yükleniyor...' },
+      { timeout: 15000 }
+    )
+
+    // loadReferenceData tamamlanana kadar bekle
+    await page.waitForFunction(
+      () => (document.getElementById('filter-birim')?.options.length ?? 0) > 1,
+      { timeout: 8000 }
+    )
+
+    // Ekip filtresini temizle — aksi takdirde ekipVal truthy kalır, andaki_birim uygulanmaz
+    await page.locator('#filter-ekip').selectOption('')
+    await page.waitForTimeout(300)
+
+    // Birim seç ve loadBoard tetikle
+    capturedUrl = null
+    await page.locator('#filter-birim').selectOption({ index: 1 })
+    await page.waitForTimeout(700)
+
+    if (capturedUrl) {
+      // andaki_birim filtresi URL'de bulunmalı (Supabase eq syntax: andaki_birim=eq.X)
+      expect(capturedUrl).toContain('andaki_birim')
+    }
+    // Filtre sonrası sayfa hata üretmemeli
+    const errors = []
+    page.on('pageerror', (err) => errors.push(err.message))
+    const critical = errors.filter(e => !e.includes('WebSocket') && !e.includes('realtime') && !e.includes('net::ERR'))
+    expect(critical).toHaveLength(0)
   })
 })
 

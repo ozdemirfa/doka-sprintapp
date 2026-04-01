@@ -5,17 +5,20 @@
 const { test, expect } = require('@playwright/test')
 const { mockSupabase } = require('./helpers/auth')
 
+// v_perf_gosterge_ozet view'ının döndürdüğü flat format (sop: string, nested değil)
 const MOCK_PERF_GOSTERGELER = [
   {
     cg_kod: 'CG-01',
-    soplar: { kisa: 'SOP-1' },
+    sop: 'SOP-1',
     bilesen_kodu: 'B-01',
     bilesen_adi: 'Bileşen 1',
-    cikti_gostergesi: 'Test Çıktı Göstergesi',
+    cikti_gostergesi: 'Test Açıklama',
     birim: 'Adet',
     hedef: 100,
     tamamlanma_donemi: '2026/1',
     katki_sonuc_gostergesi: 'Sonuç 1',
+    baslangic: 2024,
+    bitis: 2026,
     hedef_2024: 30,
     hedef_2025: 40,
     hedef_2026: 30,
@@ -53,7 +56,7 @@ test.describe('Perf Ozet: Tablo Başlıkları', () => {
 
     // perf_gostergeler için özel mock — mockSupabase'den sonra LIFO olarak önceliklidir
     await page.route(
-      (url) => url.toString().includes('/rest/v1/perf_gostergeler'),
+      (url) => url.toString().includes('/rest/v1/v_perf_gosterge_ozet'),
       (route) => route.fulfill({
         status: 200,
         contentType: 'application/json',
@@ -78,10 +81,11 @@ test.describe('Perf Ozet: Tablo Başlıkları', () => {
     expect(normalized.some(h => h.includes('SOP'))).toBe(true)
   })
 
-  test('"Çıktı Göstergesi" başlığı tabloda mevcut olmalı', async ({ page }) => {
+  test('"Açıklama" başlığı tabloda mevcut olmalı', async ({ page }) => {
+    // cikti_gostergesi alanı "Açıklama" başlığıyla gösteriliyor (perf-ozet.html:65)
     const headers = await page.locator('.perf-table th').allTextContents()
     const normalized = headers.map(h => h.trim())
-    expect(normalized.some(h => h.includes('Çıktı Göstergesi'))).toBe(true)
+    expect(normalized.some(h => h.includes('Açıklama'))).toBe(true)
   })
 
   test('"Hedef" başlığı tabloda mevcut olmalı', async ({ page }) => {
@@ -114,7 +118,7 @@ test.describe('Perf Ozet: SOP Filtresi', () => {
     await mockSupabase(page)
 
     await page.route(
-      (url) => url.toString().includes('/rest/v1/perf_gostergeler'),
+      (url) => url.toString().includes('/rest/v1/v_perf_gosterge_ozet'),
       (route) => route.fulfill({
         status: 200,
         contentType: 'application/json',
@@ -144,7 +148,7 @@ test.describe('Perf Ozet: SOP Filtresi', () => {
 
     await mockSupabase(page)
     await page.route(
-      (url) => url.toString().includes('/rest/v1/perf_gostergeler'),
+      (url) => url.toString().includes('/rest/v1/v_perf_gosterge_ozet'),
       (route) => route.fulfill({
         status: 200,
         contentType: 'application/json',
@@ -173,7 +177,7 @@ test.describe('Perf Ozet: Tablo Verisi', () => {
     await mockSupabase(page)
 
     await page.route(
-      (url) => url.toString().includes('/rest/v1/perf_gostergeler'),
+      (url) => url.toString().includes('/rest/v1/v_perf_gosterge_ozet'),
       (route) => route.fulfill({
         status: 200,
         contentType: 'application/json',

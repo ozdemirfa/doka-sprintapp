@@ -228,7 +228,7 @@
     supabase.from('sprint_veri').select('sprint_donem,sprint_adi').order('sprint_donem', { ascending: false }),
     supabase.from('perf_gostergeler').select('cg_kod,cikti_gostergesi,skod,soplar(kisa,durum)').order('cg_kod'),
     supabase.from('sprint_is_plani')
-      .select('id, sprint_donem, pkod, sno, sprint_faaliyetleri, personel(ad, soyad), alt_faaliyetler(sno, alt_faaliyet, faaliyetler(skod, faaliyet, soplar(kisa, durum)))')
+      .select('id, sprint_donem, pkod, andaki_birim, sno, sprint_faaliyetleri, personel(ad, soyad), alt_faaliyetler(sno, alt_faaliyet, faaliyetler(skod, faaliyet, soplar(kisa, durum)))')
       .order('sprint_donem', { ascending: false }),
     supabase.from('soplar').select('skod,kisa').eq('durum', 'Aktif').order('kisa'),
     loadBirimler(supabase),
@@ -263,11 +263,8 @@
     const filterFaaliyet = document.getElementById('filter-faaliyet')
     const prevVal = filterFaaliyet.value
     filterFaaliyet.innerHTML = '<option value="">Tüm Sprint Faaliyetler</option>'
-    const birimPkods = bkodFilter
-      ? new Set(tümPersoneller.filter(p => p.bkod === Number(bkodFilter)).map(p => p.pkod))
-      : null
     ;(isPlaniData || [])
-      .filter(ip => ip.sprint_faaliyetleri && (!birimPkods || birimPkods.has(ip.pkod)))
+      .filter(ip => ip.sprint_faaliyetleri && (!bkodFilter || ip.andaki_birim === Number(bkodFilter)))
       .sort((a, b) => a.sno - b.sno)
       .forEach(ip => {
         const opt = document.createElement('option')
@@ -303,17 +300,12 @@
     const birimVal = document.getElementById('filter-birim').value
     let query = supabase.from('sprint_perf_gos').select('*').order('id', { ascending: false })
 
-    // Birim filtresi: birim seçiliyse ilgili is_plani idlerini belirle
-    const birimPkods = birimVal
-      ? new Set(tümPersoneller.filter(p => p.bkod === Number(birimVal)).map(p => p.pkod))
-      : null
-
     // Sprint + birim filtresi
-    if (sv || birimPkods) {
+    if (sv || birimVal) {
       const idsInFilter = (isPlaniData || [])
         .filter(ip =>
           (!sv || String(ip.sprint_donem) === String(sv)) &&
-          (!birimPkods || birimPkods.has(ip.pkod))
+          (!birimVal || ip.andaki_birim === Number(birimVal))
         )
         .map(ip => ip.id)
       if (idsInFilter.length > 0) {

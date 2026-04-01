@@ -183,6 +183,21 @@
         </div>
       </div>
 
+      <!-- ─── TAB: Sprint Tamamlanma ─── -->
+      <div class="tab-content" id="tab-sprint-tamamlanma">
+        <div class="rapor-toolbar">
+          <select id="r-tam-sprint" class="form-control" style="width:auto;min-width:180px;">
+            <option value="">Tüm Sprintler</option>
+          </select>
+          <button class="btn-gold" id="btn-tam-yukle">Verileri Yükle</button>
+          <button class="btn-secondary" id="btn-tam-indir" disabled>CSV İndir</button>
+          <span id="r-tam-sayi" style="font-size:0.8rem;color:#64748b;"></span>
+        </div>
+        <div class="rapor-preview" id="prev-sprint-tamamlanma">
+          <p style="padding:24px;color:#94a3b8;font-size:0.85rem;">Verileri Yükle butonuna tıklayın.</p>
+        </div>
+      </div>
+
       <!-- ─── TAB: Audit Log (yönetici) ─── -->
       <div class="tab-content" id="tab-auditlog">
         <div class="rapor-toolbar">
@@ -212,21 +227,6 @@
         </div>
       </div>
 
-      <!-- ─── TAB: Sprint Tamamlanma ─── -->
-      <div class="tab-content" id="tab-sprint-tamamlanma">
-        <div class="rapor-toolbar">
-          <select id="r-tam-sprint" class="form-control" style="width:auto;min-width:180px;">
-            <option value="">Tüm Sprintler</option>
-          </select>
-          <button class="btn-gold" id="btn-tam-yukle">Verileri Yükle</button>
-          <button class="btn-secondary" id="btn-tam-indir" disabled>CSV İndir</button>
-          <span id="r-tam-sayi" style="font-size:0.8rem;color:#64748b;"></span>
-        </div>
-        <div class="rapor-preview" id="prev-sprint-tamamlanma">
-          <p style="padding:24px;color:#94a3b8;font-size:0.85rem;">Verileri Yükle butonuna tıklayın.</p>
-        </div>
-      </div>
-
     </div>
   </div>
 </div>
@@ -242,6 +242,10 @@
   if (personel) renderUserInfo(personel.ad, personel.soyad)
   if (personel) hideAyarlarForNonAdmin(personel)
   if (personel) applyViewerRestrictions(personel)
+  if (personel?.rol_kodu !== 'yönetici') {
+    window.location.replace('../index.html')
+    throw new Error('redirect')
+  }
   document.getElementById('logout-btn').addEventListener('click', () => signOut())
 
   // ── Tab Toggle ──────────────────────────────────────────────────────
@@ -313,12 +317,6 @@
     if (!bkod) return null
     return new Set((soplar || []).filter(s => s.bkod === Number(bkod)).map(s => s.skod))
   }
-  function getBirimPkods() {
-    const bkod = document.getElementById('r-birim').value
-    if (!bkod) return null
-    return new Set(tümPersoneller.filter(p => p.bkod === Number(bkod)).map(p => p.pkod))
-  }
-
   // SOP dropdown'larını doldur (sadece aktif SOPlar)
   const aktifSoplar = (soplar || []).filter(s => s.durum === 'Aktif')
   ;['r-faal-sop','r-altf-sop','r-perf-sop'].forEach(id => {
@@ -483,10 +481,10 @@
   let rSipData = []
   document.getElementById('btn-sip-yukle').addEventListener('click', async () => {
     const sprintVal = document.getElementById('r-sip-sprint').value
-    const birimPkods = getBirimPkods()
+    const birimVal4 = document.getElementById('r-birim').value
     let q = supabase.from('sprint_is_plani').select('*').order('id')
     if (sprintVal) q = q.eq('sprint_donem', sprintVal)
-    if (birimPkods) q = q.in('pkod', [...birimPkods])
+    if (birimVal4) q = q.eq('andaki_birim', birimVal4)
     const { data, error } = await q
     if (error) { showToast('Hata: ' + error.message, 'error'); return }
     rSipData = (data || []).map(r => ({
@@ -497,7 +495,7 @@
       'S.No':                  r.sno ?? '—',
       'Plan Süre':             r.plan_sure ?? '—',
       'İş Durum':              r.is_durum ?? '—',
-      'Ekip Üyesi':            r.ekip_uyesi ?? '—',
+      'Personel Kodu':         r.pkod ?? '—',
       'Gerçek Süre':           r.gercek_sure ?? '—',
       'Harcanan Bütçe':        r.harcanan_butce ?? '—',
       'Güncelleme Tarihi':     r.guncel_tarih ?? '—',
@@ -516,13 +514,13 @@
   let rSpgData = []
   document.getElementById('btn-spg-yukle').addEventListener('click', async () => {
     const sprintVal = document.getElementById('r-spg-sprint').value
-    const birimPkods = getBirimPkods()
+    const birimVal5 = document.getElementById('r-birim').value
     let q = supabase.from('sprint_perf_gos').select('*').order('id')
-    if (sprintVal || birimPkods) {
-      // sprint_is_plani üzerinden sprint_donem + birim filtresi
+    if (sprintVal || birimVal5) {
+      // sprint_is_plani üzerinden sprint_donem + andaki_birim filtresi
       let sipQ = supabase.from('sprint_is_plani').select('id')
       if (sprintVal) sipQ = sipQ.eq('sprint_donem', sprintVal)
-      if (birimPkods) sipQ = sipQ.in('pkod', [...birimPkods])
+      if (birimVal5) sipQ = sipQ.eq('andaki_birim', birimVal5)
       const { data: sipIds } = await sipQ
       const ids = (sipIds || []).map(r => r.id)
       if (ids.length) q = q.in('sprint_is_plani_id', ids)
@@ -557,12 +555,12 @@
     const sprintVal = document.getElementById('r-tam-sprint').value
     const { data: pData } = await supabase.from('personel').select('pkod,ad,soyad')
     const pMap = Object.fromEntries((pData || []).map(p => [p.pkod, `${p.ad} ${p.soyad}`]))
-    const birimPkods = getBirimPkods()
+    const birimVal6 = document.getElementById('r-birim').value
     let q = supabase.from('sprint_is_plani')
       .select('pkod,plan_sure,gercek_sure,is_durum')
       .order('pkod')
     if (sprintVal) q = q.eq('sprint_donem', sprintVal)
-    if (birimPkods) q = q.in('pkod', [...birimPkods])
+    if (birimVal6) q = q.eq('andaki_birim', birimVal6)
     const { data, error } = await q
     if (error) { showToast('Hata: ' + error.message, 'error'); return }
 
@@ -609,15 +607,29 @@
     const { data, error } = await q
     if (error) { showToast('Hata: ' + error.message, 'error'); return }
 
-    rAuditData = (data || []).map(r => ({
-      'ID':             r.id ?? '—',
-      'Tablo':          r.tablo ?? '—',
-      'İşlem':          r.islem ?? '—',
-      'Kayıt ID':       r.kayit_id ?? '—',
-      'Kullanıcı':      r.kullanici_ad ?? '—',
-      'Değişen Alanlar': r.degisen_alanlar ? JSON.stringify(r.degisen_alanlar) : '—',
-      'İşlem Zamanı':   r.islem_zamani ? new Date(r.islem_zamani).toLocaleString('tr-TR') : '—'
-    }))
+    rAuditData = (data || []).map(r => {
+      let degisim = '—'
+      if (r.islem === 'UPDATE' && r.degisen_alanlar) {
+        degisim = Object.entries(r.degisen_alanlar)
+          .map(([k, v]) => `${k}: ${JSON.stringify(v.onceki)} → ${JSON.stringify(v.sonraki)}`)
+          .join(' | ')
+      } else if (r.islem === 'INSERT' && r.sonraki_veri) {
+        degisim = Object.entries(r.sonraki_veri).slice(0, 6)
+          .map(([k, v]) => `${k}: ${JSON.stringify(v)}`).join(', ')
+      } else if (r.islem === 'DELETE' && r.onceki_veri) {
+        degisim = Object.entries(r.onceki_veri).slice(0, 6)
+          .map(([k, v]) => `${k}: ${JSON.stringify(v)}`).join(', ')
+      }
+      return {
+        'ID':           r.id ?? '—',
+        'Tablo':        r.tablo ?? '—',
+        'İşlem':        r.islem ?? '—',
+        'Kayıt ID':     r.kayit_id ?? '—',
+        'Kullanıcı':    r.kullanici_ad ?? '—',
+        'Değişim':      degisim,
+        'İşlem Zamanı': r.islem_zamani ? new Date(r.islem_zamani).toLocaleString('tr-TR') : '—'
+      }
+    })
     renderTable('prev-auditlog', rAuditData)
     document.getElementById('r-audit-sayi').textContent = `${rAuditData.length} kayıt`
     document.getElementById('btn-audit-indir').disabled = !rAuditData.length
