@@ -660,8 +660,10 @@
     saveBtn.disabled = true
     saveBtn.textContent = 'Sıfırlanıyor...'
 
+    const { data: { session: currentSession } } = await supabase.auth.getSession()
     const { error } = await supabase.functions.invoke('admin-reset-password', {
-      body: { pkod, new_password: pwd }
+      body: { pkod, new_password: pwd },
+      headers: { Authorization: `Bearer ${currentSession?.access_token}` }
     })
 
     saveBtn.disabled = false
