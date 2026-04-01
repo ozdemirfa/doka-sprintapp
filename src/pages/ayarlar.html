@@ -370,6 +370,28 @@
   if (personel) renderUserInfo(personel.ad, personel.soyad)
   document.getElementById('logout-btn').addEventListener('click', () => signOut())
 
+  // ── SOP-Birim modal state ────────────────────────────────────────
+  let editSopBirimler = []  // { bkod, birim_kisa, birim_adi }[]
+
+  function renderSopBirimChips() {
+    const container = document.getElementById('sop-birim-chips')
+    if (!container) return
+    container.innerHTML = editSopBirimler.map(sb =>
+      `<span style="background:#fef3c7;border:1px solid #fcd34d;border-radius:9999px;
+        padding:2px 10px;font-size:0.8rem;display:flex;align-items:center;gap:6px;">
+        ${sb.birim_kisa}
+        <button type="button" data-bkod="${sb.bkod}"
+          style="background:none;border:none;cursor:pointer;font-size:0.9rem;color:#92400e;">✕</button>
+      </span>`
+    ).join('')
+    container.querySelectorAll('button[data-bkod]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        editSopBirimler = editSopBirimler.filter(x => x.bkod !== Number(btn.dataset.bkod))
+        renderSopBirimChips()
+      })
+    })
+  }
+
   // ── Tab Yönetimi ─────────────────────────────────────────────────
   const tabBtns = document.querySelectorAll('.tab-btn')
   const tabPanels = document.querySelectorAll('.tab-panel')
@@ -909,7 +931,13 @@
     editState = { table, id }
 
     if (table === 'soplar') {
-      const { data: r } = await supabase.from('soplar').select('*').eq('skod', id).single()
+      const [{ data: r }, { data: sbData }] = await Promise.all([
+        supabase.from('soplar').select('*').eq('skod', id).single(),
+        supabase.from('sop_birim').select('bkod, birimler(birim_kisa,birim_adi)').eq('skod', id)
+      ])
+      editSopBirimler = (sbData || []).map(sb => ({
+        bkod: sb.bkod, birim_kisa: sb.birimler.birim_kisa, birim_adi: sb.birimler.birim_adi
+      }))
       title.textContent = 'SOP Düzenle'
       body.innerHTML = `
         <div class="form-group"><label>Kısa</label><input id="edit-kisa" class="form-control" value="${r.kisa ?? ''}"></div>
@@ -923,7 +951,29 @@
             <option value="Aktif" ${(r.durum ?? 'Aktif') === 'Aktif' ? 'selected' : ''}>Aktif</option>
             <option value="Pasif" ${r.durum === 'Pasif' ? 'selected' : ''}>Pasif</option>
           </select>
+        </div>
+        <div class="form-group" style="margin-top:12px;">
+          <label>İlgili Birimler</label>
+          <div id="sop-birim-chips" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;"></div>
+          <div style="display:flex;gap:8px;">
+            <select id="sop-birim-ekle-sel" class="form-control">
+              <option value="">Birim seç...</option>
+              ${birimler.filter(b => b.durum === 'Aktif').map(b =>
+                `<option value="${b.bkod}">${b.birim_kisa} — ${b.birim_adi}</option>`).join('')}
+            </select>
+            <button type="button" class="btn-gold" id="btn-sop-birim-ekle">+ Ekle</button>
+          </div>
         </div>`
+      renderSopBirimChips()
+      document.getElementById('btn-sop-birim-ekle').addEventListener('click', () => {
+        const sel = document.getElementById('sop-birim-ekle-sel')
+        const bkod = Number(sel.value)
+        if (!bkod || editSopBirimler.some(x => x.bkod === bkod)) return
+        const birim = birimler.find(b => b.bkod === bkod)
+        if (!birim) return
+        editSopBirimler.push({ bkod, birim_kisa: birim.birim_kisa, birim_adi: birim.birim_adi })
+        renderSopBirimChips()
+      })
     } else if (table === 'kategoriler') {
       const { data: r } = await supabase.from('kategori_tipleri').select('*').eq('kkod', id).single()
       title.textContent = 'Kategori Düzenle'
@@ -1106,7 +1156,18 @@
       const bit   = parseInt(document.getElementById('edit-bit').value) || null
       const durum = document.getElementById('edit-durum').value
       ;({ error } = await supabase.from('soplar').update({ kisa, sop_adi: adi, baslangic: bas, bitis: bit, durum }).eq('skod', id))
-      if (!error) await loadSoplar()
+      if (!error) {
+        // sop_birim senkronizasyonu
+        const skodNum = Number(id)
+        const { data: existing } = await supabase.from('sop_birim').select('bkod').eq('skod', skodNum)
+        const existingBkods = (existing || []).map(x => x.bkod)
+        const newBkods = editSopBirimler.map(x => x.bkod)
+        const toDelete = existingBkods.filter(b => !newBkods.includes(b))
+        const toInsert = newBkods.filter(b => !existingBkods.includes(b))
+        if (toDelete.length) await supabase.from('sop_birim').delete().eq('skod', skodNum).in('bkod', toDelete)
+        if (toInsert.length) await supabase.from('sop_birim').insert(toInsert.map(b => ({ skod: skodNum, bkod: b })))
+        await loadSoplar()
+      }
     } else if (table === 'kategoriler') {
       const adi = document.getElementById('edit-katadi').value.trim()
       ;({ error } = await supabase.from('kategori_tipleri').update({ kategori_adi: adi }).eq('kkod', id))

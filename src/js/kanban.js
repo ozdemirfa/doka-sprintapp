@@ -12,6 +12,7 @@ let sprints = []
 let personeller = []
 let birimler = []
 let altFaaliyetler = []
+let sopBirimler = []   // { skod, bkod }[]
 let currentSprint = null
 let currentUser = null
 let currentPersonel = null
@@ -44,19 +45,21 @@ try {
 // ── Veri Yükleme ─────────────────────────────────────────────
 
 async function loadReferenceData() {
-  const [sprintRes, personelRes, altFaalRes, birimRes] = await Promise.all([
+  const [sprintRes, personelRes, altFaalRes, birimRes, sopBirimRes] = await Promise.all([
     supabase.from('sprint_veri').select('sprint_donem,sprint_adi,baslangic,bitis').order('sprint_donem', { ascending: false }),
     loadActivePersonel(supabase),
     supabase.from('alt_faaliyetler')
       .select('sno,fkod,alt_faaliyet,p_sure,faaliyetler(skod,kkod,faaliyet,soplar(kisa,durum),kategori_tipleri(kategori_adi))')
       .order('sno'),
-    loadBirimler(supabase)
+    loadBirimler(supabase),
+    supabase.from('sop_birim').select('skod,bkod')
   ])
 
   sprints = sprintRes.data || []
   personeller = personelRes || []
   altFaaliyetler = altFaalRes.data || []
   birimler = birimRes || []
+  sopBirimler = sopBirimRes.data || []
 
   // Sprint filtre dropdown
   const sprintFilter = document.getElementById('filter-sprint')
@@ -118,8 +121,15 @@ async function loadBoard() {
   if (ekipVal) {
     query = query.eq('pkod', ekipVal)
   } else if (birimVal) {
-    // Birim seçili ama ekip seçili değilse → andaki_birim sütununa göre filtrele
-    query = query.eq('andaki_birim', birimVal)
+    // Birim seçili → sno zinciri: sop_birim.skod → faaliyetler.skod → alt_faaliyetler.sno
+    const skodSet = new Set(
+      sopBirimler.filter(sb => sb.bkod === Number(birimVal)).map(sb => sb.skod)
+    )
+    const snolar = altFaaliyetler
+      .filter(af => skodSet.has(af.faaliyetler?.skod))
+      .map(af => af.sno)
+    if (snolar.length === 0) { allGorevler = []; renderBoard(); return }
+    query = query.in('sno', snolar)
   }
 
   const { data, error } = await query
@@ -392,7 +402,10 @@ function initModal() {
     gEkip.appendChild(opt)
   })
 
-  // Yeni görev butonu
+  // Yeni görev: yalnızca yönetici / gs / başkan oluşturabilir
+  if (['standart', 'izleyici'].includes(currentPersonel?.rol_kodu)) {
+    document.getElementById('btn-yeni-gorev').classList.add('hidden')
+  }
   document.getElementById('btn-yeni-gorev').addEventListener('click', () => openNewModal())
 
   // İptal
@@ -455,6 +468,19 @@ function openEditModal(g) {
     perfBtn.classList.remove('hidden')
   }
 
+  // Standart kullanıcı başkasının görevini görüntüleyebilir ama düzenleyemez
+  const isStandart = currentPersonel?.rol_kodu === 'standart'
+  const isOwnTask  = g.pkod === currentPersonel?.pkod
+  const readOnly   = isStandart && !isOwnTask
+
+  const editFields = ['g-sprint', 'g-faaliyetleri', 'g-plansure', 'g-ekip', 'g-durum']
+  editFields.forEach(fid => {
+    const el = document.getElementById(fid)
+    if (el) el.disabled = readOnly
+  })
+  document.getElementById('btn-alt-faaliyet-ara').disabled = readOnly
+  document.getElementById('modal-save').classList.toggle('hidden', readOnly)
+
   document.getElementById('modal-overlay').classList.remove('hidden')
 }
 
@@ -467,6 +493,16 @@ async function handleSave(e) {
   const saveBtn = document.getElementById('modal-save')
   saveBtn.disabled = true
   saveBtn.textContent = 'Kaydediliyor...'
+
+  // Standart kullanıcı yalnızca kendi görevini güncelleyebilir
+  const taskId = document.getElementById('gorev-id').value
+  if (taskId && currentPersonel?.rol_kodu === 'standart') {
+    const existing = allGorevler.find(g => g.id === Number(taskId))
+    if (existing && existing.pkod !== currentPersonel.pkod) {
+      showToast('Yetki hatası: Sadece kendi görevlerinizi güncelleyebilirsiniz.', 'error')
+      saveBtn.disabled = false; saveBtn.textContent = 'Kaydet'; return
+    }
+  }
 
   const snoVal = document.getElementById('g-sno-hidden').value
   if (!snoVal) {
