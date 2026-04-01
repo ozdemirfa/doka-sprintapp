@@ -9,7 +9,7 @@ const STORAGE_KEY = `sb-${PROJECT_REF}-auth-token`
 // ── Mock veri ────────────────────────────────────────────────
 
 const MOCK_PERSONEL = [
-  { ad: 'Fatih', soyad: 'Özdamar', bkod: 'FO', rol_kodu: 'yönetici' }
+  { pkod: 1, ad: 'Fatih', soyad: 'Özdamar', bkod: 1, rol_kodu: 'yönetici' }
 ]
 
 const MOCK_SPRINT_VERI = [
@@ -26,14 +26,16 @@ const MOCK_IS_PLANI = [
     sprint_faaliyetleri: 'Test Görevi 1', sno: null,
     plan_sure: 2, ekip_uyesi: 'Fatih', is_durum: null,
     guncel_tarih: null, guncelleyen: null, harcanan_butce: null,
-    baslama_t: null, inceleme_t: null, tamamlanma_t: null, bitis_donem: null
+    baslama_t: null, inceleme_t: null, tamamlanma_t: null, bitis_donem: null,
+    pkod: 1, andaki_birim: 1
   },
   {
     id: 2, sprint_donem: '2024-S1',
     sprint_faaliyetleri: 'Test Görevi 2', sno: null,
     plan_sure: 1, ekip_uyesi: 'Fatih', is_durum: 'Başladı',
     guncel_tarih: null, guncelleyen: null, harcanan_butce: null,
-    baslama_t: '2024-01-02', inceleme_t: null, tamamlanma_t: null, bitis_donem: null
+    baslama_t: '2024-01-02', inceleme_t: null, tamamlanma_t: null, bitis_donem: null,
+    pkod: 1, andaki_birim: 1
   },
   {
     id: 3, sprint_donem: '2024-S1',
@@ -41,8 +43,14 @@ const MOCK_IS_PLANI = [
     plan_sure: 3, ekip_uyesi: 'Fatih', is_durum: 'Tamamlandı',
     guncel_tarih: null, guncelleyen: null, harcanan_butce: 0,
     baslama_t: '2024-01-02', inceleme_t: '2024-01-05',
-    tamamlanma_t: '2024-01-10', bitis_donem: '2024-S1'
+    tamamlanma_t: '2024-01-10', bitis_donem: '2024-S1',
+    pkod: 1, andaki_birim: 1
   }
+]
+
+const MOCK_BIRIMLER = [
+  { bkod: 1, birim_kisa: 'SKB', birim_adi: 'Sera Kıyı Birimi', durum: 'aktif' },
+  { bkod: 2, birim_kisa: 'MEKB', birim_adi: 'Mekanik Birim', durum: 'aktif' }
 ]
 
 const MOCK_SPRINT_OZET = [
@@ -158,6 +166,13 @@ async function mockSupabase(page) {
           body: JSON.stringify(MOCK_PERSONEL),
         })
       }
+      if (url.includes('/birimler')) {
+        return route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify(MOCK_BIRIMLER),
+        })
+      }
       if (url.includes('/sprint_veri')) {
         if (method === 'PATCH' || method === 'POST') {
           return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(MOCK_SPRINT_VERI[0]) })
@@ -195,6 +210,7 @@ module.exports = {
   MOCK_IS_PLANI,
   MOCK_SPRINT_VERI,
   MOCK_PERSONEL,
+  MOCK_BIRIMLER,
   SUPABASE_URL,
   isAuthUrl,
   isRestUrl,

@@ -605,6 +605,7 @@
     const birimMap = Object.fromEntries(birimler.map(b => [b.bkod, b.birim_kisa]))
     const rolRenk = {
       'yönetici': { bg:'#fef3c7', fg:'#92400e' },
+      'başkan':    { bg:'#fdf4ff', fg:'#7e22ce' },
       'gs':        { bg:'#f5f3ff', fg:'#6d28d9' },
       'standart':  { bg:'#f0fdf4', fg:'#166534' },
       'izleyici':  { bg:'#eff6ff', fg:'#1d4ed8' }
@@ -695,6 +696,7 @@
         <div class="form-group"><label>Rol</label>
           <select id="edit-prol" class="form-control">
             <option value="standart" selected>Standart</option>
+            <option value="başkan">Başkan</option>
             <option value="gs">GS</option>
             <option value="yönetici">Yönetici</option>
             <option value="izleyici">İzleyici</option>
@@ -942,6 +944,7 @@
           <div class="form-group"><label>Rol</label>
             <select id="edit-prol" class="form-control">
               <option value="standart" ${r.rol_kodu==='standart'||r.rol_kodu==='uye'?'selected':''}>Standart</option>
+              <option value="başkan" ${r.rol_kodu==='başkan'?'selected':''}>Başkan</option>
               <option value="gs" ${r.rol_kodu==='gs'?'selected':''}>GS</option>
               <option value="yönetici" ${r.rol_kodu==='yönetici'?'selected':''}>Yönetici</option>
               <option value="izleyici" ${r.rol_kodu==='izleyici'?'selected':''}>İzleyici</option>

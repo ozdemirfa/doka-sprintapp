@@ -160,6 +160,14 @@ export function hideAyarlarForNonAdmin(personel) {
     document.querySelectorAll('a[href*="ayarlar.html"]').forEach(el => {
       el.style.display = 'none'
     })
+    document.querySelectorAll('a[href*="raporlar.html"]').forEach(el => {
+      el.style.display = 'none'
+    })
+  }
+  if (personel?.rol_kodu === 'gs') {
+    document.querySelectorAll('a[href*="retro.html"]').forEach(el => {
+      el.style.display = 'none'
+    })
   }
 }
 

@@ -95,22 +95,41 @@ test.describe('Ayarlar: Personel Sekmesi', () => {
     await expect(page.locator('#personel-tbody')).toBeAttached()
   })
 
-  test('personel ekleme formu görünmeli', async ({ page }) => {
-    await expect(page.locator('#p-ad')).toBeVisible()
-    await expect(page.locator('#p-soyad')).toBeVisible()
-    await expect(page.locator('#p-bkod')).toBeVisible()
-    await expect(page.locator('#p-rol')).toBeVisible()
+  test('"+ Yeni Personel" butonu görünmeli', async ({ page }) => {
+    // Personel form modal dinamik oluşturuluyor (#btn-p-ekle ile açılır)
     await expect(page.locator('#btn-p-ekle')).toBeVisible()
   })
 
+  test('personel ekleme modal form alanları görünmeli', async ({ page }) => {
+    // Form elemanları modal içinde dinamik oluşturuluyor
+    await page.click('#btn-p-ekle')
+    await page.waitForSelector('#edit-pad', { timeout: 5000 })
+    await expect(page.locator('#edit-pad')).toBeVisible()    // Ad
+    await expect(page.locator('#edit-psoyad')).toBeVisible() // Soyad
+    await expect(page.locator('#edit-pbkod')).toBeVisible()  // Birim
+    await expect(page.locator('#edit-prol')).toBeVisible()   // Rol
+  })
+
   test('personel rol dropdown standart ve yönetici seçeneklerini içermeli', async ({ page }) => {
-    const options = await page.locator('#p-rol option').allTextContents()
+    await page.click('#btn-p-ekle')
+    await page.waitForSelector('#edit-prol', { timeout: 5000 })
+    const options = await page.locator('#edit-prol option').allTextContents()
     expect(options).toContain('Standart')
     expect(options).toContain('Yönetici')
   })
 
+  test('personel rol dropdown başkan seçeneğini içermeli', async ({ page }) => {
+    // başkan rolü: birim bazlı drag yetkisi ve yönetim görünümü için eklendi
+    await page.click('#btn-p-ekle')
+    await page.waitForSelector('#edit-prol', { timeout: 5000 })
+    const options = await page.locator('#edit-prol option').allTextContents()
+    expect(options).toContain('Başkan')
+  })
+
   test('birim seçim dropdown mevcut olmalı', async ({ page }) => {
-    await expect(page.locator('#p-bkod')).toBeVisible()
+    await page.click('#btn-p-ekle')
+    await page.waitForSelector('#edit-pbkod', { timeout: 5000 })
+    await expect(page.locator('#edit-pbkod')).toBeVisible()
   })
 })
 

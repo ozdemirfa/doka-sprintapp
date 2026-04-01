@@ -56,4 +56,9 @@ test.describe('US-4: Sprint Özet sayfası', () => {
     // US-4: Sprint dropdown sprint_veri'den beslenir
     await expect(page.locator('#filter-sprint')).toBeVisible()
   })
+
+  test('birim filtresi dropdown\'ı mevcut olmalı', async ({ page }) => {
+    // Sprint Özet'e de birim bazlı filtre eklendi (loadBirimData ile hesaplama)
+    await expect(page.locator('#filter-birim')).toBeVisible()
+  })
 })

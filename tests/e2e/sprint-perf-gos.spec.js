@@ -92,7 +92,9 @@ test.describe('Sprint Perf Gos: Yeni Gerçekleşme Butonu', () => {
       () => !document.getElementById('modal-gerceklesme')?.classList.contains('hidden'),
       { timeout: 5000 }
     )
-    await expect(page.locator('#g-is-plani')).toBeVisible()
+    // #g-is-plani select kaldırıldı → text display + hidden + Ara butonu geldi
+    await expect(page.locator('#g-is-plani-display')).toBeVisible()
+    await expect(page.locator('#btn-is-plani-ara')).toBeVisible()
     await expect(page.locator('#g-cg-kod-display')).toBeVisible()
     await expect(page.locator('#g-gerceklesme')).toBeVisible()
   })
@@ -105,6 +107,66 @@ test.describe('Sprint Perf Gos: Yeni Gerçekleşme Butonu', () => {
     )
     await page.click('#btn-gerceklesme-kapat')
     await expect(page.locator('#modal-gerceklesme')).toHaveClass(/hidden/)
+  })
+})
+
+test.describe('Sprint Perf Gos: Birim Filtresi', () => {
+  test.beforeEach(async ({ page }) => {
+    await mockSupabase(page)
+    await page.goto('/pages/sprint-perf-gos.html')
+    await page.waitForSelector('#filter-sprint', { timeout: 10000 })
+  })
+
+  test('birim filtresi dropdown görünmeli', async ({ page }) => {
+    await expect(page.locator('#filter-birim')).toBeVisible()
+  })
+
+  test('birim filtresi "Tüm Birimler" varsayılan seçeneği içermeli', async ({ page }) => {
+    const defaultOpt = await page.locator('#filter-birim option').first().textContent()
+    expect(defaultOpt).toContain('Tüm Birimler')
+  })
+})
+
+test.describe('Sprint Perf Gos: Sprint Faaliyet Arama Modalı', () => {
+  test.beforeEach(async ({ page }) => {
+    await mockSupabase(page)
+    await page.goto('/pages/sprint-perf-gos.html')
+    await page.waitForSelector('#btn-yeni-gerceklesme', { timeout: 10000 })
+    // Önce Yeni Gerçekleşme modalını aç
+    await page.click('#btn-yeni-gerceklesme')
+    await page.waitForFunction(
+      () => !document.getElementById('modal-gerceklesme')?.classList.contains('hidden'),
+      { timeout: 5000 }
+    )
+  })
+
+  test('"Ara" butonuna tıklanınca ip-search-modal açılmalı', async ({ page }) => {
+    await page.click('#btn-is-plani-ara')
+    await page.waitForFunction(
+      () => !document.getElementById('ip-search-modal')?.classList.contains('hidden'),
+      { timeout: 5000 }
+    )
+    await expect(page.locator('#ip-search-modal')).not.toHaveClass(/hidden/)
+  })
+
+  test('arama modalı İptal butonuyla kapanmalı', async ({ page }) => {
+    await page.click('#btn-is-plani-ara')
+    await page.waitForFunction(
+      () => !document.getElementById('ip-search-modal')?.classList.contains('hidden'),
+      { timeout: 5000 }
+    )
+    await page.click('#ip-modal-kapat')
+    await expect(page.locator('#ip-search-modal')).toHaveClass(/hidden/)
+  })
+
+  test('arama modalı içinde tablo başlıkları görünmeli', async ({ page }) => {
+    await page.click('#btn-is-plani-ara')
+    await page.waitForFunction(
+      () => !document.getElementById('ip-search-modal')?.classList.contains('hidden'),
+      { timeout: 5000 }
+    )
+    await expect(page.locator('#ip-search-modal')).toContainText('SNo')
+    await expect(page.locator('#ip-search-modal')).toContainText('Sprint Dönemi')
   })
 })
 
