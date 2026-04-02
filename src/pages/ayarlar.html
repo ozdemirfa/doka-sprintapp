@@ -956,12 +956,12 @@
           <label>İlgili Birimler</label>
           <div id="sop-birim-chips" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;"></div>
           <div style="display:flex;gap:8px;">
-            <select id="sop-birim-ekle-sel" class="form-control">
+            <select id="sop-birim-ekle-sel" class="form-control" style="flex:1;padding:4px 8px;font-size:0.8rem;">
               <option value="">Birim seç...</option>
-              ${birimler.filter(b => b.durum === 'Aktif').map(b =>
+              ${birimler.map(b =>
                 `<option value="${b.bkod}">${b.birim_kisa} — ${b.birim_adi}</option>`).join('')}
             </select>
-            <button type="button" class="btn-gold" id="btn-sop-birim-ekle">+ Ekle</button>
+            <button type="button" class="btn-gold" id="btn-sop-birim-ekle" style="padding:4px 12px;font-size:0.8rem;white-space:nowrap;">+ Ekle</button>
           </div>
         </div>`
       renderSopBirimChips()
