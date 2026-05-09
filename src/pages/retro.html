@@ -6,6 +6,9 @@
   <title>Retrospektif — DOKA Sprint Kanban</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="../css/app.css" />
+  <link rel="icon" type="image/png" href="../assets/favicon.png" />
+  <link rel="manifest" href="../manifest.json" />
+  <meta name="theme-color" content="#1a2744" />
 </head>
 <body>
 <div class="app-layout">
@@ -13,8 +16,10 @@
   <!-- Sidebar -->
   <aside class="sidebar" id="sidebar">
     <div class="sidebar-logo">
-      <h1>DOKA</h1>
-      <p>Sprint Kanban Sistemi</p>
+      <a href="../index.html" class="sidebar-brand" aria-label="DOKA Sprint Kanban — Anasayfa">
+        <img src="../assets/logos/doka-logo.png" alt="DOKA — Doğu Karadeniz Kalkınma Ajansı" class="sidebar-logo-img">
+      </a>
+      <span class="sidebar-brand-tagline">Sprint Kanban Sistemi</span>
     </div>
     <nav>
       <a href="../index.html"><span class="icon">📋</span> Kanban Board</a>
@@ -28,6 +33,7 @@
       <a href="raporlar.html"><span class="icon">📑</span> Raporlar</a>
       <a href="parola.html"><span class="icon">🔑</span> Parola İşlemleri</a>
       <a href="ayarlar.html"><span class="icon">⚙️</span> Ayarlar</a>
+      <a href="yetki-yonetimi.html"><span class="icon">🛡️</span> Yetki Yönetimi</a>
     </nav>
     <div class="sidebar-footer">
       <div class="user-info"><strong id="user-name">Yükleniyor...</strong>Ekip Üyesi</div>

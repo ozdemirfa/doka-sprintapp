@@ -6,6 +6,9 @@
   <title>İzinler & Saha — DOKA Sprint Kanban</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="../css/app.css" />
+  <link rel="icon" type="image/png" href="../assets/favicon.png" />
+  <link rel="manifest" href="../manifest.json" />
+  <meta name="theme-color" content="#1a2744" />
   <style>
     /* Tab styles */
     .tab-bar {
@@ -145,8 +148,10 @@
   <!-- Sidebar -->
   <aside class="sidebar" id="sidebar">
     <div class="sidebar-logo">
-      <h1>DOKA</h1>
-      <p>Sprint Kanban Sistemi</p>
+      <a href="../index.html" class="sidebar-brand" aria-label="DOKA Sprint Kanban — Anasayfa">
+        <img src="../assets/logos/doka-logo.png" alt="DOKA — Doğu Karadeniz Kalkınma Ajansı" class="sidebar-logo-img">
+      </a>
+      <span class="sidebar-brand-tagline">Sprint Kanban Sistemi</span>
     </div>
     <nav>
       <a href="../index.html"><span class="icon">📋</span> Kanban Board</a>
@@ -160,6 +165,7 @@
       <a href="raporlar.html"><span class="icon">📑</span> Raporlar</a>
       <a href="parola.html"><span class="icon">🔑</span> Parola İşlemleri</a>
       <a href="ayarlar.html"><span class="icon">⚙️</span> Ayarlar</a>
+      <a href="yetki-yonetimi.html"><span class="icon">🛡️</span> Yetki Yönetimi</a>
     </nav>
     <div class="sidebar-footer">
       <div class="user-info"><strong id="user-name">Yükleniyor...</strong>Ekip Üyesi</div>
@@ -354,7 +360,7 @@
 <script type="module">
   import { supabase } from '../js/supabase.js'
   import { requireAuth, signOut } from '../js/auth.js'
-  import { formatDate, getPersonel, renderUserInfo, populateSprintDropdown, showToast, todayISO, hideAyarlarForNonAdmin, applyViewerRestrictions, loadActivePersonel, loadBirimler, populateBirimDropdown } from '../js/utils.js'
+  import { formatDate, getPersonel, renderUserInfo, populateSprintDropdown, showToast, showConfirm, todayISO, hideAyarlarForNonAdmin, applyViewerRestrictions, loadActivePersonel, loadBirimler, populateBirimDropdown } from '../js/utils.js'
 
   // ── Auth ─────────────────────────────────────────────────────────
   const session = await requireAuth()
@@ -616,7 +622,8 @@
     if (!btn) return
     const id    = btn.dataset.id
     const table = btn.dataset.table
-    if (!confirm('Bu kaydı silmek istediğinize emin misiniz?')) return
+    const ok = await showConfirm({ title: 'Kayıt Sil', message: 'Bu kaydı silmek istediğinize emin misiniz?', confirmText: 'Sil', danger: true })
+    if (!ok) return
 
     const { error } = await supabase.from(table).delete().eq('id', id)
     if (error) {
