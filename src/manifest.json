@@ -1,0 +1,23 @@
+{
+  "name": "DOKA Sprint Kanban",
+  "short_name": "DOKA Sprint",
+  "description": "Doğu Karadeniz Kalkınma Ajansı — Sprint ve Kanban Yönetim Sistemi",
+  "start_url": "/index.html",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#1a2744",
+  "icons": [
+    {
+      "src": "assets/favicon.png",
+      "sizes": "400x197",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "assets/logos/doka-logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
