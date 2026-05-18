@@ -25,7 +25,7 @@ try {
 
   currentPersonel = await getPersonel(supabase, currentUser.id)
   if (currentPersonel) renderUserInfo(currentPersonel.ad, currentPersonel.soyad)
-  if (currentPersonel) hideAyarlarForNonAdmin(currentPersonel)
+  if (currentPersonel) await hideAyarlarForNonAdmin(currentPersonel, supabase)
   if (currentPersonel) applyViewerRestrictions(currentPersonel)
 
   document.getElementById('logout-btn').addEventListener('click', () => signOut())

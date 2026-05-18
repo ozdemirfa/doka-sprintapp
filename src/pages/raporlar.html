@@ -246,7 +246,7 @@
   const session = await requireAuth()
   const personel = await getPersonel(supabase, session.user.id)
   if (personel) renderUserInfo(personel.ad, personel.soyad)
-  if (personel) hideAyarlarForNonAdmin(personel)
+  if (personel) await hideAyarlarForNonAdmin(personel, supabase)
   if (personel) applyViewerRestrictions(personel)
   if (personel?.rol_kodu !== 'yönetici') {
     window.location.replace('../index.html')

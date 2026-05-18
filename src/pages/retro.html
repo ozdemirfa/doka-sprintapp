@@ -157,7 +157,7 @@
   const personel = await getPersonel(supabase, session.user.id)
   if (personel) {
     renderUserInfo(personel.ad, personel.soyad)
-    hideAyarlarForNonAdmin(personel)
+    await hideAyarlarForNonAdmin(personel, supabase)
     applyViewerRestrictions(personel)
     document.getElementById('retro-ad').value = `${personel.ad} ${personel.soyad}`
     if (personel.rol_kodu === 'gs') {

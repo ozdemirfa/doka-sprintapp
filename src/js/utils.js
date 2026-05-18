@@ -152,25 +152,33 @@ export function renderUserInfo(ad, soyad) {
 }
 
 /**
- * Yönetici olmayan kullanıcılar için Ayarlar/Raporlar/Yetki menü linklerini gizler
+ * Yönetici olmayan kullanıcılar için Ayarlar/Raporlar/Yetki menü linklerini DOM'dan kaldırır.
+ * S-006: el.remove() kullanır (display:none yerine) — DOM'a erişim tamamen engellenir.
+ * S-007: Grup üyeliğini de kontrol eder (rol_kodu yönetici VEYA yönetici grubunda).
  * @param {object|null} personel
+ * @param {object} supabase — Supabase client (grup üyeliği sorgusu için)
+ * @returns {Promise<void>}
  */
-export function hideAyarlarForNonAdmin(personel) {
-  if (personel?.rol_kodu !== 'yönetici') {
-    document.querySelectorAll('a[href*="ayarlar.html"]').forEach(el => {
-      el.style.display = 'none'
-    })
-    document.querySelectorAll('a[href*="raporlar.html"]').forEach(el => {
-      el.style.display = 'none'
-    })
-    document.querySelectorAll('a[href*="yetki-yonetimi.html"]').forEach(el => {
-      el.style.display = 'none'
-    })
+export async function hideAyarlarForNonAdmin(personel, supabase) {
+  // S-007: grup üyeliğini de kontrol et
+  let isAdmin = personel?.rol_kodu === 'yönetici'
+  if (!isAdmin && personel?.pkod && supabase) {
+    try {
+      const { loadCurrentGroupNames } = await import('./permissions.js')
+      const groupNames = await loadCurrentGroupNames(supabase, personel.pkod)
+      isAdmin = groupNames.includes('yönetici')
+    } catch (_) {
+      // permissions.js yüklenemezse sadece rol_kodu'na güven
+    }
+  }
+  if (!isAdmin) {
+    // S-006: display:none yerine remove() — DOM'dan tamamen kaldır
+    document.querySelectorAll('a[href*="ayarlar.html"]').forEach(el => el.remove())
+    document.querySelectorAll('a[href*="raporlar.html"]').forEach(el => el.remove())
+    document.querySelectorAll('a[href*="yetki-yonetimi.html"]').forEach(el => el.remove())
   }
   if (personel?.rol_kodu === 'gs') {
-    document.querySelectorAll('a[href*="retro.html"]').forEach(el => {
-      el.style.display = 'none'
-    })
+    document.querySelectorAll('a[href*="retro.html"]').forEach(el => el.remove())
   }
 }
 
@@ -252,13 +260,14 @@ function _ensureConfirmShell() {
   wrap.setAttribute('role', 'dialog')
   wrap.setAttribute('aria-modal', 'true')
   wrap.setAttribute('aria-labelledby', 'app-confirm-title')
+  wrap.setAttribute('data-testid', 'confirm-dialog')
   wrap.innerHTML = `
     <div class="modal-box modal-sm" role="document">
       <h3 class="confirm-title" id="app-confirm-title"></h3>
       <p class="confirm-message" id="app-confirm-msg"></p>
       <div class="modal-actions">
-        <button type="button" class="btn-secondary" data-confirm="cancel">Vazgeç</button>
-        <button type="button" class="btn-primary" data-confirm="ok">Tamam</button>
+        <button type="button" class="btn-secondary" data-confirm="cancel" data-testid="confirm-cancel">Vazgeç</button>
+        <button type="button" class="btn-primary" data-confirm="ok" data-testid="confirm-ok">Tamam</button>
       </div>
     </div>
   `
