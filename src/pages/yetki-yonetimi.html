@@ -108,6 +108,7 @@
         <button class="tab-btn active" role="tab" aria-selected="true" aria-controls="tab-gruplar" id="tab-btn-gruplar" data-tab="gruplar">Yetki Grupları</button>
         <button class="tab-btn" role="tab" aria-selected="false" aria-controls="tab-matris" id="tab-btn-matris" data-tab="matris">İzin Matrisi</button>
         <button class="tab-btn" role="tab" aria-selected="false" aria-controls="tab-uyeler" id="tab-btn-uyeler" data-tab="uyeler">Kullanıcı–Grup Atama</button>
+        <button class="tab-btn" role="tab" aria-selected="false" aria-controls="tab-birim-sop" id="tab-btn-birim-sop" data-tab="birim-sop">Birim-SOP Eşleme</button>
       </div>
 
       <!-- ───── Yetki Grupları ───── -->
@@ -172,6 +173,33 @@
               <span class="icon">👤</span>
               <span class="title">Bir kullanıcı seçin</span>
               <span class="hint">Sol listeden personeli seçtiğinizde, ait olduğu yetki grupları burada görünür.</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ───── Birim-SOP Eşleme (S3) ───── -->
+      <div class="tab-panel metric-card" id="tab-birim-sop" role="tabpanel" aria-labelledby="tab-btn-birim-sop" style="border-radius:0 6px 6px 6px;padding:14px;">
+        <div class="matrix-layout">
+          <div class="matrix-side" id="birim-sop-list"></div>
+          <div class="matrix-table">
+            <table>
+              <thead>
+                <tr>
+                  <th style="width:auto;">SOP</th>
+                  <th class="col-check">Okuma <input type="checkbox" data-bsop-toggle-col="okuma" aria-label="Tüm okuma sütunu"></th>
+                  <th class="col-check">Yazma <input type="checkbox" data-bsop-toggle-col="yazma" aria-label="Tüm yazma sütunu"></th>
+                  <th class="col-check">Silme <input type="checkbox" data-bsop-toggle-col="silme" aria-label="Tüm silme sütunu"></th>
+                </tr>
+              </thead>
+              <tbody id="birim-sop-tbody">
+                <tr><td colspan="4" class="empty-state"><span class="icon">⬅️</span><span class="title">Önce sol taraftan bir birim seçin.</span></td></tr>
+              </tbody>
+            </table>
+            <div class="toolbar-sticky is-hidden" id="birim-sop-toolbar">
+              <span id="birim-sop-status" style="margin-right:auto;font-size:0.8rem;color:#64748b;"></span>
+              <button class="btn-secondary" id="btn-birim-sop-iptal">Vazgeç</button>
+              <button class="btn-primary" id="btn-birim-sop-kaydet">Kaydet</button>
             </div>
           </div>
         </div>
@@ -246,6 +274,7 @@
     document.getElementById('tab-' + btn.dataset.tab).classList.add('active')
     if (btn.dataset.tab === 'matris') loadMatrisGroups()
     if (btn.dataset.tab === 'uyeler') loadUyeler()
+    if (btn.dataset.tab === 'birim-sop') loadBirimSopBirimList()
   }
 
   tabBtns.forEach((btn, i) => {
@@ -736,6 +765,237 @@
       })
     })
   }
+
+  // ============================================================
+  // TAB 4 — Birim-SOP Eşleme (S3)
+  // ============================================================
+  let birimSopAktifBirim = null
+  let birimSopOriginal = {}
+  let birimSopDegisti = false
+
+  // Sidebar nav: birim_sop dirty guard
+  document.querySelectorAll('#sidebar nav a[href]').forEach(link => {
+    link.addEventListener('click', async e => {
+      if (birimSopDegisti) {
+        e.preventDefault()
+        const href = link.getAttribute('href')
+        const ok = await showConfirm({
+          title: 'Kaydedilmemiş değişiklik',
+          message: 'Birim-SOP matrisindeki değişiklikler kaybolacak. Sayfadan çıkmak istiyor musunuz?',
+          confirmText: 'Çık', danger: true
+        })
+        if (ok) { birimSopDegisti = false; window.location.href = href }
+      }
+    })
+  })
+
+  // beforeunload guard
+  window.addEventListener('beforeunload', e => {
+    if (birimSopDegisti || matrisDegisti) {
+      e.preventDefault()
+      e.returnValue = ''
+    }
+  })
+
+  async function loadBirimSopBirimList() {
+    const list = document.getElementById('birim-sop-list')
+    list.innerHTML = '<div class="loading-state"><span class="icon">⏳</span><span class="title">Yükleniyor...</span></div>'
+
+    const { data: birimler, error } = await supabase
+      .from('birimler')
+      .select('bkod, birim_adi')
+      .order('birim_adi')
+
+    if (error) {
+      const errDiv = document.createElement('div')
+      errDiv.className = 'error-state'
+      const ic = document.createElement('span'); ic.className = 'icon'; ic.textContent = '⚠️'
+      const ti = document.createElement('span'); ti.className = 'title'; ti.textContent = 'Birimler yüklenemedi'
+      const hi = document.createElement('span'); hi.className = 'hint'; hi.textContent = error.message
+      errDiv.append(ic, ti, hi)
+      list.innerHTML = ''
+      list.appendChild(errDiv)
+      return
+    }
+
+    if (!birimler?.length) {
+      list.innerHTML = '<div class="empty-state"><span class="icon">📭</span><span class="title">Birim bulunamadı.</span></div>'
+      return
+    }
+
+    list.innerHTML = birimler.map(b => `
+      <button data-bkod="${b.bkod}" data-name="${escapeHtml(b.birim_adi)}" aria-pressed="false" data-testid="birim-sop-birim-row">
+        ${escapeHtml(b.birim_adi)}
+        <span class="group-meta">Bkod: ${b.bkod}</span>
+      </button>
+    `).join('')
+
+    list.querySelectorAll('button[data-bkod]').forEach(btn => {
+      btn.addEventListener('click', () => selectBirimSop(parseInt(btn.dataset.bkod), btn.dataset.name))
+    })
+  }
+
+  async function selectBirimSop(bkod, name) {
+    if (birimSopDegisti) {
+      const ok = await showConfirm({
+        title: 'Kaydedilmemiş değişiklik',
+        message: 'Mevcut değişiklikler kaybolacak. Devam edilsin mi?',
+        danger: true
+      })
+      if (!ok) return
+    }
+    document.querySelectorAll('#birim-sop-list button[data-bkod]').forEach(x => {
+      x.classList.remove('selected')
+      x.setAttribute('aria-pressed', 'false')
+    })
+    const selBtn = document.querySelector(`#birim-sop-list button[data-bkod="${bkod}"]`)
+    selBtn?.classList.add('selected')
+    selBtn?.setAttribute('aria-pressed', 'true')
+    birimSopAktifBirim = { bkod, name }
+    await loadBirimSopMatris(bkod)
+  }
+
+  async function loadBirimSopMatris(bkod) {
+    const tbody = document.getElementById('birim-sop-tbody')
+    tbody.innerHTML = '<tr><td colspan="4" class="loading-state"><span class="icon">⏳</span><span class="title">Yükleniyor...</span></td></tr>'
+
+    // Tüm SOP'lar — yönetici hepsini görür
+    const { data: soplar, error: sopErr } = await supabase
+      .from('soplar')
+      .select('skod, kisa, sop_adi')
+      .order('skod')
+
+    if (sopErr) {
+      tbody.innerHTML = ''
+      const tr = document.createElement('tr')
+      const td = document.createElement('td')
+      td.colSpan = 4
+      td.className = 'error-state'
+      const ic = document.createElement('span'); ic.className = 'icon'; ic.textContent = '⚠️'
+      const ti = document.createElement('span'); ti.className = 'title'; ti.textContent = 'SOP listesi yüklenemedi'
+      const hi = document.createElement('span'); hi.className = 'hint'; hi.textContent = sopErr.message
+      td.append(ic, ti, hi)
+      tr.appendChild(td)
+      tbody.appendChild(tr)
+      return
+    }
+
+    // Bu birim için mevcut izinler
+    const { data: izinler } = await supabase
+      .from('birim_sop_izni')
+      .select('skod, okuma, yazma, silme')
+      .eq('bkod', bkod)
+
+    const map = {}
+    izinler?.forEach(i => { map[i.skod] = i })
+    birimSopOriginal = JSON.parse(JSON.stringify(map))
+
+    if (!soplar?.length) {
+      tbody.innerHTML = '<tr><td colspan="4" class="empty-state"><span class="icon">📭</span><span class="title">SOP bulunamadı.</span></td></tr>'
+      return
+    }
+
+    let html = ''
+    for (const s of soplar) {
+      const r = map[s.skod] || { okuma:false, yazma:false, silme:false }
+      const tid = String(s.skod)
+      html += `
+        <tr data-skod="${s.skod}">
+          <td>
+            <strong>${escapeHtml(s.kisa || '—')}</strong>
+            <div style="font-size:0.7rem;color:#94a3b8;">${escapeHtml(s.sop_adi || '')}</div>
+          </td>
+          <td class="col-check">
+            <label class="sr-only" for="bsop-${tid}-okuma">${escapeHtml(s.kisa)} okuma</label>
+            <input type="checkbox" id="bsop-${tid}-okuma" data-bsop-perm="okuma" ${r.okuma ? 'checked' : ''}>
+          </td>
+          <td class="col-check">
+            <label class="sr-only" for="bsop-${tid}-yazma">${escapeHtml(s.kisa)} yazma</label>
+            <input type="checkbox" id="bsop-${tid}-yazma" data-bsop-perm="yazma" ${r.yazma ? 'checked' : ''}>
+          </td>
+          <td class="col-check">
+            <label class="sr-only" for="bsop-${tid}-silme">${escapeHtml(s.kisa)} silme</label>
+            <input type="checkbox" id="bsop-${tid}-silme" data-bsop-perm="silme" ${r.silme ? 'checked' : ''}>
+          </td>
+        </tr>
+      `
+    }
+    tbody.innerHTML = html
+    birimSopDegisti = false
+    document.getElementById('birim-sop-toolbar').classList.remove('is-hidden')
+    document.getElementById('birim-sop-status').textContent = `Birim: ${birimSopAktifBirim.name}`
+  }
+
+  // Dirty tracking
+  document.getElementById('birim-sop-tbody').addEventListener('change', e => {
+    if (e.target.matches('input[type=checkbox]')) {
+      birimSopDegisti = true
+      const stat = document.getElementById('birim-sop-status')
+      stat.textContent = `Birim: ${birimSopAktifBirim.name} — kaydedilmemiş değişiklik`
+    }
+  })
+
+  // Sütun toggle
+  document.querySelectorAll('input[data-bsop-toggle-col]').forEach(cb => {
+    cb.addEventListener('change', () => {
+      const col = cb.dataset.bsopToggleCol
+      document.querySelectorAll(`#birim-sop-tbody input[data-bsop-perm="${col}"]`).forEach(x => {
+        x.checked = cb.checked
+      })
+      birimSopDegisti = true
+      if (birimSopAktifBirim) {
+        document.getElementById('birim-sop-status').textContent =
+          `Birim: ${birimSopAktifBirim.name} — kaydedilmemiş değişiklik`
+      }
+    })
+  })
+
+  document.getElementById('btn-birim-sop-iptal').addEventListener('click', async () => {
+    if (!birimSopAktifBirim) return
+    await loadBirimSopMatris(birimSopAktifBirim.bkod)
+    showToast('Değişiklikler iptal edildi.', 'warning')
+  })
+
+  document.getElementById('btn-birim-sop-kaydet').addEventListener('click', async () => {
+    if (!birimSopAktifBirim) return
+    const rows = document.querySelectorAll('#birim-sop-tbody tr[data-skod]')
+    const upserts = []
+    const deletes = []
+    for (const tr of rows) {
+      const skod = parseInt(tr.dataset.skod)
+      const checks = {}
+      tr.querySelectorAll('input[data-bsop-perm]').forEach(cb => {
+        checks[cb.dataset.bsopPerm] = cb.checked
+      })
+      const allFalse = !checks.okuma && !checks.yazma && !checks.silme
+      if (allFalse) {
+        if (birimSopOriginal[skod]) deletes.push(skod)
+      } else {
+        upserts.push({
+          bkod: birimSopAktifBirim.bkod,
+          skod,
+          okuma: checks.okuma,
+          yazma: checks.yazma,
+          silme: checks.silme
+        })
+      }
+    }
+
+    if (upserts.length) {
+      const { error } = await supabase.from('birim_sop_izni')
+        .upsert(upserts, { onConflict: 'bkod,skod' })
+      if (error) { showToast('Kayıt hatası: ' + error.message, 'error'); return }
+    }
+    if (deletes.length) {
+      const { error } = await supabase.from('birim_sop_izni')
+        .delete().eq('bkod', birimSopAktifBirim.bkod).in('skod', deletes)
+      if (error) { showToast('Silme hatası: ' + error.message, 'error'); return }
+    }
+
+    birimSopDegisti = false
+    showToast('Birim-SOP izinleri kaydedildi.', 'success')
+    await loadBirimSopMatris(birimSopAktifBirim.bkod)
+  })
 
   // ── İlk yükleme ──────────────────────────────────────────
   await loadGruplar()

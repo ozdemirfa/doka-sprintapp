@@ -43,11 +43,13 @@ async function setupAdminPage(page, extraGroups = []) {
 // ============================================================
 
 test.describe('YY-01: Sayfa Yükleme ve Sekmeler', () => {
-  test('admin kullanıcı tüm 3 sekmeyi görmeli', async ({ page }) => {
+  test('admin kullanıcı tüm 4 sekmeyi görmeli', async ({ page }) => {
     await setupAdminPage(page)
     await expect(page.locator('[data-tab="gruplar"]')).toBeVisible()
     await expect(page.locator('[data-tab="matris"]')).toBeVisible()
     await expect(page.locator('[data-tab="uyeler"]')).toBeVisible()
+    // S3: yeni Birim-SOP Eşleme sekmesi
+    await expect(page.locator('[data-tab="birim-sop"]')).toBeVisible()
   })
 
   test('ilk sekme "Yetki Grupları" aktif olmalı', async ({ page }) => {
