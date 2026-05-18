@@ -50,6 +50,9 @@
     <div class="page-header">
       <h2>🎯 Performans Göstergeleri Özeti</h2>
       <div style="display:flex;gap:10px;">
+        <select id="filter-birim" class="form-control" style="width:auto;min-width:140px;">
+          <option value="">Tüm Birimler</option>
+        </select>
         <select id="filter-sop" class="form-control" style="width:auto;min-width:130px;">
           <option value="">Tüm SOPlar</option>
         </select>
@@ -94,7 +97,7 @@
 <script type="module">
   import { supabase } from '../js/supabase.js'
   import { requireAuth, signOut } from '../js/auth.js'
-  import { getPersonel, renderUserInfo, showToast, hideAyarlarForNonAdmin, applyViewerRestrictions } from '../js/utils.js'
+  import { getPersonel, renderUserInfo, showToast, hideAyarlarForNonAdmin, applyViewerRestrictions, loadBirimler, populateBirimDropdown } from '../js/utils.js'
 
   // ── Auth ──────────────────────────────────────────────────────────
   const session = await requireAuth()
@@ -106,8 +109,18 @@
 
   // ── Veri yükle ────────────────────────────────────────────────────
   let allData = []
+  // SOP kisa adı → bkod haritası (birim filtresi için)
+  let sopBkodMap = {}
 
   async function loadData() {
+    // Birim dropdown'unu doldur
+    const birimler = await loadBirimler(supabase)
+    populateBirimDropdown(document.getElementById('filter-birim'), birimler)
+
+    // SOP → bkod haritası kur (v_perf_gosterge_ozet'te bkod yok, soplar tablosundan al)
+    const { data: tumSoplar } = await supabase.from('soplar').select('kisa,bkod')
+    sopBkodMap = Object.fromEntries((tumSoplar || []).map(s => [s.kisa, s.bkod]))
+
     const { data, error } = await supabase
       .from('v_perf_gosterge_ozet')
       .select('*')
@@ -120,9 +133,22 @@
 
     allData = data || []
 
-    // SOP filtre dropdown
-    const sopSet = [...new Set(allData.map(r => r.sop).filter(Boolean))].sort()
+    rebuildSopFilter()
+    rebuildYilFilter(document.getElementById('filter-sop').value)
+    renderTable()
+  }
+
+  function rebuildSopFilter() {
+    const birimVal = document.getElementById('filter-birim').value
+      ? Number(document.getElementById('filter-birim').value)
+      : null
     const filterSop = document.getElementById('filter-sop')
+    const prevVal = filterSop.value
+    // Birim seçiliyse sadece o birime ait SOP'lar
+    const rows = birimVal !== null
+      ? allData.filter(r => sopBkodMap[r.sop] === birimVal)
+      : allData
+    const sopSet = [...new Set(rows.map(r => r.sop).filter(Boolean))].sort()
     filterSop.innerHTML = '<option value="">Tüm SOPlar</option>'
     sopSet.forEach(s => {
       const opt = document.createElement('option')
@@ -130,14 +156,20 @@
       opt.textContent = s
       filterSop.appendChild(opt)
     })
-
-    rebuildYilFilter(filterSop.value)
-    renderTable()
+    // Önceki seçim hâlâ geçerliyse koru
+    if ([...filterSop.options].some(o => o.value === prevVal)) {
+      filterSop.value = prevVal
+    }
   }
 
   function rebuildYilFilter(sopSec) {
+    const birimVal = document.getElementById('filter-birim').value
+      ? Number(document.getElementById('filter-birim').value)
+      : null
     const yilSet = new Set()
-    const rows = sopSec ? allData.filter(r => r.sop === sopSec) : allData
+    let rows = allData
+    if (birimVal !== null) rows = rows.filter(r => sopBkodMap[r.sop] === birimVal)
+    if (sopSec) rows = rows.filter(r => r.sop === sopSec)
     rows.forEach(r => {
       if (r.baslangic && r.bitis) {
         for (let y = r.baslangic; y <= r.bitis; y++) yilSet.add(y)
@@ -166,9 +198,19 @@
   }
 
   function renderTable() {
+    const birimFilter = document.getElementById('filter-birim').value
+      ? Number(document.getElementById('filter-birim').value)
+      : null
     const sopFilter = document.getElementById('filter-sop').value
     const yilFilter = document.getElementById('filter-yil').value
-    const rows = sopFilter ? allData.filter(r => r.sop === sopFilter) : allData
+    // Önce birim, sonra SOP'a göre filtrele
+    let rows = allData
+    if (birimFilter !== null) {
+      rows = rows.filter(r => sopBkodMap[r.sop] === birimFilter)
+    }
+    if (sopFilter) {
+      rows = rows.filter(r => r.sop === sopFilter)
+    }
     const tbody = document.getElementById('perf-ozet-tbody')
     const thead = document.getElementById('perf-ozet-thead')
 
@@ -256,6 +298,11 @@
     }
   }
 
+  document.getElementById('filter-birim').addEventListener('change', () => {
+    rebuildSopFilter()
+    rebuildYilFilter(document.getElementById('filter-sop').value)
+    renderTable()
+  })
   document.getElementById('filter-sop').addEventListener('change', () => {
     rebuildYilFilter(document.getElementById('filter-sop').value)
     renderTable()

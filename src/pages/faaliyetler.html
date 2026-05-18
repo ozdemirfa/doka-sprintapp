@@ -156,6 +156,8 @@
 
     // skod → kisa haritası (render için — tüm SOPlar)
     const sopMap = Object.fromEntries((tumSoplar || []).map(s => [s.skod, s.kisa]))
+    // skod → bkod haritası (birim filtresi için — client-side daraltma)
+    const sopBkodMap = Object.fromEntries((tumSoplar || []).map(s => [s.skod, s.bkod]))
 
     // Modal SOP dropdown — her zaman sadece aktif SOPlar
     const fSkod = document.getElementById('f-skod')
@@ -307,12 +309,13 @@
     // ── Veri Yükle & Render ───────────────────────────────────────────
     async function renderPage() {
       const sopFilter = document.getElementById('filter-sop').value
+      const birimFilter = filterBirim.value ? Number(filterBirim.value) : null
 
       let faaliyetQuery = supabase.from('v_faaliyet_ozet').select('*')
       if (sopFilter) faaliyetQuery = faaliyetQuery.eq('skod', sopFilter)
 
       const [
-        { data: faaliyetOzet },
+        { data: faaliyetOzetRaw },
         { data: altFaaliyetOzet },
         { data: anahtarSonuclar }
       ] = await Promise.all([
@@ -320,6 +323,12 @@
         supabase.from('v_alt_faaliyet_ozet').select('*'),
         supabase.from('anahtar_sonuclar').select('*').eq('durum', 'Aktif')
       ])
+
+      // Birim filtresi: v_faaliyet_ozet'te bkod kolonu yok, bu yüzden
+      // client-side olarak SOP'un birimi üzerinden filtrele
+      const faaliyetOzet = birimFilter !== null
+        ? (faaliyetOzetRaw || []).filter(f => sopBkodMap[f.skod] === birimFilter)
+        : (faaliyetOzetRaw || [])
 
       // ── Render ─────────────────────────────────────────────────────
       const container = document.getElementById('faaliyetler-container')

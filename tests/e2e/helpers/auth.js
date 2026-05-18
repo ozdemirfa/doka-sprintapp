@@ -53,6 +53,30 @@ const MOCK_BIRIMLER = [
   { bkod: 2, birim_kisa: 'MEKB', birim_adi: 'Mekanik Birim', durum: 'aktif' }
 ]
 
+// SOP'lar — her birim 2 SOP, birim filter testlerinde kullanılır
+const MOCK_SOPLAR = [
+  { skod: 101, kisa: 'SOP-A1', sop_adi: 'SKB Birim SOP 1', durum: 'Aktif', bkod: 1 },
+  { skod: 102, kisa: 'SOP-A2', sop_adi: 'SKB Birim SOP 2', durum: 'Aktif', bkod: 1 },
+  { skod: 201, kisa: 'SOP-B1', sop_adi: 'MEKB Birim SOP 1', durum: 'Aktif', bkod: 2 },
+  { skod: 202, kisa: 'SOP-B2', sop_adi: 'MEKB Birim SOP 2', durum: 'Aktif', bkod: 2 }
+]
+
+// v_faaliyet_ozet — her SOP'ta 1 faaliyet
+const MOCK_FAALIYET_OZET = [
+  { fkod: 'F-A1-01', skod: 101, sop: 'SOP-A1', kategori: 'K1', faaliyet: 'SKB Faaliyet 1', butce_2026: 1000, aylik_plan: null, is_durum_ort: 0.5, harcanan_butce_toplam: 500, sop_butce: 1000 },
+  { fkod: 'F-A2-01', skod: 102, sop: 'SOP-A2', kategori: 'K1', faaliyet: 'SKB Faaliyet 2', butce_2026: 2000, aylik_plan: null, is_durum_ort: 0.7, harcanan_butce_toplam: 1400, sop_butce: 2000 },
+  { fkod: 'F-B1-01', skod: 201, sop: 'SOP-B1', kategori: 'K1', faaliyet: 'MEKB Faaliyet 1', butce_2026: 1500, aylik_plan: null, is_durum_ort: 0.3, harcanan_butce_toplam: 450, sop_butce: 1500 },
+  { fkod: 'F-B2-01', skod: 202, sop: 'SOP-B2', kategori: 'K1', faaliyet: 'MEKB Faaliyet 2', butce_2026: 2500, aylik_plan: null, is_durum_ort: 0.9, harcanan_butce_toplam: 2250, sop_butce: 2500 }
+]
+
+// v_perf_gosterge_ozet — her SOP'ta 1 perf göstergesi
+const MOCK_PERF_OZET = [
+  { cg_kod: 'CG-A1', sop: 'SOP-A1', bilesen_kodu: 'B1', bilesen_adi: 'SKB B1', cikti_gostergesi: 'X1', birim: 'adet', hedef: 100, planlanan_tamamlanma_donemi: '2026', katki_sonuc_gostergesi: 'KS1', kumulatif_hedef: 100, baslangic: 2024, bitis: 2026, hedef_2024: 30, hedef_2025: 30, hedef_2026: 40, gerceklesen_2024: 25, gerceklesen_2025: 25, gerceklesen_2026: 35, kumulatif_gerceklesme: 85 },
+  { cg_kod: 'CG-A2', sop: 'SOP-A2', bilesen_kodu: 'B2', bilesen_adi: 'SKB B2', cikti_gostergesi: 'X2', birim: 'adet', hedef: 50, planlanan_tamamlanma_donemi: '2026', katki_sonuc_gostergesi: 'KS2', kumulatif_hedef: 50, baslangic: 2024, bitis: 2026, hedef_2024: 15, hedef_2025: 20, hedef_2026: 15, gerceklesen_2024: 10, gerceklesen_2025: 18, gerceklesen_2026: 12, kumulatif_gerceklesme: 40 },
+  { cg_kod: 'CG-B1', sop: 'SOP-B1', bilesen_kodu: 'B3', bilesen_adi: 'MEKB B1', cikti_gostergesi: 'X3', birim: 'kg', hedef: 200, planlanan_tamamlanma_donemi: '2026', katki_sonuc_gostergesi: 'KS3', kumulatif_hedef: 200, baslangic: 2024, bitis: 2026, hedef_2024: 60, hedef_2025: 70, hedef_2026: 70, gerceklesen_2024: 55, gerceklesen_2025: 65, gerceklesen_2026: 50, kumulatif_gerceklesme: 170 },
+  { cg_kod: 'CG-B2', sop: 'SOP-B2', bilesen_kodu: 'B4', bilesen_adi: 'MEKB B2', cikti_gostergesi: 'X4', birim: 'kg', hedef: 80, planlanan_tamamlanma_donemi: '2026', katki_sonuc_gostergesi: 'KS4', kumulatif_hedef: 80, baslangic: 2024, bitis: 2026, hedef_2024: 25, hedef_2025: 30, hedef_2026: 25, gerceklesen_2024: 20, gerceklesen_2025: 28, gerceklesen_2026: 22, kumulatif_gerceklesme: 70 }
+]
+
 const MOCK_SPRINT_OZET = [
   {
     sprint_donem: '2024-S1', sprint_adi: '1. Sprint',
@@ -193,6 +217,30 @@ async function mockSupabase(page) {
       }
       if (url.includes('/v_sprint_ozet')) {
         return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(MOCK_SPRINT_OZET) })
+      }
+      // S2: birim filter testleri için SOP + view verisi
+      if (url.includes('/soplar')) {
+        return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(MOCK_SOPLAR) })
+      }
+      if (url.includes('/v_faaliyet_ozet')) {
+        // Server-side skod=eq.X filtresini sahnele
+        const skodMatch = url.match(/skod=eq\.(\d+)/)
+        const rows = skodMatch
+          ? MOCK_FAALIYET_OZET.filter(f => f.skod === Number(skodMatch[1]))
+          : MOCK_FAALIYET_OZET
+        return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(rows) })
+      }
+      if (url.includes('/v_perf_gosterge_ozet')) {
+        return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(MOCK_PERF_OZET) })
+      }
+      if (url.includes('/v_alt_faaliyet_ozet')) {
+        return route.fulfill({ status: 200, contentType: 'application/json', body: '[]' })
+      }
+      if (url.includes('/anahtar_sonuclar')) {
+        return route.fulfill({ status: 200, contentType: 'application/json', body: '[]' })
+      }
+      if (url.includes('/kategori_tipleri')) {
+        return route.fulfill({ status: 200, contentType: 'application/json', body: '[]' })
       }
       // Bilinmeyen tablolar
       if (method === 'GET') {
@@ -336,6 +384,21 @@ async function mockSupabaseWithPermissions(page, fixture, opts = {}) {
         return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(MOCK_SPRINT_OZET) })
       }
 
+      // S2: SOP + view verisi (birim filter)
+      if (url.includes('/soplar')) {
+        return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(MOCK_SOPLAR) })
+      }
+      if (url.includes('/v_faaliyet_ozet')) {
+        const skodMatch = url.match(/skod=eq\.(\d+)/)
+        const rows = skodMatch
+          ? MOCK_FAALIYET_OZET.filter(f => f.skod === Number(skodMatch[1]))
+          : MOCK_FAALIYET_OZET
+        return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(rows) })
+      }
+      if (url.includes('/v_perf_gosterge_ozet')) {
+        return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(MOCK_PERF_OZET) })
+      }
+
       // Bilinmeyen tablolar
       if (method === 'GET') {
         return route.fulfill({ status: 200, contentType: 'application/json', body: '[]' })
@@ -354,6 +417,9 @@ module.exports = {
   MOCK_SPRINT_VERI,
   MOCK_PERSONEL,
   MOCK_BIRIMLER,
+  MOCK_SOPLAR,
+  MOCK_FAALIYET_OZET,
+  MOCK_PERF_OZET,
   SUPABASE_URL,
   isAuthUrl,
   isRestUrl,
