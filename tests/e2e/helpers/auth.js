@@ -203,8 +203,151 @@ async function mockSupabase(page) {
   )
 }
 
+// ── Permission-aware mock fonksiyonu ─────────────────────────
+
+/**
+ * Belirtilen fixture profiline göre Supabase auth + REST isteklerini mocklar.
+ * Yetki testleri için `mockSupabase` yerine bu fonksiyon kullanılır.
+ *
+ * @param {import('@playwright/test').Page} page
+ * @param {object} fixture — FIXTURES[key] nesnesi (permissions-fixtures.js)
+ * @param {object} [opts]
+ * @param {boolean} [opts.rejectForbiddenMutations=false] — true ise POST/PATCH/DELETE için 403 döndürür
+ */
+async function mockSupabaseWithPermissions(page, fixture, opts = {}) {
+  const { rejectForbiddenMutations = false } = opts
+
+  // Fixture'dan fake user oluştur
+  const fixtureUser = {
+    ...FAKE_USER,
+    id: fixture.userId || FAKE_USER.id,
+    email: fixture.email || FAKE_USER.email,
+  }
+
+  const fixtureJwt = buildFakeJwt()
+
+  const fixtureSession = {
+    ...FAKE_SESSION,
+    access_token: fixtureJwt,
+    user: fixtureUser,
+  }
+
+  const fixturePersonel = [{
+    pkod: fixture.pkod || 1,
+    ad: 'Test',
+    soyad: 'Kullanici',
+    bkod: 1,
+    rol_kodu: fixture.rolKodu || 'standart',
+    durum: 'aktif',
+  }]
+
+  // localStorage'a oturum enjekte et
+  const sessionJson = JSON.stringify(fixtureSession)
+  await page.addInitScript(({ key, val }) => {
+    localStorage.setItem(key, val)
+  }, { key: STORAGE_KEY, val: sessionJson })
+
+  // Auth API istekleri
+  await page.route(
+    (url) => isAuthUrl(url.toString()),
+    async (route) => {
+      const url = route.request().url()
+      if (url.includes('/token')) {
+        return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(fixtureSession) })
+      }
+      if (url.includes('/user')) {
+        return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(fixtureUser) })
+      }
+      return route.fulfill({ status: 200, contentType: 'application/json', body: '{}' })
+    }
+  )
+
+  // REST API istekleri
+  await page.route(
+    (url) => isRestUrl(url.toString()),
+    async (route) => {
+      const url = route.request().url()
+      const method = route.request().method()
+
+      // Yetki tabloları — fixture verisini döndür
+      if (url.includes('/yetki_grubu')) {
+        if (rejectForbiddenMutations && (method === 'POST' || method === 'PATCH' || method === 'DELETE')) {
+          return route.fulfill({ status: 403, contentType: 'application/json', body: JSON.stringify({ message: 'new row violates row-level security policy' }) })
+        }
+        return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(fixture.groupRows || []) })
+      }
+
+      if (url.includes('/personel_yetki_grubu')) {
+        if (rejectForbiddenMutations && method === 'POST') {
+          return route.fulfill({ status: 403, contentType: 'application/json', body: JSON.stringify({ message: 'new row violates row-level security policy' }) })
+        }
+        return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(fixture.membershipRows || []) })
+      }
+
+      if (url.includes('/yetki_grubu_tablo_izni')) {
+        if (rejectForbiddenMutations && (method === 'POST' || method === 'PATCH' || method === 'DELETE')) {
+          return route.fulfill({ status: 403, contentType: 'application/json', body: JSON.stringify({ message: 'new row violates row-level security policy' }) })
+        }
+        return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(fixture.permRows || []) })
+      }
+
+      if (url.includes('/yetki_tablo_katalog')) {
+        // İzin matrisi kataloğu — sabit liste döndür
+        const katalog = [
+          { id: 1, tablo_adi: 'sprint_is_plani', goruntu_adi: 'Sprint İş Planı', kategori: 'Planlama', aciklama: '', sira: 1 },
+          { id: 2, tablo_adi: 'faaliyet', goruntu_adi: 'Faaliyetler', kategori: 'Planlama', aciklama: '', sira: 2 },
+          { id: 3, tablo_adi: 'alt_faaliyet', goruntu_adi: 'Alt Faaliyetler', kategori: 'Planlama', aciklama: '', sira: 3 },
+          { id: 4, tablo_adi: 'sop', goruntu_adi: 'SOP\'lar', kategori: 'Konfigürasyon', aciklama: '', sira: 4 },
+          { id: 5, tablo_adi: 'kategori', goruntu_adi: 'Kategoriler', kategori: 'Konfigürasyon', aciklama: '', sira: 5 },
+          { id: 6, tablo_adi: 'harcama', goruntu_adi: 'Harcamalar', kategori: 'Finans', aciklama: '', sira: 6 },
+          { id: 7, tablo_adi: 'izin', goruntu_adi: 'İzinler', kategori: 'İnsan Kaynakları', aciklama: '', sira: 7 },
+          { id: 8, tablo_adi: 'personel', goruntu_adi: 'Personel', kategori: 'İnsan Kaynakları', aciklama: '', sira: 8 },
+          { id: 9, tablo_adi: 'birim', goruntu_adi: 'Birimler', kategori: 'Organizasyon', aciklama: '', sira: 9 },
+        ]
+        return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(katalog) })
+      }
+
+      // Personel
+      if (url.includes('/personel')) {
+        return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(fixturePersonel) })
+      }
+
+      // Birimler
+      if (url.includes('/birimler')) {
+        return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(MOCK_BIRIMLER) })
+      }
+
+      // Sprint verileri
+      if (url.includes('/sprint_veri')) {
+        if (method === 'PATCH' || method === 'POST') {
+          return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(MOCK_SPRINT_VERI[0]) })
+        }
+        return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(MOCK_SPRINT_VERI) })
+      }
+
+      if (url.includes('/sprint_is_plani')) {
+        if (method === 'PATCH') return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(MOCK_IS_PLANI[0]) })
+        if (method === 'POST') return route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ ...MOCK_IS_PLANI[0], id: 99 }) })
+        if (method === 'DELETE') return route.fulfill({ status: 204, body: '' })
+        return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(MOCK_IS_PLANI) })
+      }
+
+      if (url.includes('/v_sprint_ozet')) {
+        return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(MOCK_SPRINT_OZET) })
+      }
+
+      // Bilinmeyen tablolar
+      if (method === 'GET') {
+        return route.fulfill({ status: 200, contentType: 'application/json', body: '[]' })
+      }
+      return route.fulfill({ status: 200, contentType: 'application/json', body: '{}' })
+    }
+  )
+}
+
 module.exports = {
   mockSupabase,
+  mockSupabaseWithPermissions,
   FAKE_SESSION,
   FAKE_USER,
   MOCK_IS_PLANI,
