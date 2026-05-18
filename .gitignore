@@ -11,3 +11,6 @@ playwright-report/
 test-results/
 tests/
 run.sh
+
+# Logo source materials (originals/.emf) — sadece src/assets/logos/ committed
+/logos/

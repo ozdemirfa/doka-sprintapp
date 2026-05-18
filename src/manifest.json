@@ -9,13 +9,13 @@
   "icons": [
     {
       "src": "assets/favicon.png",
-      "sizes": "400x197",
+      "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "assets/logos/doka-logo.png",
-      "sizes": "512x512",
+      "src": "assets/logos/dok-logo.png",
+      "sizes": "400x197",
       "type": "image/png",
       "purpose": "any"
     }
