@@ -1,0 +1,752 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Yetki Yönetimi — DOKA Sprint Kanban</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="../css/app.css" />
+  <link rel="icon" type="image/png" href="../assets/favicon.png" />
+  <link rel="manifest" href="../manifest.json" />
+  <meta name="theme-color" content="#1a2744" />
+  <!-- S-008: Content-Security-Policy — Tailwind CDN geçici olarak izin verildi; ileride self-host ile kaldırılacak -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.tailwindcss.com 'unsafe-inline'; connect-src 'self' https://*.supabase.co; img-src 'self' data:; style-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com;">
+  <style>
+    .tab-btn { padding:8px 18px;border-radius:6px 6px 0 0;font-size:0.82rem;font-weight:600;cursor:pointer;border:none;background:#e2e8f0;color:#475569;transition:all .15s; }
+    .tab-btn.active { background:var(--navy);color:#fff; }
+    .tab-panel { display:none; }
+    .tab-panel.active { display:block; }
+    .row-action { padding:2px 8px;font-size:0.75rem;border-radius:4px;cursor:pointer;border:1px solid; }
+    .row-edit { background:#eff6ff;color:#1d4ed8;border-color:#bfdbfe; }
+    .row-del  { background:#fee2e2;color:#b91c1c;border-color:#fca5a5; }
+
+    /* İzin matrisi */
+    .matrix-layout { display:grid; grid-template-columns:240px 1fr; gap:14px; }
+    .matrix-side { background:#fff; border:1px solid #e2e8f0; border-radius:8px; padding:8px; max-height:60vh; overflow:auto; }
+    .matrix-side button {
+      display:block; width:100%; text-align:left; padding:8px 10px; margin-bottom:4px;
+      border:1px solid transparent; border-radius:6px; background:transparent; cursor:pointer;
+      font-size:0.82rem; color:#1f2937;
+    }
+    .matrix-side button:hover { background:#f1f5f9; }
+    .matrix-side button.selected { background:var(--navy); color:#fff; }
+    .matrix-side button.selected .group-meta { color:#cbd5e1; }
+    .matrix-side .group-meta { display:block; font-size:0.7rem; color:#94a3b8; margin-top:2px; }
+
+    .matrix-table { background:#fff; border:1px solid #e2e8f0; border-radius:8px; overflow:hidden; }
+    .matrix-table table { width:100%; border-collapse:collapse; font-size:0.8rem; }
+    .matrix-table th, .matrix-table td { padding:8px 10px; border-bottom:1px solid #f1f5f9; }
+    .matrix-table thead { background:#f8fafc; }
+    .matrix-table th { text-align:left; color:#475569; font-weight:600; }
+    .matrix-table .col-check { width:80px; text-align:center; }
+    .matrix-table tbody tr:hover { background:#f8fafc; }
+    .matrix-table .cat-row td { background:#eef2ff; color:var(--navy); font-weight:700; }
+
+    .toolbar-sticky {
+      position:sticky; bottom:0; background:#fff; padding:10px 16px; border-top:1px solid #e2e8f0;
+      display:flex; gap:10px; justify-content:flex-end;
+    }
+
+    /* Q-005: toolbar görünürlüğü inline style yerine CSS class ile yönetilir */
+    .is-hidden { display: none !important; }
+
+    /* S-012: ekran okuyucu için gizli label'lar */
+    .sr-only { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
+
+    /* Üyeler tab */
+    .members-layout { display:grid; grid-template-columns:300px 1fr; gap:14px; }
+    .chip {
+      display:inline-flex; align-items:center; gap:6px; padding:4px 10px; margin:2px;
+      background:var(--gold-pale); color:var(--navy); border-radius:14px; font-size:0.75rem;
+      cursor:pointer; user-select:none; border:1px solid transparent;
+    }
+    .chip.active { background:var(--navy); color:#fff; border-color:var(--gold); }
+    .chip:hover { border-color:var(--gold); }
+  </style>
+</head>
+<body hidden>
+<div class="app-layout">
+
+  <!-- Sidebar -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <a href="../index.html" class="sidebar-brand" aria-label="DOKA Sprint Kanban — Anasayfa">
+        <img src="../assets/logos/doka-logo.png" alt="DOKA — Doğu Karadeniz Kalkınma Ajansı" class="sidebar-logo-img">
+      </a>
+      <span class="sidebar-brand-tagline">Sprint Kanban Sistemi</span>
+    </div>
+    <nav>
+      <a href="../index.html"><span class="icon">📋</span> Kanban Board</a>
+      <a href="sprint-ozet.html"><span class="icon">📊</span> Sprint Özet</a>
+      <a href="faaliyetler.html"><span class="icon">📁</span> Faaliyetler</a>
+      <a href="performans.html"><span class="icon">🎯</span> Perf. Özeti</a>
+      <a href="sprint-perf-gos.html"><span class="icon">📈</span> Perf. Gerçekleşmeleri</a>
+      <a href="harcamalar.html"><span class="icon">💰</span> Harcamalar</a>
+      <a href="izinler.html"><span class="icon">🗓️</span> İzinler & Saha</a>
+      <a href="retro.html"><span class="icon">🔁</span> Retrospektif</a>
+      <a href="raporlar.html"><span class="icon">📑</span> Raporlar</a>
+      <a href="parola.html"><span class="icon">🔑</span> Parola İşlemleri</a>
+      <a href="ayarlar.html"><span class="icon">⚙️</span> Ayarlar</a>
+      <a href="yetki-yonetimi.html" class="active"><span class="icon">🛡️</span> Yetki Yönetimi</a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="user-info"><strong id="user-name">Yükleniyor...</strong>Yönetici</div>
+      <button class="btn-logout" id="logout-btn">⇐ Çıkış Yap</button>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="main-content">
+    <div class="page-header">
+      <h2>🛡️ Yetki Yönetimi</h2>
+    </div>
+
+    <div class="page-body">
+
+      <!-- Tab Başlıkları — S-013: WAI-ARIA tab pattern -->
+      <div role="tablist" aria-label="Yetki Yönetimi sekmeleri" style="display:flex;gap:4px;margin-bottom:0;border-bottom:2px solid var(--navy);">
+        <button class="tab-btn active" role="tab" aria-selected="true" aria-controls="tab-gruplar" id="tab-btn-gruplar" data-tab="gruplar">Yetki Grupları</button>
+        <button class="tab-btn" role="tab" aria-selected="false" aria-controls="tab-matris" id="tab-btn-matris" data-tab="matris">İzin Matrisi</button>
+        <button class="tab-btn" role="tab" aria-selected="false" aria-controls="tab-uyeler" id="tab-btn-uyeler" data-tab="uyeler">Kullanıcı–Grup Atama</button>
+      </div>
+
+      <!-- ───── Yetki Grupları ───── -->
+      <div class="tab-panel active metric-card" id="tab-gruplar" role="tabpanel" aria-labelledby="tab-btn-gruplar" style="border-radius:0 6px 6px 6px;padding:0;overflow:hidden;">
+        <div style="padding:10px 16px;background:#f8fafc;border-bottom:1px solid #e2e8f0;display:flex;justify-content:flex-end;">
+          <button class="btn-gold" id="btn-yeni-grup">+ Yeni Yetki Grubu</button>
+        </div>
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Ad</th>
+              <th>Açıklama</th>
+              <th style="text-align:center;">Üye</th>
+              <th style="text-align:center;">Tablo İzni</th>
+              <th style="text-align:center;">Sistem</th>
+              <th style="text-align:center;">Aktif</th>
+              <th style="text-align:center;">İşlem</th>
+            </tr>
+          </thead>
+          <tbody id="gruplar-tbody">
+            <tr><td colspan="7" class="loading-state"><span class="icon">⏳</span><span class="title">Yükleniyor...</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- ───── İzin Matrisi ───── -->
+      <div class="tab-panel metric-card" id="tab-matris" role="tabpanel" aria-labelledby="tab-btn-matris" style="border-radius:0 6px 6px 6px;padding:14px;">
+        <div class="matrix-layout">
+          <div class="matrix-side" id="matris-grup-list"></div>
+          <div class="matrix-table">
+            <table>
+              <thead>
+                <tr>
+                  <th style="width:auto;">Tablo</th>
+                  <th class="col-check">Okuma <input type="checkbox" data-toggle-col="okuma"></th>
+                  <th class="col-check">Yazma <input type="checkbox" data-toggle-col="yazma"></th>
+                  <th class="col-check">Güncelleme <input type="checkbox" data-toggle-col="guncelleme"></th>
+                  <th class="col-check">Silme <input type="checkbox" data-toggle-col="silme"></th>
+                </tr>
+              </thead>
+              <tbody id="matris-tbody">
+                <tr><td colspan="5" class="empty-state"><span class="icon">⬅️</span><span class="title">Önce sol taraftan bir yetki grubu seçin.</span></td></tr>
+              </tbody>
+            </table>
+            <div class="toolbar-sticky is-hidden" id="matris-toolbar">
+              <span id="matris-status" style="margin-right:auto;font-size:0.8rem;color:#64748b;"></span>
+              <button class="btn-secondary" id="btn-matris-iptal">Vazgeç</button>
+              <button class="btn-primary" id="btn-matris-kaydet">Kaydet</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ───── Kullanıcı–Grup Atama ───── -->
+      <div class="tab-panel metric-card" id="tab-uyeler" role="tabpanel" aria-labelledby="tab-btn-uyeler" style="border-radius:0 6px 6px 6px;padding:14px;">
+        <div class="members-layout">
+          <div class="matrix-side" id="uyeler-list">
+            <input type="text" id="uyeler-search" class="form-control" placeholder="🔍 personel ara..." style="margin-bottom:8px;">
+          </div>
+          <div>
+            <div id="uyeler-detay" class="empty-state">
+              <span class="icon">👤</span>
+              <span class="title">Bir kullanıcı seçin</span>
+              <span class="hint">Sol listeden personeli seçtiğinizde, ait olduğu yetki grupları burada görünür.</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+</div>
+
+<!-- ── Yeni Grup / Düzenle Modalı ── -->
+<div class="modal-overlay hidden" id="modal-grup" role="dialog" aria-modal="true" aria-labelledby="modal-grup-title">
+  <div class="modal-box modal-sm">
+    <h3 id="modal-grup-title">Yeni Yetki Grubu</h3>
+    <div class="form-group">
+      <label for="grup-ad">Ad <span style="color:#dc2626;">*</span></label>
+      <input type="text" id="grup-ad" class="form-control" maxlength="60" required>
+    </div>
+    <div class="form-group">
+      <label for="grup-aciklama">Açıklama</label>
+      <textarea id="grup-aciklama" class="form-control" rows="3"></textarea>
+    </div>
+    <div class="form-group">
+      <label><input type="checkbox" id="grup-aktif" checked> Aktif</label>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-secondary" id="btn-grup-iptal">Vazgeç</button>
+      <button class="btn-primary" id="btn-grup-kaydet">Kaydet</button>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+  import { supabase } from '../js/supabase.js'
+  import { requireAuth, signOut } from '../js/auth.js'
+  import { getPersonel, renderUserInfo, showToast, showConfirm, setFieldError, clearFieldError } from '../js/utils.js'
+  import { loadCurrentGroupNames } from '../js/permissions.js'
+
+  // ── Auth Guard — S-005: body hidden başlar; gate geçince açılır ────
+  const session = await requireAuth()
+  if (!session) { window.location.replace('../login.html'); throw new Error('redirect') }
+  const personel = await getPersonel(supabase, session.user.id)
+  renderUserInfo(personel?.ad, personel?.soyad)
+
+  // Yetki: yönetici rol_kodu VEYA yönetici grubunda üye
+  const groupNames = await loadCurrentGroupNames(supabase, personel?.pkod)
+  if (personel?.rol_kodu !== 'yönetici' && !groupNames.includes('yönetici')) {
+    // S-005: anında yönlendirme — toast yok (DOM hiç açılmadı), setTimeout yok
+    window.location.replace('../index.html')
+    throw new Error('redirect')
+  }
+
+  // Yetkili — sayfa içeriğini göster
+  document.body.hidden = false
+
+  document.getElementById('logout-btn')?.addEventListener('click', async () => {
+    await signOut(); window.location.href = '../login.html'
+  })
+
+  // ── Tab geçişleri — S-013: ARIA state + klavye nav (←/→/Home/End) ─
+  const tabBtns = Array.from(document.querySelectorAll('.tab-btn[role="tab"]'))
+
+  function activateTab(btn) {
+    tabBtns.forEach(x => {
+      x.classList.remove('active')
+      x.setAttribute('aria-selected', 'false')
+      x.setAttribute('tabindex', '-1')
+    })
+    document.querySelectorAll('.tab-panel').forEach(x => x.classList.remove('active'))
+    btn.classList.add('active')
+    btn.setAttribute('aria-selected', 'true')
+    btn.setAttribute('tabindex', '0')
+    document.getElementById('tab-' + btn.dataset.tab).classList.add('active')
+    if (btn.dataset.tab === 'matris') loadMatrisGroups()
+    if (btn.dataset.tab === 'uyeler') loadUyeler()
+  }
+
+  tabBtns.forEach((btn, i) => {
+    btn.setAttribute('tabindex', i === 0 ? '0' : '-1')
+    btn.addEventListener('click', () => activateTab(btn))
+    btn.addEventListener('keydown', e => {
+      let target
+      if (e.key === 'ArrowRight') target = tabBtns[(i + 1) % tabBtns.length]
+      else if (e.key === 'ArrowLeft') target = tabBtns[(i - 1 + tabBtns.length) % tabBtns.length]
+      else if (e.key === 'Home') target = tabBtns[0]
+      else if (e.key === 'End') target = tabBtns[tabBtns.length - 1]
+      if (target) { e.preventDefault(); target.focus(); activateTab(target) }
+    })
+  })
+
+  // ============================================================
+  // TAB 1 — Yetki Grupları (CRUD)
+  // ============================================================
+  let currentEditId = null
+
+  async function loadGruplar() {
+    const tbody = document.getElementById('gruplar-tbody')
+    tbody.innerHTML = '<tr><td colspan="7" class="loading-state"><span class="icon">⏳</span><span class="title">Yükleniyor...</span></td></tr>'
+
+    const { data: groups, error } = await supabase
+      .from('yetki_grubu')
+      .select('*')
+      .order('sistem_grubu', { ascending: false })
+      .order('ad')
+
+    if (error) {
+      // S-008: error.message textContent ile yazılır — innerHTML XSS'den kaçınmak için
+      const errRow = document.createElement('tr')
+      const errCell = document.createElement('td')
+      errCell.colSpan = 7
+      errCell.className = 'error-state'
+      errCell.innerHTML = '<span class="icon">⚠️</span><span class="title">Yüklenemedi</span>'
+      const hint = document.createElement('span')
+      hint.className = 'hint'
+      hint.textContent = error.message
+      errCell.appendChild(hint)
+      errRow.appendChild(errCell)
+      tbody.innerHTML = ''
+      tbody.appendChild(errRow)
+      return
+    }
+
+    if (!groups?.length) {
+      tbody.innerHTML = '<tr><td colspan="7" class="empty-state"><span class="icon">📭</span><span class="title">Henüz yetki grubu yok.</span></td></tr>'
+      return
+    }
+
+    // Üye sayıları + tablo izni sayıları
+    const counts = await fetchGroupCounts(groups.map(g => g.id))
+
+    tbody.innerHTML = groups.map(g => {
+      const cnt = counts[g.id] || { uye: 0, izin: 0 }
+      const sistem = g.sistem_grubu
+      return `
+        <tr data-id="${g.id}" data-testid="group-row">
+          <td><strong data-testid="group-name">${escapeHtml(g.ad)}</strong></td>
+          <td style="color:#64748b;">${escapeHtml(g.aciklama || '—')}</td>
+          <td style="text-align:center;" data-testid="group-member-count">${cnt.uye}</td>
+          <td style="text-align:center;">${cnt.izin}</td>
+          <td style="text-align:center;">${sistem ? '<span title="Sistem grubu: silinemez ve adı değiştirilemez">🔒</span>' : '—'}</td>
+          <td style="text-align:center;">${g.aktif ? '✅' : '⛔'}</td>
+          <td style="text-align:center;">
+            <button class="row-action row-edit" data-action="edit">${sistem ? 'Görüntüle' : 'Düzenle'}</button>
+            ${sistem ? '' : `<button class="row-action row-del" data-action="del">Sil</button>`}
+          </td>
+        </tr>
+      `
+    }).join('')
+  }
+
+  async function fetchGroupCounts(groupIds) {
+    if (!groupIds.length) return {}
+    const counts = {}
+    groupIds.forEach(id => counts[id] = { uye: 0, izin: 0 })
+
+    const { data: uyeler } = await supabase
+      .from('personel_yetki_grubu')
+      .select('yetki_grubu_id')
+      .in('yetki_grubu_id', groupIds)
+    uyeler?.forEach(r => { counts[r.yetki_grubu_id].uye++ })
+
+    const { data: izinler } = await supabase
+      .from('yetki_grubu_tablo_izni')
+      .select('yetki_grubu_id')
+      .in('yetki_grubu_id', groupIds)
+    izinler?.forEach(r => { counts[r.yetki_grubu_id].izin++ })
+
+    return counts
+  }
+
+  document.getElementById('btn-yeni-grup').addEventListener('click', () => {
+    currentEditId = null
+    document.getElementById('modal-grup-title').textContent = 'Yeni Yetki Grubu'
+    document.getElementById('grup-ad').value = ''
+    document.getElementById('grup-ad').disabled = false
+    document.getElementById('grup-aciklama').value = ''
+    document.getElementById('grup-aciklama').disabled = false
+    document.getElementById('grup-aktif').checked = true
+    document.getElementById('grup-aktif').disabled = false
+    document.getElementById('btn-grup-kaydet').classList.remove('is-hidden')
+    clearFieldError(document.getElementById('grup-ad'))
+    document.getElementById('modal-grup').classList.remove('hidden')
+    setTimeout(() => document.getElementById('grup-ad').focus(), 50)
+  })
+
+  document.getElementById('btn-grup-iptal').addEventListener('click', () => {
+    document.getElementById('modal-grup').classList.add('hidden')
+  })
+
+  document.getElementById('btn-grup-kaydet').addEventListener('click', async () => {
+    const adInput = document.getElementById('grup-ad')
+    const ad = adInput.value.trim()
+    if (!ad) { setFieldError(adInput, 'Ad zorunludur.'); return }
+    clearFieldError(adInput)
+
+    const payload = {
+      ad,
+      aciklama: document.getElementById('grup-aciklama').value.trim() || null,
+      aktif:    document.getElementById('grup-aktif').checked
+    }
+
+    let error
+    if (currentEditId) {
+      ;({ error } = await supabase.from('yetki_grubu').update(payload).eq('id', currentEditId))
+    } else {
+      ;({ error } = await supabase.from('yetki_grubu').insert(payload))
+    }
+
+    if (error) { showToast('Kayıt hatası: ' + error.message, 'error'); return }
+    document.getElementById('modal-grup').classList.add('hidden')
+    showToast(currentEditId ? 'Yetki grubu güncellendi.' : 'Yeni yetki grubu eklendi.', 'success')
+    await loadGruplar()
+  })
+
+  // Satır aksiyonu (düzenle/sil)
+  document.getElementById('gruplar-tbody').addEventListener('click', async e => {
+    const btn = e.target.closest('button[data-action]')
+    if (!btn) return
+    const tr = btn.closest('tr')
+    const id = parseInt(tr.dataset.id)
+
+    if (btn.dataset.action === 'edit') {
+      const { data: g } = await supabase.from('yetki_grubu').select('*').eq('id', id).single()
+      if (!g) return
+      currentEditId = g.id
+      document.getElementById('modal-grup-title').textContent = g.sistem_grubu ? 'Sistem Grubu (Salt-Okunur)' : 'Yetki Grubunu Düzenle'
+      document.getElementById('grup-ad').value = g.ad
+      document.getElementById('grup-aciklama').value = g.aciklama || ''
+      document.getElementById('grup-aktif').checked = g.aktif
+      // S-015: sistem grubu — tüm input'ları disable et, kaydet butonunu gizle
+      const isSistem = !!g.sistem_grubu
+      document.getElementById('grup-ad').disabled = isSistem
+      document.getElementById('grup-aciklama').disabled = isSistem
+      document.getElementById('grup-aktif').disabled = isSistem
+      const kaydetBtn = document.getElementById('btn-grup-kaydet')
+      if (isSistem) {
+        kaydetBtn.classList.add('is-hidden')
+      } else {
+        kaydetBtn.classList.remove('is-hidden')
+      }
+      document.getElementById('modal-grup').classList.remove('hidden')
+    }
+
+    if (btn.dataset.action === 'del') {
+      // S-011: Silme öncesi cascade etkisini sorgula
+      const [{ count: uyeSayisi }, { count: izinSayisi }] = await Promise.all([
+        supabase.from('personel_yetki_grubu').select('*', { count: 'exact', head: true }).eq('yetki_grubu_id', id),
+        supabase.from('yetki_grubu_tablo_izni').select('*', { count: 'exact', head: true }).eq('yetki_grubu_id', id)
+      ])
+      const uyeStr = (uyeSayisi || 0) > 0 ? `${uyeSayisi} kullanıcı yetkisini` : null
+      const izinStr = (izinSayisi || 0) > 0 ? `${izinSayisi} tablo izin satırını` : null
+      const etkiStr = [uyeStr, izinStr].filter(Boolean).join(' ve ')
+      const detay = etkiStr ? ` Bu grup silinirse ${etkiStr} kaybedecek.` : ''
+      const ok = await showConfirm({
+        title: 'Yetki Grubu Sil',
+        message: `Bu grup ve tüm atamaları kalıcı olarak silinecek.${detay} Devam edilsin mi?`,
+        confirmText: 'Sil', danger: true
+      })
+      if (!ok) return
+      const { error } = await supabase.from('yetki_grubu').delete().eq('id', id)
+      if (error) { showToast('Silme hatası: ' + error.message, 'error'); return }
+      showToast('Yetki grubu silindi.', 'success')
+      await loadGruplar()
+    }
+  })
+
+  // ============================================================
+  // TAB 2 — İzin Matrisi
+  // ============================================================
+  let matrisAktifGrup = null
+  let matrisOriginal  = {}  // { tablo_adi: { okuma, yazma, guncelleme, silme } }
+  let matrisDegisti   = false
+
+  // S-009: beforeunload guard — kaydedilmemiş matris değişikliği varsa uyar
+  window.addEventListener('beforeunload', e => {
+    if (matrisDegisti) { e.preventDefault(); e.returnValue = '' }
+  })
+
+  // S-009: Sidebar linklerine tıklanınca matrisDegisti ise confirm sor
+  document.querySelectorAll('#sidebar nav a[href]').forEach(link => {
+    link.addEventListener('click', async e => {
+      if (matrisDegisti) {
+        e.preventDefault()
+        const href = link.getAttribute('href')
+        const ok = await showConfirm({
+          title: 'Kaydedilmemiş değişiklik',
+          message: 'Matristeki değişiklikler kaybolacak. Sayfadan çıkmak istiyor musunuz?',
+          confirmText: 'Çık', danger: true
+        })
+        if (ok) { matrisDegisti = false; window.location.href = href }
+      }
+    })
+  })
+
+  async function loadMatrisGroups() {
+    const list = document.getElementById('matris-grup-list')
+    const { data: groups } = await supabase
+      .from('yetki_grubu').select('*').order('sistem_grubu', { ascending: false }).order('ad')
+    // S-014: aria-pressed ile seçim durumu erişilebilir
+    list.innerHTML = (groups || []).map(g => `
+      <button data-id="${g.id}" data-name="${escapeHtml(g.ad)}" aria-pressed="false">
+        ${escapeHtml(g.ad)}
+        <span class="group-meta">${g.sistem_grubu ? 'Sistem · ' : ''}${g.aktif ? 'Aktif' : 'Pasif'}</span>
+      </button>
+    `).join('')
+    list.querySelectorAll('button[data-id]').forEach(b => {
+      b.addEventListener('click', () => selectMatrisGroup(parseInt(b.dataset.id), b.dataset.name))
+    })
+  }
+
+  async function selectMatrisGroup(id, name) {
+    if (matrisDegisti) {
+      const ok = await showConfirm({ title:'Kaydedilmemiş değişiklik', message:'Mevcut değişiklikler kaybolacak. Devam edilsin mi?', danger:true })
+      if (!ok) return
+    }
+    // S-014: aria-pressed güncelle
+    document.querySelectorAll('#matris-grup-list button').forEach(x => {
+      x.classList.remove('selected')
+      x.setAttribute('aria-pressed', 'false')
+    })
+    const selBtn = document.querySelector(`#matris-grup-list button[data-id="${id}"]`)
+    selBtn?.classList.add('selected')
+    selBtn?.setAttribute('aria-pressed', 'true')
+    matrisAktifGrup = { id, name }
+    await loadMatrisRows(id)
+  }
+
+  async function loadMatrisRows(grupId) {
+    const tbody = document.getElementById('matris-tbody')
+    tbody.innerHTML = '<tr><td colspan="5" class="loading-state"><span class="icon">⏳</span><span class="title">Yükleniyor...</span></td></tr>'
+
+    const { data: katalog } = await supabase
+      .from('yetki_tablo_katalog').select('*').order('sira')
+    const { data: izinler } = await supabase
+      .from('yetki_grubu_tablo_izni').select('*').eq('yetki_grubu_id', grupId)
+
+    const map = {}
+    izinler?.forEach(i => { map[i.tablo_adi] = i })
+    matrisOriginal = JSON.parse(JSON.stringify(map))
+
+    let html = ''
+    let lastCat = null
+    for (const k of katalog || []) {
+      if (k.kategori !== lastCat) {
+        html += `<tr class="cat-row"><td colspan="5">${escapeHtml(k.kategori)}</td></tr>`
+        lastCat = k.kategori
+      }
+      const r = map[k.tablo_adi] || { okuma:false, yazma:false, guncelleme:false, silme:false }
+      const tid = escapeHtml(k.tablo_adi)
+      // S-012: sr-only label'lar — ekran okuyucu "tablo izni okuma" şeklinde okur
+      html += `
+        <tr data-tablo="${k.tablo_adi}">
+          <td>
+            <strong>${escapeHtml(k.goruntu_adi)}</strong>
+            <div style="font-size:0.7rem;color:#94a3b8;">${escapeHtml(k.aciklama || '')}</div>
+          </td>
+          <td class="col-check">
+            <label class="sr-only" for="perm-${tid}-okuma">${escapeHtml(k.goruntu_adi)} okuma</label>
+            <input type="checkbox" id="perm-${tid}-okuma" data-perm="okuma" ${r.okuma ? 'checked' : ''}>
+          </td>
+          <td class="col-check">
+            <label class="sr-only" for="perm-${tid}-yazma">${escapeHtml(k.goruntu_adi)} yazma</label>
+            <input type="checkbox" id="perm-${tid}-yazma" data-perm="yazma" ${r.yazma ? 'checked' : ''}>
+          </td>
+          <td class="col-check">
+            <label class="sr-only" for="perm-${tid}-guncelleme">${escapeHtml(k.goruntu_adi)} güncelleme</label>
+            <input type="checkbox" id="perm-${tid}-guncelleme" data-perm="guncelleme" ${r.guncelleme ? 'checked' : ''}>
+          </td>
+          <td class="col-check">
+            <label class="sr-only" for="perm-${tid}-silme">${escapeHtml(k.goruntu_adi)} silme</label>
+            <input type="checkbox" id="perm-${tid}-silme" data-perm="silme" ${r.silme ? 'checked' : ''}>
+          </td>
+        </tr>
+      `
+    }
+    tbody.innerHTML = html
+    matrisDegisti = false
+    // Q-005: CSS class ile görünürlük yönetimi
+    document.getElementById('matris-toolbar').classList.remove('is-hidden')
+    document.getElementById('matris-status').textContent = `Grup: ${matrisAktifGrup.name}`
+  }
+
+  document.getElementById('matris-tbody').addEventListener('change', e => {
+    if (e.target.matches('input[type=checkbox]')) {
+      matrisDegisti = true
+      document.getElementById('matris-status').textContent = `Grup: ${matrisAktifGrup.name} — kaydedilmemiş değişiklik`
+    }
+  })
+
+  // Sütun bazlı toplu seçim
+  document.querySelectorAll('input[data-toggle-col]').forEach(cb => {
+    cb.addEventListener('change', () => {
+      const col = cb.dataset.toggleCol
+      document.querySelectorAll(`#matris-tbody input[data-perm="${col}"]`).forEach(x => {
+        x.checked = cb.checked
+      })
+      matrisDegisti = true
+    })
+  })
+
+  document.getElementById('btn-matris-iptal').addEventListener('click', async () => {
+    if (!matrisAktifGrup) return
+    await loadMatrisRows(matrisAktifGrup.id)
+    showToast('Değişiklikler iptal edildi.', 'warning')
+  })
+
+  document.getElementById('btn-matris-kaydet').addEventListener('click', async () => {
+    if (!matrisAktifGrup) return
+    const rows = document.querySelectorAll('#matris-tbody tr[data-tablo]')
+    const upserts = []
+    const deletes = []
+    for (const tr of rows) {
+      const tablo = tr.dataset.tablo
+      const checks = {}
+      tr.querySelectorAll('input[data-perm]').forEach(cb => { checks[cb.dataset.perm] = cb.checked })
+      const allFalse = !checks.okuma && !checks.yazma && !checks.guncelleme && !checks.silme
+      if (allFalse) {
+        if (matrisOriginal[tablo]) deletes.push(tablo)
+      } else {
+        upserts.push({
+          yetki_grubu_id: matrisAktifGrup.id,
+          tablo_adi: tablo,
+          okuma: checks.okuma, yazma: checks.yazma,
+          guncelleme: checks.guncelleme, silme: checks.silme
+        })
+      }
+    }
+
+    if (upserts.length) {
+      const { error } = await supabase.from('yetki_grubu_tablo_izni')
+        .upsert(upserts, { onConflict: 'yetki_grubu_id,tablo_adi' })
+      if (error) { showToast('Kayıt hatası: ' + error.message, 'error'); return }
+    }
+    if (deletes.length) {
+      const { error } = await supabase.from('yetki_grubu_tablo_izni')
+        .delete().eq('yetki_grubu_id', matrisAktifGrup.id).in('tablo_adi', deletes)
+      if (error) { showToast('Silme hatası: ' + error.message, 'error'); return }
+    }
+
+    matrisDegisti = false
+    showToast('İzin matrisi kaydedildi.', 'success')
+    await loadMatrisRows(matrisAktifGrup.id)
+  })
+
+  // ============================================================
+  // TAB 3 — Kullanıcı–Grup Atama
+  // ============================================================
+  let uyelerListesi = []
+  let secilenPersonel = null
+
+  async function loadUyeler() {
+    const { data } = await supabase.from('personel')
+      .select('pkod, ad, soyad, bkod, durum, rol_kodu')
+      .order('ad')
+    uyelerListesi = data || []
+    renderUyeler()
+  }
+
+  function renderUyeler() {
+    const list = document.getElementById('uyeler-list')
+    const search = (document.getElementById('uyeler-search')?.value || '').toLowerCase()
+    const filtered = uyelerListesi.filter(p => {
+      const full = `${p.ad} ${p.soyad}`.toLowerCase()
+      return full.includes(search)
+    })
+    const itemsHtml = filtered.map(p => `
+      <button data-pkod="${p.pkod}">
+        ${escapeHtml(p.ad)} ${escapeHtml(p.soyad)}
+        <span class="group-meta">${p.durum || 'Aktif'} · ${escapeHtml(p.rol_kodu || '—')}</span>
+      </button>
+    `).join('')
+    list.innerHTML = `
+      <input type="text" id="uyeler-search" class="form-control" placeholder="🔍 personel ara..." value="${escapeHtml(search)}" style="margin-bottom:8px;">
+      ${itemsHtml || '<div class="empty-state"><span class="icon">🔍</span><span class="title">Sonuç yok</span></div>'}
+    `
+    document.getElementById('uyeler-search').addEventListener('input', renderUyeler)
+    list.querySelectorAll('button[data-pkod]').forEach(b => {
+      b.addEventListener('click', () => selectPersonel(parseInt(b.dataset.pkod)))
+    })
+    if (secilenPersonel) {
+      list.querySelector(`button[data-pkod="${secilenPersonel.pkod}"]`)?.classList.add('selected')
+    }
+  }
+
+  async function selectPersonel(pkod) {
+    secilenPersonel = uyelerListesi.find(p => p.pkod === pkod)
+    document.querySelectorAll('#uyeler-list button[data-pkod]').forEach(b => b.classList.remove('selected'))
+    document.querySelector(`#uyeler-list button[data-pkod="${pkod}"]`)?.classList.add('selected')
+    await renderPersonelDetay()
+  }
+
+  async function renderPersonelDetay() {
+    const detay = document.getElementById('uyeler-detay')
+    detay.classList.remove('empty-state')
+    detay.removeAttribute('class')
+    detay.innerHTML = '<div class="loading-state"><span class="icon">⏳</span><span class="title">Yükleniyor...</span></div>'
+
+    const { data: groups } = await supabase
+      .from('yetki_grubu').select('*').eq('aktif', true).order('sistem_grubu', { ascending:false }).order('ad')
+    const { data: memberships } = await supabase
+      .from('personel_yetki_grubu').select('yetki_grubu_id').eq('personel_pkod', secilenPersonel.pkod)
+
+    const memberSet = new Set((memberships || []).map(m => m.yetki_grubu_id))
+
+    detay.innerHTML = `
+      <div class="metric-card" style="padding:16px;">
+        <h3 style="margin:0 0 4px 0;color:var(--navy);">${escapeHtml(secilenPersonel.ad)} ${escapeHtml(secilenPersonel.soyad)}</h3>
+        <p style="font-size:0.8rem;color:#64748b;margin-bottom:14px;">
+          Eski Rol: <strong>${escapeHtml(secilenPersonel.rol_kodu || '—')}</strong> · Durum: ${escapeHtml(secilenPersonel.durum || 'Aktif')}
+        </p>
+        <p style="font-size:0.8rem;color:#475569;margin-bottom:8px;">
+          Atanmış yetki gruplarını seçmek/kaldırmak için tıklayın:
+        </p>
+        <div id="grup-chips">
+          ${(groups || []).map(g => `
+            <span class="chip ${memberSet.has(g.id) ? 'active' : ''}" data-id="${g.id}" data-sistem="${g.sistem_grubu ? '1' : '0'}" role="button" aria-pressed="${memberSet.has(g.id) ? 'true' : 'false'}">
+              ${memberSet.has(g.id) ? '✓ ' : '+ '}${escapeHtml(g.ad)}
+            </span>
+          `).join('')}
+        </div>
+      </div>
+    `
+
+    detay.querySelectorAll('.chip[data-id]').forEach(chip => {
+      chip.addEventListener('click', async () => {
+        const id = parseInt(chip.dataset.id)
+        const isMember = chip.classList.contains('active')
+        const isSistem = chip.dataset.sistem === '1'
+        const chipLabel = chip.textContent.trim().replace(/^[✓+]\s*/, '')
+
+        // S-010: sistem grubu chip'leri için confirm sor
+        if (isSistem) {
+          const action = isMember ? 'kaldırmak' : 'eklemek'
+          const ok = await showConfirm({
+            title: 'Sistem Grubu — Dikkat',
+            message: `"${chipLabel}" sistem grubundan ${escapeHtml(secilenPersonel.ad)} ${escapeHtml(secilenPersonel.soyad)} kullanıcısını ${action} istediğinizden emin misiniz? Bu kritik bir yetki değişikliğidir.`,
+            confirmText: isMember ? 'Kaldır' : 'Ekle',
+            danger: true
+          })
+          if (!ok) return
+        }
+
+        if (isMember) {
+          const { error } = await supabase
+            .from('personel_yetki_grubu')
+            .delete()
+            .eq('personel_pkod', secilenPersonel.pkod)
+            .eq('yetki_grubu_id', id)
+          if (error) { showToast('Kaldırma hatası: ' + error.message, 'error'); return }
+          showToast('Grup kaldırıldı.', 'warning')
+        } else {
+          const { error } = await supabase
+            .from('personel_yetki_grubu')
+            .insert({
+              personel_pkod: secilenPersonel.pkod,
+              yetki_grubu_id: id,
+              atayan_pkod: personel?.pkod
+            })
+          if (error) { showToast('Ekleme hatası: ' + error.message, 'error'); return }
+          showToast('Grup atandı.', 'success')
+        }
+        await renderPersonelDetay()
+      })
+    })
+  }
+
+  // ── İlk yükleme ──────────────────────────────────────────
+  await loadGruplar()
+
+  // ── Yardımcı ─────────────────────────────────────────────
+  function escapeHtml(s) {
+    return String(s ?? '').replace(/[&<>"']/g, ch => ({
+      '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'
+    }[ch]))
+  }
+</script>
+
+</body>
+</html>

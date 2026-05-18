@@ -3,7 +3,7 @@
 // ============================================================
 import { supabase } from './supabase.js'
 import { requireAuth, signOut } from './auth.js'
-import { formatDate, formatCurrency, getPersonel, renderUserInfo, showToast, todayISO, populateSprintDropdown, hideAyarlarForNonAdmin, isReadOnly, applyViewerRestrictions, loadActivePersonel, loadBirimler, populateBirimDropdown } from './utils.js'
+import { formatDate, formatCurrency, getPersonel, renderUserInfo, showToast, showConfirm, todayISO, populateSprintDropdown, hideAyarlarForNonAdmin, isReadOnly, applyViewerRestrictions, loadActivePersonel, loadBirimler, populateBirimDropdown } from './utils.js'
 import Sortable from 'https://cdn.jsdelivr.net/npm/sortablejs/+esm'
 
 // ── State ────────────────────────────────────────────────────
@@ -25,7 +25,7 @@ try {
 
   currentPersonel = await getPersonel(supabase, currentUser.id)
   if (currentPersonel) renderUserInfo(currentPersonel.ad, currentPersonel.soyad)
-  if (currentPersonel) hideAyarlarForNonAdmin(currentPersonel)
+  if (currentPersonel) await hideAyarlarForNonAdmin(currentPersonel, supabase)
   if (currentPersonel) applyViewerRestrictions(currentPersonel)
 
   document.getElementById('logout-btn').addEventListener('click', () => signOut())
@@ -556,7 +556,13 @@ async function handleSave(e) {
 async function handleSil() {
   const id = document.getElementById('gorev-id').value
   if (!id) return
-  if (!confirm('Bu görevi silmek istediğinizden emin misiniz?')) return
+  const ok = await showConfirm({
+    title: 'Görev Sil',
+    message: 'Bu görevi silmek istediğinizden emin misiniz?',
+    confirmText: 'Sil',
+    danger: true
+  })
+  if (!ok) return
 
   const { error } = await supabase.from('sprint_is_plani').delete().eq('id', id)
   if (error) {

@@ -152,22 +152,33 @@ export function renderUserInfo(ad, soyad) {
 }
 
 /**
- * Yönetici olmayan kullanıcılar için Ayarlar menü linkini gizler
+ * Yönetici olmayan kullanıcılar için Ayarlar/Raporlar/Yetki menü linklerini DOM'dan kaldırır.
+ * S-006: el.remove() kullanır (display:none yerine) — DOM'a erişim tamamen engellenir.
+ * S-007: Grup üyeliğini de kontrol eder (rol_kodu yönetici VEYA yönetici grubunda).
  * @param {object|null} personel
+ * @param {object} supabase — Supabase client (grup üyeliği sorgusu için)
+ * @returns {Promise<void>}
  */
-export function hideAyarlarForNonAdmin(personel) {
-  if (personel?.rol_kodu !== 'yönetici') {
-    document.querySelectorAll('a[href*="ayarlar.html"]').forEach(el => {
-      el.style.display = 'none'
-    })
-    document.querySelectorAll('a[href*="raporlar.html"]').forEach(el => {
-      el.style.display = 'none'
-    })
+export async function hideAyarlarForNonAdmin(personel, supabase) {
+  // S-007: grup üyeliğini de kontrol et
+  let isAdmin = personel?.rol_kodu === 'yönetici'
+  if (!isAdmin && personel?.pkod && supabase) {
+    try {
+      const { loadCurrentGroupNames } = await import('./permissions.js')
+      const groupNames = await loadCurrentGroupNames(supabase, personel.pkod)
+      isAdmin = groupNames.includes('yönetici')
+    } catch (_) {
+      // permissions.js yüklenemezse sadece rol_kodu'na güven
+    }
+  }
+  if (!isAdmin) {
+    // S-006: display:none yerine remove() — DOM'dan tamamen kaldır
+    document.querySelectorAll('a[href*="ayarlar.html"]').forEach(el => el.remove())
+    document.querySelectorAll('a[href*="raporlar.html"]').forEach(el => el.remove())
+    document.querySelectorAll('a[href*="yetki-yonetimi.html"]').forEach(el => el.remove())
   }
   if (personel?.rol_kodu === 'gs') {
-    document.querySelectorAll('a[href*="retro.html"]').forEach(el => {
-      el.style.display = 'none'
-    })
+    document.querySelectorAll('a[href*="retro.html"]').forEach(el => el.remove())
   }
 }
 
@@ -233,4 +244,169 @@ export function populateBirimDropdown(selectEl, birimler) {
     opt.textContent = b.birim_kisa
     selectEl.appendChild(opt)
   })
+}
+
+// ============================================================
+// UI Yardımcıları — modal confirm/alert + mobil sidebar toggle
+// ============================================================
+
+let _confirmEl = null
+
+function _ensureConfirmShell() {
+  if (_confirmEl) return _confirmEl
+  const wrap = document.createElement('div')
+  wrap.className = 'modal-overlay hidden'
+  wrap.id = 'app-confirm'
+  wrap.setAttribute('role', 'dialog')
+  wrap.setAttribute('aria-modal', 'true')
+  wrap.setAttribute('aria-labelledby', 'app-confirm-title')
+  wrap.setAttribute('data-testid', 'confirm-dialog')
+  wrap.innerHTML = `
+    <div class="modal-box modal-sm" role="document">
+      <h3 class="confirm-title" id="app-confirm-title"></h3>
+      <p class="confirm-message" id="app-confirm-msg"></p>
+      <div class="modal-actions">
+        <button type="button" class="btn-secondary" data-confirm="cancel" data-testid="confirm-cancel">Vazgeç</button>
+        <button type="button" class="btn-primary" data-confirm="ok" data-testid="confirm-ok">Tamam</button>
+      </div>
+    </div>
+  `
+  document.body.appendChild(wrap)
+  _confirmEl = wrap
+  return wrap
+}
+
+/**
+ * Stillenmiş onay diyaloğu. Promise<boolean> döndürür.
+ * @param {{title?:string, message:string, confirmText?:string, cancelText?:string, danger?:boolean}} opts
+ * @returns {Promise<boolean>}
+ */
+export function showConfirm(opts) {
+  const { title = 'Onay', message, confirmText = 'Tamam', cancelText = 'Vazgeç', danger = false } = opts
+  const wrap = _ensureConfirmShell()
+  wrap.querySelector('#app-confirm-title').textContent = title
+  wrap.querySelector('#app-confirm-msg').textContent = message
+  const okBtn = wrap.querySelector('[data-confirm="ok"]')
+  const cancelBtn = wrap.querySelector('[data-confirm="cancel"]')
+  okBtn.textContent = confirmText
+  cancelBtn.textContent = cancelText
+  okBtn.className = danger ? 'btn-danger' : 'btn-primary'
+
+  return new Promise(resolve => {
+    function close(result) {
+      wrap.classList.add('hidden')
+      okBtn.removeEventListener('click', onOk)
+      cancelBtn.removeEventListener('click', onCancel)
+      wrap.removeEventListener('click', onBackdrop)
+      document.removeEventListener('keydown', onKey)
+      resolve(result)
+    }
+    function onOk()     { close(true) }
+    function onCancel() { close(false) }
+    function onBackdrop(e) { if (e.target === wrap) close(false) }
+    function onKey(e) {
+      if (e.key === 'Escape') close(false)
+      if (e.key === 'Enter')  close(true)
+    }
+    okBtn.addEventListener('click', onOk)
+    cancelBtn.addEventListener('click', onCancel)
+    wrap.addEventListener('click', onBackdrop)
+    document.addEventListener('keydown', onKey)
+    wrap.classList.remove('hidden')
+    setTimeout(() => okBtn.focus(), 50)
+  })
+}
+
+/**
+ * Stillenmiş bilgilendirme diyaloğu (tek butonlu).
+ * @param {string|{title?:string, message:string}} arg
+ * @returns {Promise<void>}
+ */
+export function showAlert(arg) {
+  const opts = typeof arg === 'string' ? { message: arg } : arg
+  return showConfirm({ ...opts, title: opts.title || 'Bilgi', confirmText: 'Tamam', cancelText: '' })
+    .then(() => undefined)
+}
+
+/**
+ * Mobil ekranlarda topbar'a hamburger butonunu enjekte eder ve sidebar.open toggle'ını yönetir.
+ * Idempotent — birden fazla çağrı emniyetli.
+ */
+export function initMobileSidebarToggle() {
+  const sidebar = document.getElementById('sidebar') || document.querySelector('.sidebar')
+  if (!sidebar) return
+  if (document.getElementById('menu-toggle')) return
+
+  const btn = document.createElement('button')
+  btn.id = 'menu-toggle'
+  btn.type = 'button'
+  btn.className = 'menu-toggle'
+  btn.setAttribute('aria-label', 'Menüyü aç/kapat')
+  btn.setAttribute('aria-controls', sidebar.id || 'sidebar')
+  btn.setAttribute('aria-expanded', 'false')
+  btn.innerHTML = '<span aria-hidden="true">☰</span>'
+
+  const backdrop = document.createElement('div')
+  backdrop.className = 'sidebar-backdrop'
+  backdrop.id = 'sidebar-backdrop'
+
+  document.body.appendChild(btn)
+  document.body.appendChild(backdrop)
+
+  function close() {
+    sidebar.classList.remove('open')
+    backdrop.classList.remove('show')
+    btn.setAttribute('aria-expanded', 'false')
+  }
+  function toggle() {
+    const isOpen = sidebar.classList.toggle('open')
+    backdrop.classList.toggle('show', isOpen)
+    btn.setAttribute('aria-expanded', String(isOpen))
+  }
+
+  btn.addEventListener('click', toggle)
+  backdrop.addEventListener('click', close)
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') close() })
+  sidebar.addEventListener('click', e => {
+    if (e.target.closest('a[href]')) close()
+  })
+}
+
+/**
+ * Form input'una `is-invalid` class'ı ekler ve mesaj gösterir.
+ * @param {HTMLElement} input
+ * @param {string} message
+ */
+export function setFieldError(input, message) {
+  if (!input) return
+  input.classList.add('is-invalid')
+  input.setAttribute('aria-invalid', 'true')
+  let msg = input.parentElement?.querySelector('.form-error-msg')
+  if (!msg) {
+    msg = document.createElement('p')
+    msg.className = 'form-error-msg'
+    input.parentElement?.appendChild(msg)
+  }
+  msg.textContent = message
+}
+
+/**
+ * Form input'undan hata izlerini temizler.
+ * @param {HTMLElement} input
+ */
+export function clearFieldError(input) {
+  if (!input) return
+  input.classList.remove('is-invalid')
+  input.removeAttribute('aria-invalid')
+  const msg = input.parentElement?.querySelector('.form-error-msg')
+  if (msg) msg.remove()
+}
+
+// Tüm sayfalarda otomatik hamburger toggle (idempotent — birden fazla import güvenli)
+if (typeof window !== 'undefined') {
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initMobileSidebarToggle)
+  } else {
+    initMobileSidebarToggle()
+  }
 }

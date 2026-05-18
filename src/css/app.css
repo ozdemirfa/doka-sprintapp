@@ -38,10 +38,41 @@ body {
 }
 
 .sidebar-logo {
-  padding: 20px 16px 16px;
+  padding: 16px 14px 14px;
   border-bottom: 1px solid rgba(255,255,255,0.1);
 }
 
+.sidebar-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+  color: inherit;
+}
+
+.sidebar-brand:hover { opacity: 0.92; }
+
+.sidebar-logo-img {
+  display: block;
+  width: 100%;
+  max-width: 200px;
+  height: auto;
+  background: #fff;
+  border-radius: 6px;
+  padding: 6px 8px;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.15);
+}
+
+.sidebar-brand-tagline {
+  display: block;
+  font-size: 0.65rem;
+  color: rgba(255,255,255,0.55);
+  margin-top: 8px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+/* Geriye uyum: eski sidebar-logo h1/p kullanan sayfalar */
 .sidebar-logo h1 {
   font-size: 0.8rem;
   font-weight: 700;
@@ -573,6 +604,15 @@ input[type=range]::-webkit-slider-thumb {
   margin-bottom: 28px;
 }
 
+.login-logo-img {
+  display: block;
+  width: 100%;
+  max-width: 240px;
+  height: auto;
+  margin: 0 auto 12px;
+}
+
+/* Geriye uyum */
 .login-logo .logo-badge {
   display: inline-block;
   background: var(--navy);
@@ -648,3 +688,196 @@ input[type=range]::-webkit-slider-thumb {
 .viewer-mode #btn-gorev-ekle,
 .viewer-mode .modal-open-btn,
 .viewer-mode #btn-sil { display: none !important; }
+
+/* ============================================================
+   v2 — UI Polish (modal-confirm, mobile menu, form validation,
+   empty/loading states, page utilities)
+   ============================================================ */
+
+/* Modal varyantları */
+.modal-box.modal-sm { max-width: 420px; }
+.modal-box.modal-lg { max-width: 720px; }
+
+/* Modal aksiyon bar (Vazgeç / Tamam) */
+.modal-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  margin-top: 22px;
+  flex-wrap: wrap;
+}
+
+/* Confirm dialog özel stilleri */
+.confirm-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--navy);
+  margin-bottom: 8px;
+}
+.confirm-message {
+  font-size: 0.875rem;
+  color: #475569;
+  line-height: 1.5;
+  margin: 0;
+}
+
+/* Tehlikeli aksiyon butonu (silme onayı) */
+.btn-danger {
+  background: #dc2626;
+  color: #fff;
+  border: 1px solid #b91c1c;
+  padding: 8px 18px;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.btn-danger:hover { background: #b91c1c; }
+.btn-danger:focus-visible { outline: 2px solid #fca5a5; outline-offset: 2px; }
+
+/* Form validation görseli */
+.form-control.is-invalid {
+  border-color: #ef4444 !important;
+  background: #fef2f2;
+}
+.form-control.is-invalid:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(239,68,68,0.15);
+}
+.form-error-msg {
+  margin-top: 4px;
+  color: #b91c1c;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+/* Empty / loading / error state */
+.empty-state,
+.loading-state,
+.error-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 36px 20px;
+  text-align: center;
+  color: #64748b;
+}
+.empty-state .icon,
+.loading-state .icon,
+.error-state .icon {
+  font-size: 2rem;
+  margin-bottom: 8px;
+  opacity: 0.7;
+}
+.empty-state .title,
+.loading-state .title,
+.error-state .title {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #334155;
+  margin-bottom: 4px;
+}
+.empty-state .hint,
+.loading-state .hint,
+.error-state .hint {
+  font-size: 0.8rem;
+  color: #94a3b8;
+}
+.error-state .title { color: #b91c1c; }
+.loading-state .icon { animation: pulse-dot 1.4s ease-in-out infinite; }
+@keyframes pulse-dot {
+  0%,100% { opacity: 0.4; }
+  50%     { opacity: 1; }
+}
+
+/* Sayfa başlık aksiyon barı (inline-style yerine reusable class) */
+.page-header-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.filter-bar {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+  padding: 12px 0;
+}
+.filter-bar .form-control { width: auto; min-width: 140px; }
+.toolbar-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+
+/* Mobil menü hamburger */
+.menu-toggle {
+  display: none;
+  position: fixed;
+  top: 12px;
+  left: 12px;
+  z-index: 110;
+  background: var(--navy);
+  color: #fff;
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 8px;
+  width: 42px;
+  height: 42px;
+  font-size: 1.25rem;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+}
+.menu-toggle:hover { background: var(--navy-light); }
+.menu-toggle:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+
+.sidebar-backdrop {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.45);
+  z-index: 99;
+}
+.sidebar-backdrop.show { display: block; }
+
+/* Klavye odak halkası — küresel a11y */
+*:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+}
+
+/* Mobil hamburger sadece dar viewport'larda görünsün */
+@media (max-width: 768px) {
+  .menu-toggle { display: inline-flex; align-items: center; justify-content: center; }
+  .main-content { padding-top: 60px; }
+
+  /* Tablo → satır kart dönüşümü (data-label attribute kullanır) */
+  .data-table.responsive thead { display: none; }
+  .data-table.responsive,
+  .data-table.responsive tbody,
+  .data-table.responsive tr { display: block; }
+  .data-table.responsive tr {
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    margin-bottom: 8px;
+    padding: 10px 12px;
+  }
+  .data-table.responsive td {
+    display: flex;
+    justify-content: space-between;
+    border: none;
+    padding: 6px 0;
+    font-size: 0.8rem;
+  }
+  .data-table.responsive td::before {
+    content: attr(data-label);
+    font-weight: 600;
+    color: #64748b;
+    margin-right: 12px;
+  }
+}
