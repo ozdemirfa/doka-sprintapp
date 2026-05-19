@@ -74,9 +74,6 @@
         <select id="filter-birim" class="form-control" style="width:auto;min-width:140px;">
           <option value="">Tüm Birimler</option>
         </select>
-        <select id="filter-sprint" class="form-control" style="width:auto;min-width:220px;">
-          <option value="">Tüm Sprintler</option>
-        </select>
       </div>
 
       <!-- Harcamalar Tablosu -->
@@ -186,7 +183,6 @@
   let allHarcamalar = []
   let isPlaniMap = {}   // id → label string
   let isPlaniPkodMap = {}  // id → pkod
-  let sprintler = []
   let tümPersoneller = []
 
   // ── Birimler yükle ────────────────────────────────────
@@ -196,22 +192,6 @@
 
   // ── Veri çekme ────────────────────────────────────────
   async function loadData() {
-    // Sprint listesi (filtre için)
-    const { data: sprintData } = await supabase
-      .from('sprint_veri')
-      .select('sprint_donem, sprint_adi, baslangic, bitis')
-      .order('sprint_donem')
-    sprintler = sprintData || []
-
-    const filterSprint = document.getElementById('filter-sprint')
-    filterSprint.innerHTML = '<option value="">Tüm Sprintler</option>'
-    sprintler.forEach(s => {
-      const opt = document.createElement('option')
-      opt.value = s.sprint_donem
-      opt.textContent = `${s.sprint_donem} — ${s.sprint_adi || ''}`
-      filterSprint.appendChild(opt)
-    })
-
     // İş planı kayıtları (lookup ve tablo join için)
     const { data: isPlaniData } = await supabase
       .from('sprint_is_plani')
@@ -243,12 +223,7 @@
   }
 
   // ── Metrik Kartları ───────────────────────────────────
-  function updateMetrics(filteredHarcamalar, isPlaniData) {
-    const sprintVal = document.getElementById('filter-sprint').value
-    const filteredIsPlani = sprintVal
-      ? isPlaniData.filter(ip => String(ip.sprint_donem) === String(sprintVal))
-      : isPlaniData
-
+  function updateMetrics(filteredHarcamalar /* , isPlaniData */) {
     const totalIsPlani = 0
     const totalHarcama = filteredHarcamalar.reduce((s, r) => s + (r.odenecek_kdvli ?? 0), 0)
     const fark = totalIsPlani - totalHarcama
@@ -307,28 +282,20 @@
   }
 
   // ── Filtreler ─────────────────────────────────────────
-  // S4 / 046: birim filtre artık v_harcama_ozet.bkod üzerinden (server-side
-  // de kullanılabilirdi ama mevcut allHarcamalar in-memory pattern korunuyor;
-  // r.bkod doğrudan view'dan geliyor → kırılgan client-side lookup yok)
+  // S4 / 046: birim filtre v_harcama_ozet.bkod üzerinden (r.bkod doğrudan
+  // view'dan geliyor — kırılgan client-side lookup yok).
   function applyFilters() {
-    const sprintVal = document.getElementById('filter-sprint').value
-    const birimVal  = document.getElementById('filter-birim').value ? Number(document.getElementById('filter-birim').value) : null
-    let filtered = allHarcamalar
-
-    if (sprintVal || birimVal !== null) {
-      filtered = filtered.filter(r => {
-        const sprintOk = !sprintVal || String(r.sprint_donem) === String(sprintVal)
-        const birimOk  = birimVal === null || r.bkod === birimVal
-        return sprintOk && birimOk
-      })
-    }
+    const birimVal = document.getElementById('filter-birim').value
+      ? Number(document.getElementById('filter-birim').value) : null
+    const filtered = birimVal === null
+      ? allHarcamalar
+      : allHarcamalar.filter(r => r.bkod === birimVal)
 
     renderTable(filtered)
     renderOdemeDonemiOzet(filtered)
-    updateMetrics(filtered, Object.entries(isPlaniPkodMap).map(([id, pkod]) => ({ id: Number(id), pkod })))
+    updateMetrics(filtered)
   }
 
-  document.getElementById('filter-sprint').addEventListener('change', applyFilters)
   document.getElementById('filter-birim').addEventListener('change', applyFilters)
 
   // ── Modal: Yeni Harcama ───────────────────────────────
@@ -416,7 +383,6 @@
     document.getElementById('modal-harcama').classList.add('hidden')
     document.getElementById('form-harcama').reset()
     allHarcamalar = []
-    document.getElementById('filter-sprint').value = ''
     await loadData()
   })
 
