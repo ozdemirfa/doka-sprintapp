@@ -225,9 +225,9 @@
       isPlaniPkodMap[ip.id] = ip.pkod
     })
 
-    // Harcamalar
+    // Harcamalar — S4 / 046: v_harcama_ozet view (bkod kolonu dahil)
     const { data: hData, error: hErr } = await supabase
-      .from('harcamalar')
+      .from('v_harcama_ozet')
       .select('*')
       .order('id')
 
@@ -307,21 +307,18 @@
   }
 
   // ── Filtreler ─────────────────────────────────────────
+  // S4 / 046: birim filtre artık v_harcama_ozet.bkod üzerinden (server-side
+  // de kullanılabilirdi ama mevcut allHarcamalar in-memory pattern korunuyor;
+  // r.bkod doğrudan view'dan geliyor → kırılgan client-side lookup yok)
   function applyFilters() {
     const sprintVal = document.getElementById('filter-sprint').value
-    const birimVal  = document.getElementById('filter-birim').value
+    const birimVal  = document.getElementById('filter-birim').value ? Number(document.getElementById('filter-birim').value) : null
     let filtered = allHarcamalar
 
-    if (sprintVal || birimVal) {
-      const birimPkods = birimVal
-        ? new Set(tümPersoneller.filter(p => p.bkod === Number(birimVal)).map(p => p.pkod))
-        : null
+    if (sprintVal || birimVal !== null) {
       filtered = filtered.filter(r => {
-        const pkod = isPlaniPkodMap[r.sprint_is_plani_id]
-        const ip = r.sprint_is_plani_id
-        // Sprint filtresi — sprint_donem bilgisi isPlaniPkodMap içinde yok; sprint_donem'i harcamalar'dan al
         const sprintOk = !sprintVal || String(r.sprint_donem) === String(sprintVal)
-        const birimOk  = !birimPkods || birimPkods.has(pkod)
+        const birimOk  = birimVal === null || r.bkod === birimVal
         return sprintOk && birimOk
       })
     }

@@ -109,17 +109,13 @@
 
   // ── Veri yükle ────────────────────────────────────────────────────
   let allData = []
-  // SOP kisa adı → bkod haritası (birim filtresi için)
-  let sopBkodMap = {}
+  // Not (S4 / 046 migration): v_perf_gosterge_ozet artık bkod kolonu döner.
+  // Birim filtresi sopBkodMap üzerinden değil doğrudan r.bkod ile yapılır.
 
   async function loadData() {
     // Birim dropdown'unu doldur
     const birimler = await loadBirimler(supabase)
     populateBirimDropdown(document.getElementById('filter-birim'), birimler)
-
-    // SOP → bkod haritası kur (v_perf_gosterge_ozet'te bkod yok, soplar tablosundan al)
-    const { data: tumSoplar } = await supabase.from('soplar').select('kisa,bkod')
-    sopBkodMap = Object.fromEntries((tumSoplar || []).map(s => [s.kisa, s.bkod]))
 
     const { data, error } = await supabase
       .from('v_perf_gosterge_ozet')
@@ -144,9 +140,9 @@
       : null
     const filterSop = document.getElementById('filter-sop')
     const prevVal = filterSop.value
-    // Birim seçiliyse sadece o birime ait SOP'lar
+    // Birim seçiliyse sadece o birime ait SOP'lar (view.bkod üzerinden)
     const rows = birimVal !== null
-      ? allData.filter(r => sopBkodMap[r.sop] === birimVal)
+      ? allData.filter(r => r.bkod === birimVal)
       : allData
     const sopSet = [...new Set(rows.map(r => r.sop).filter(Boolean))].sort()
     filterSop.innerHTML = '<option value="">Tüm SOPlar</option>'
@@ -168,7 +164,7 @@
       : null
     const yilSet = new Set()
     let rows = allData
-    if (birimVal !== null) rows = rows.filter(r => sopBkodMap[r.sop] === birimVal)
+    if (birimVal !== null) rows = rows.filter(r => r.bkod === birimVal)
     if (sopSec) rows = rows.filter(r => r.sop === sopSec)
     rows.forEach(r => {
       if (r.baslangic && r.bitis) {
@@ -203,10 +199,10 @@
       : null
     const sopFilter = document.getElementById('filter-sop').value
     const yilFilter = document.getElementById('filter-yil').value
-    // Önce birim, sonra SOP'a göre filtrele
+    // Önce birim, sonra SOP'a göre filtrele (view.bkod üzerinden)
     let rows = allData
     if (birimFilter !== null) {
-      rows = rows.filter(r => sopBkodMap[r.sop] === birimFilter)
+      rows = rows.filter(r => r.bkod === birimFilter)
     }
     if (sopFilter) {
       rows = rows.filter(r => r.sop === sopFilter)

@@ -207,10 +207,10 @@
     const sopFilter  = document.getElementById('filter-sop').value
     const yilFilter  = parseInt(document.getElementById('filter-yil').value) || null
     const birimVal   = document.getElementById('filter-birim').value
-    const allowedSops = birimVal
-      ? new Set(tumSoplar.filter(s => s.bkod === Number(birimVal)).map(s => s.kisa))
+      ? Number(document.getElementById('filter-birim').value)
       : null
-    let rows = birimVal ? perfData.filter(r => r.sop && allowedSops.has(r.sop)) : perfData
+    // S4 / 046: client-side allowedSops set kaldırıldı; doğrudan view.bkod ile
+    let rows = birimVal !== null ? perfData.filter(r => r.bkod === birimVal) : perfData
     if (sopFilter) rows = rows.filter(r => r.sop === sopFilter)
 
     // Başlık güncelle

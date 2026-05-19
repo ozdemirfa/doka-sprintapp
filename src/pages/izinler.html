@@ -399,10 +399,10 @@
   const birimler = await loadBirimler(supabase)
   populateBirimDropdown(document.getElementById('filter-birim'), birimler)
 
-  function getBirimPkodSet() {
+  // S4 / 046: getBirimPkodSet kaldırıldı — birim filtresi artık v_izin_ozet.bkod ile server-side
+  function getBirimFilter() {
     const bkod = document.getElementById('filter-birim').value
-    if (!bkod) return null
-    return new Set(personelListesi.filter(p => p.bkod === Number(bkod)).map(p => p.pkod))
+    return bkod ? Number(bkod) : null
   }
 
   function personelOpsHTML() {
@@ -464,16 +464,17 @@
 
   // ── İzinler Tablosu ───────────────────────────────────────────────
   async function loadIzinler() {
-    const { data, error } = await supabase
-      .from('izinler')
+    // S4 / 046: v_izin_ozet view, bkod kolonu dahil → .eq('bkod', N) server-side
+    const birimFilter = getBirimFilter()
+    let query = supabase
+      .from('v_izin_ozet')
       .select('*')
       .order('izin_basl', { ascending: false })
+    if (birimFilter !== null) query = query.eq('bkod', birimFilter)
+    const { data, error } = await query
 
     const tbody = document.getElementById('izinler-tbody')
-    const birimPkods = getBirimPkodSet()
-    const filtered = birimPkods
-      ? (data || []).filter(r => birimPkods.has(r.pkod))
-      : (data || [])
+    const filtered = data || []
 
     if (error || !filtered.length) {
       tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#94a3b8;padding:24px;">Kayıt bulunamadı.</td></tr>'
@@ -574,7 +575,12 @@
       .order('tarih', { ascending: false })
 
     const tbody = document.getElementById('saha-tbody')
-    const birimPkods = getBirimPkodSet()
+    // S4 / 046: saha_gorevleri için ayrı view eklenmedi (plan dışı);
+    // personel.bkod üzerinden client-side filtre devam eder
+    const birimFilter = getBirimFilter()
+    const birimPkods = birimFilter !== null
+      ? new Set(personelListesi.filter(p => p.bkod === birimFilter).map(p => p.pkod))
+      : null
     const filtered = birimPkods
       ? (data || []).filter(r => birimPkods.has(r.pkod))
       : (data || [])

@@ -61,20 +61,32 @@ const MOCK_SOPLAR = [
   { skod: 202, kisa: 'SOP-B2', sop_adi: 'MEKB Birim SOP 2', durum: 'Aktif', bkod: 2 }
 ]
 
-// v_faaliyet_ozet — her SOP'ta 1 faaliyet
+// v_faaliyet_ozet — her SOP'ta 1 faaliyet (S4 / 046: bkod kolonu)
 const MOCK_FAALIYET_OZET = [
-  { fkod: 'F-A1-01', skod: 101, sop: 'SOP-A1', kategori: 'K1', faaliyet: 'SKB Faaliyet 1', butce_2026: 1000, aylik_plan: null, is_durum_ort: 0.5, harcanan_butce_toplam: 500, sop_butce: 1000 },
-  { fkod: 'F-A2-01', skod: 102, sop: 'SOP-A2', kategori: 'K1', faaliyet: 'SKB Faaliyet 2', butce_2026: 2000, aylik_plan: null, is_durum_ort: 0.7, harcanan_butce_toplam: 1400, sop_butce: 2000 },
-  { fkod: 'F-B1-01', skod: 201, sop: 'SOP-B1', kategori: 'K1', faaliyet: 'MEKB Faaliyet 1', butce_2026: 1500, aylik_plan: null, is_durum_ort: 0.3, harcanan_butce_toplam: 450, sop_butce: 1500 },
-  { fkod: 'F-B2-01', skod: 202, sop: 'SOP-B2', kategori: 'K1', faaliyet: 'MEKB Faaliyet 2', butce_2026: 2500, aylik_plan: null, is_durum_ort: 0.9, harcanan_butce_toplam: 2250, sop_butce: 2500 }
+  { fkod: 'F-A1-01', skod: 101, sop: 'SOP-A1', kategori: 'K1', faaliyet: 'SKB Faaliyet 1', butce_2026: 1000, aylik_plan: null, is_durum_ort: 0.5, harcanan_butce_toplam: 500, sop_butce: 1000, bkod: 1 },
+  { fkod: 'F-A2-01', skod: 102, sop: 'SOP-A2', kategori: 'K1', faaliyet: 'SKB Faaliyet 2', butce_2026: 2000, aylik_plan: null, is_durum_ort: 0.7, harcanan_butce_toplam: 1400, sop_butce: 2000, bkod: 1 },
+  { fkod: 'F-B1-01', skod: 201, sop: 'SOP-B1', kategori: 'K1', faaliyet: 'MEKB Faaliyet 1', butce_2026: 1500, aylik_plan: null, is_durum_ort: 0.3, harcanan_butce_toplam: 450, sop_butce: 1500, bkod: 2 },
+  { fkod: 'F-B2-01', skod: 202, sop: 'SOP-B2', kategori: 'K1', faaliyet: 'MEKB Faaliyet 2', butce_2026: 2500, aylik_plan: null, is_durum_ort: 0.9, harcanan_butce_toplam: 2250, sop_butce: 2500, bkod: 2 }
 ]
 
-// v_perf_gosterge_ozet — her SOP'ta 1 perf göstergesi
+// v_perf_gosterge_ozet — her SOP'ta 1 perf göstergesi (S4 / 046: bkod kolonu)
 const MOCK_PERF_OZET = [
-  { cg_kod: 'CG-A1', sop: 'SOP-A1', bilesen_kodu: 'B1', bilesen_adi: 'SKB B1', cikti_gostergesi: 'X1', birim: 'adet', hedef: 100, planlanan_tamamlanma_donemi: '2026', katki_sonuc_gostergesi: 'KS1', kumulatif_hedef: 100, baslangic: 2024, bitis: 2026, hedef_2024: 30, hedef_2025: 30, hedef_2026: 40, gerceklesen_2024: 25, gerceklesen_2025: 25, gerceklesen_2026: 35, kumulatif_gerceklesme: 85 },
-  { cg_kod: 'CG-A2', sop: 'SOP-A2', bilesen_kodu: 'B2', bilesen_adi: 'SKB B2', cikti_gostergesi: 'X2', birim: 'adet', hedef: 50, planlanan_tamamlanma_donemi: '2026', katki_sonuc_gostergesi: 'KS2', kumulatif_hedef: 50, baslangic: 2024, bitis: 2026, hedef_2024: 15, hedef_2025: 20, hedef_2026: 15, gerceklesen_2024: 10, gerceklesen_2025: 18, gerceklesen_2026: 12, kumulatif_gerceklesme: 40 },
-  { cg_kod: 'CG-B1', sop: 'SOP-B1', bilesen_kodu: 'B3', bilesen_adi: 'MEKB B1', cikti_gostergesi: 'X3', birim: 'kg', hedef: 200, planlanan_tamamlanma_donemi: '2026', katki_sonuc_gostergesi: 'KS3', kumulatif_hedef: 200, baslangic: 2024, bitis: 2026, hedef_2024: 60, hedef_2025: 70, hedef_2026: 70, gerceklesen_2024: 55, gerceklesen_2025: 65, gerceklesen_2026: 50, kumulatif_gerceklesme: 170 },
-  { cg_kod: 'CG-B2', sop: 'SOP-B2', bilesen_kodu: 'B4', bilesen_adi: 'MEKB B2', cikti_gostergesi: 'X4', birim: 'kg', hedef: 80, planlanan_tamamlanma_donemi: '2026', katki_sonuc_gostergesi: 'KS4', kumulatif_hedef: 80, baslangic: 2024, bitis: 2026, hedef_2024: 25, hedef_2025: 30, hedef_2026: 25, gerceklesen_2024: 20, gerceklesen_2025: 28, gerceklesen_2026: 22, kumulatif_gerceklesme: 70 }
+  { cg_kod: 'CG-A1', sop: 'SOP-A1', skod: 101, bilesen_kodu: 'B1', bilesen_adi: 'SKB B1', cikti_gostergesi: 'X1', birim: 'adet', hedef: 100, planlanan_tamamlanma_donemi: '2026', katki_sonuc_gostergesi: 'KS1', kumulatif_hedef: 100, baslangic: 2024, bitis: 2026, hedef_2024: 30, hedef_2025: 30, hedef_2026: 40, gerceklesen_2024: 25, gerceklesen_2025: 25, gerceklesen_2026: 35, kumulatif_gerceklesme: 85, bkod: 1 },
+  { cg_kod: 'CG-A2', sop: 'SOP-A2', skod: 102, bilesen_kodu: 'B2', bilesen_adi: 'SKB B2', cikti_gostergesi: 'X2', birim: 'adet', hedef: 50, planlanan_tamamlanma_donemi: '2026', katki_sonuc_gostergesi: 'KS2', kumulatif_hedef: 50, baslangic: 2024, bitis: 2026, hedef_2024: 15, hedef_2025: 20, hedef_2026: 15, gerceklesen_2024: 10, gerceklesen_2025: 18, gerceklesen_2026: 12, kumulatif_gerceklesme: 40, bkod: 1 },
+  { cg_kod: 'CG-B1', sop: 'SOP-B1', skod: 201, bilesen_kodu: 'B3', bilesen_adi: 'MEKB B1', cikti_gostergesi: 'X3', birim: 'kg', hedef: 200, planlanan_tamamlanma_donemi: '2026', katki_sonuc_gostergesi: 'KS3', kumulatif_hedef: 200, baslangic: 2024, bitis: 2026, hedef_2024: 60, hedef_2025: 70, hedef_2026: 70, gerceklesen_2024: 55, gerceklesen_2025: 65, gerceklesen_2026: 50, kumulatif_gerceklesme: 170, bkod: 2 },
+  { cg_kod: 'CG-B2', sop: 'SOP-B2', skod: 202, bilesen_kodu: 'B4', bilesen_adi: 'MEKB B2', cikti_gostergesi: 'X4', birim: 'kg', hedef: 80, planlanan_tamamlanma_donemi: '2026', katki_sonuc_gostergesi: 'KS4', kumulatif_hedef: 80, baslangic: 2024, bitis: 2026, hedef_2024: 25, hedef_2025: 30, hedef_2026: 25, gerceklesen_2024: 20, gerceklesen_2025: 28, gerceklesen_2026: 22, kumulatif_gerceklesme: 70, bkod: 2 }
+]
+
+// S4 / 046: v_harcama_ozet — her birimde 1 harcama
+const MOCK_HARCAMA_OZET = [
+  { id: 1, sprint_donem: '2024-S1', sprint_faaliyet: 'X', sno: null, aciklama: 'SKB harcama', harcama_onay_kodu: null, onay_tarihi: '2024-01-15', odeme_donem: '2024.Oca', odenecek_kdvli: 1000, durum: 'Onaylı', sprint_is_plani_id: 1, bkod: 1, pkod: 1 },
+  { id: 2, sprint_donem: '2024-S1', sprint_faaliyet: 'Y', sno: null, aciklama: 'MEKB harcama', harcama_onay_kodu: null, onay_tarihi: '2024-01-20', odeme_donem: '2024.Oca', odenecek_kdvli: 2000, durum: 'Onaylı', sprint_is_plani_id: 2, bkod: 2, pkod: 1 }
+]
+
+// S4 / 046: v_izin_ozet — her birimde 1 izin
+const MOCK_IZIN_OZET = [
+  { id: 1, izin_basl: '2024-01-05', izin_bitis: '2024-01-07', pkod: 1, aciklama: 'SKB izin', durum: 'Onaylı', izin_gun_sayi: 3, tur: 'Yıllık', bkod: 1 },
+  { id: 2, izin_basl: '2024-02-10', izin_bitis: '2024-02-12', pkod: 2, aciklama: 'MEKB izin', durum: 'Onaylı', izin_gun_sayi: 3, tur: 'Yıllık', bkod: 2 }
 ]
 
 const MOCK_SPRINT_OZET = [
@@ -223,15 +235,31 @@ async function mockSupabase(page) {
         return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(MOCK_SOPLAR) })
       }
       if (url.includes('/v_faaliyet_ozet')) {
-        // Server-side skod=eq.X filtresini sahnele
+        // S4 / 046: Server-side skod=eq.X ve bkod=eq.X filtrelerini sahnele
         const skodMatch = url.match(/skod=eq\.(\d+)/)
-        const rows = skodMatch
-          ? MOCK_FAALIYET_OZET.filter(f => f.skod === Number(skodMatch[1]))
-          : MOCK_FAALIYET_OZET
+        const bkodMatch = url.match(/bkod=eq\.(\d+)/)
+        let rows = MOCK_FAALIYET_OZET
+        if (skodMatch) rows = rows.filter(f => f.skod === Number(skodMatch[1]))
+        if (bkodMatch) rows = rows.filter(f => f.bkod === Number(bkodMatch[1]))
         return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(rows) })
       }
       if (url.includes('/v_perf_gosterge_ozet')) {
-        return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(MOCK_PERF_OZET) })
+        // perf-ozet client-side filtreliyor; yine de query-string bkod gelirse uygula
+        const bkodMatch = url.match(/bkod=eq\.(\d+)/)
+        const rows = bkodMatch ? MOCK_PERF_OZET.filter(p => p.bkod === Number(bkodMatch[1])) : MOCK_PERF_OZET
+        return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(rows) })
+      }
+      if (url.includes('/v_harcama_ozet')) {
+        // S4 / 046: yeni view — bkod=eq.X server-side
+        const bkodMatch = url.match(/bkod=eq\.(\d+)/)
+        const rows = bkodMatch ? MOCK_HARCAMA_OZET.filter(h => h.bkod === Number(bkodMatch[1])) : MOCK_HARCAMA_OZET
+        return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(rows) })
+      }
+      if (url.includes('/v_izin_ozet')) {
+        // S4 / 046: yeni view — bkod=eq.X server-side
+        const bkodMatch = url.match(/bkod=eq\.(\d+)/)
+        const rows = bkodMatch ? MOCK_IZIN_OZET.filter(z => z.bkod === Number(bkodMatch[1])) : MOCK_IZIN_OZET
+        return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(rows) })
       }
       if (url.includes('/v_alt_faaliyet_ozet')) {
         return route.fulfill({ status: 200, contentType: 'application/json', body: '[]' })
@@ -390,13 +418,26 @@ async function mockSupabaseWithPermissions(page, fixture, opts = {}) {
       }
       if (url.includes('/v_faaliyet_ozet')) {
         const skodMatch = url.match(/skod=eq\.(\d+)/)
-        const rows = skodMatch
-          ? MOCK_FAALIYET_OZET.filter(f => f.skod === Number(skodMatch[1]))
-          : MOCK_FAALIYET_OZET
+        const bkodMatch = url.match(/bkod=eq\.(\d+)/)
+        let rows = MOCK_FAALIYET_OZET
+        if (skodMatch) rows = rows.filter(f => f.skod === Number(skodMatch[1]))
+        if (bkodMatch) rows = rows.filter(f => f.bkod === Number(bkodMatch[1]))
         return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(rows) })
       }
       if (url.includes('/v_perf_gosterge_ozet')) {
-        return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(MOCK_PERF_OZET) })
+        const bkodMatch = url.match(/bkod=eq\.(\d+)/)
+        const rows = bkodMatch ? MOCK_PERF_OZET.filter(p => p.bkod === Number(bkodMatch[1])) : MOCK_PERF_OZET
+        return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(rows) })
+      }
+      if (url.includes('/v_harcama_ozet')) {
+        const bkodMatch = url.match(/bkod=eq\.(\d+)/)
+        const rows = bkodMatch ? MOCK_HARCAMA_OZET.filter(h => h.bkod === Number(bkodMatch[1])) : MOCK_HARCAMA_OZET
+        return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(rows) })
+      }
+      if (url.includes('/v_izin_ozet')) {
+        const bkodMatch = url.match(/bkod=eq\.(\d+)/)
+        const rows = bkodMatch ? MOCK_IZIN_OZET.filter(z => z.bkod === Number(bkodMatch[1])) : MOCK_IZIN_OZET
+        return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(rows) })
       }
 
       // Bilinmeyen tablolar
@@ -420,6 +461,8 @@ module.exports = {
   MOCK_SOPLAR,
   MOCK_FAALIYET_OZET,
   MOCK_PERF_OZET,
+  MOCK_HARCAMA_OZET,
+  MOCK_IZIN_OZET,
   SUPABASE_URL,
   isAuthUrl,
   isRestUrl,
