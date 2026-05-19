@@ -173,19 +173,19 @@ COMMENT ON VIEW v_faaliyet_ozet IS '016 + 046: faaliyet özet view, birim filtre
 --    bkod, ayrıca isim eşleme için sprint_faaliyet bilgisi sağlanıyor.
 -- ──────────────────────────────────────────────────────────────
 
+-- harcamalar tablosunda sprint_donem/sprint_faaliyet/sno/durum kolonları YOK
+-- (bunlar sprint_is_plani üzerinden JOIN'lenir). Frontend (harcamalar.html)
+-- bu kolonları view'dan istemiyor; sadece id, sprint_is_plani_id, aciklama,
+-- odenecek_kdvli, odeme_donem, onay_tarihi, guncelleyen + bkod kullanıyor.
 DROP VIEW IF EXISTS v_harcama_ozet;
 CREATE VIEW v_harcama_ozet AS
 SELECT
     h.id,
-    h.sprint_donem,
-    h.sprint_faaliyet,
-    h.sno,
     h.aciklama,
     h.harcama_onay_kodu,
     h.onay_tarihi,
     h.odeme_donem,
     h.odenecek_kdvli,
-    h.durum,
     h.guncel_tarih,
     h.guncelleyen,
     h.created_at,
