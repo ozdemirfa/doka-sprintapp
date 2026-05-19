@@ -344,16 +344,34 @@
       return
     }
 
-    // Ödeme satırlarını topla
+    // Ödeme satırlarını topla — tüm satırlarda alan validasyonu
     const odemeKalemleri = []
+    let hasError = false
     document.querySelectorAll('#odeme-satirlari .odeme-satiri').forEach(satir => {
-      const tutar = parseFloat(satir.querySelector('.odeme-tutar').value)
-      const donem = satir.querySelector('.odeme-donem').value.trim() || null
-      if (!isNaN(tutar) && tutar > 0) {
-        odemeKalemleri.push({ tutar, donem })
-      }
+      const tutarInput = satir.querySelector('.odeme-tutar')
+      const donemInput = satir.querySelector('.odeme-donem')
+      const tutarErr   = satir.querySelector('.odeme-tutar-error')
+      const donemErr   = satir.querySelector('.odeme-donem-error')
+
+      const tutar  = parseTryTutar(tutarInput.value)
+      const dRes   = validateDonem(donemInput.value)
+
+      // Tutar boş satırı atla, dolu ama geçersizse hata; geçerliyse + dönem ok ise listeye al
+      const tutarBos = !tutarInput.value.trim()
+      if (tutarBos && !donemInput.value.trim()) return  // tamamen boş satır → yoksay
+
+      const tutarOk = !isNaN(tutar) && tutar > 0
+      showFieldError(tutarInput, tutarErr, tutarOk ? '' : 'Geçerli bir tutar giriniz.')
+      showFieldError(donemInput, donemErr, dRes.valid ? '' : dRes.error)
+
+      if (!tutarOk || !dRes.valid) { hasError = true; return }
+      odemeKalemleri.push({ tutar, donem: dRes.value })
     })
 
+    if (hasError) {
+      showToast('Lütfen kırmızı ile işaretli alanları düzeltin.', 'error')
+      return
+    }
     if (odemeKalemleri.length === 0) {
       showToast('En az bir geçerli ödeme kalemi giriniz.', 'error')
       return
@@ -387,19 +405,82 @@
   })
 
   // ── Ödeme Satırları ───────────────────────────────────
+  // Tutar: type=text + Türk locale (1.234,56). Dönem: YYYY/Q (Çeyrek 1-4).
   function odemeSatiriHtml(index) {
     return `
-      <div class="odeme-satiri" data-index="${index}" style="display:flex;gap:8px;align-items:flex-end;margin-bottom:8px;">
+      <div class="odeme-satiri" data-index="${index}" style="display:flex;gap:8px;align-items:flex-start;margin-bottom:8px;">
         <div class="form-group" style="flex:1;margin-bottom:0;">
-          <input type="number" class="form-control odeme-tutar" step="0.01" min="0" placeholder="KDV'li Tutar (₺)" required>
+          <input type="text" inputmode="decimal" class="form-control odeme-tutar" placeholder="KDV'li Tutar (ör: 1.234,56)" required>
+          <div class="odeme-tutar-error" style="display:none;color:#dc2626;font-size:0.72rem;margin-top:2px;"></div>
         </div>
         <div class="form-group" style="flex:1;margin-bottom:0;">
-          <input type="text" class="form-control odeme-donem" placeholder="Dönem (ör: 2026/1)">
+          <input type="text" class="form-control odeme-donem" placeholder="Dönem (ör: 2026/1)" maxlength="6">
+          <div class="odeme-donem-error" style="display:none;color:#dc2626;font-size:0.72rem;margin-top:2px;"></div>
         </div>
-        <button type="button" class="btn-danger odeme-sil" style="padding:6px 10px;flex-shrink:0;margin-bottom:0;" title="Sil">✕</button>
+        <button type="button" class="btn-danger odeme-sil" style="padding:6px 10px;flex-shrink:0;margin-top:8px;" title="Sil">✕</button>
       </div>
     `
   }
+
+  // ── Format / Parse helpers ────────────────────────────
+  // Türk binlik ayıracı (1.234,56). Live format on input.
+  function formatTryTutar(input) {
+    const sel = input.selectionStart
+    const lenBefore = input.value.length
+    let raw = input.value.replace(/[^\d,]/g, '')
+    const firstComma = raw.indexOf(',')
+    if (firstComma !== -1) {
+      raw = raw.slice(0, firstComma + 1) + raw.slice(firstComma + 1).replace(/,/g, '')
+    }
+    const [int, dec = ''] = raw.split(',')
+    const intFmt = int.replace(/\B(?=(\d{3})+(?!\d))/g, '.')
+    const trimmedDec = dec.slice(0, 2)
+    input.value = firstComma === -1 ? intFmt : `${intFmt},${trimmedDec}`
+    const lenAfter = input.value.length
+    const newPos = Math.max(0, sel + (lenAfter - lenBefore))
+    try { input.setSelectionRange(newPos, newPos) } catch (_) {}
+  }
+  function parseTryTutar(s) {
+    if (!s) return NaN
+    return parseFloat(String(s).replace(/\./g, '').replace(',', '.'))
+  }
+
+  // Dönem: YYYY/Q (Q in 1..4). Empty allowed.
+  const DONEM_RE = /^\d{4}\/[1-4]$/
+  function validateDonem(val) {
+    const v = (val || '').trim()
+    if (!v) return { valid: true, value: null }
+    if (!DONEM_RE.test(v)) {
+      return { valid: false, error: 'Format YYYY/Q (Çeyrek 1-4). Örn: 2026/1' }
+    }
+    return { valid: true, value: v }
+  }
+  function showFieldError(input, errEl, msg) {
+    if (msg) {
+      errEl.textContent = msg
+      errEl.style.display = 'block'
+      input.style.borderColor = '#dc2626'
+    } else {
+      errEl.style.display = 'none'
+      errEl.textContent = ''
+      input.style.borderColor = ''
+    }
+  }
+
+  // Container delegation for live format/validate
+  document.getElementById('odeme-satirlari').addEventListener('input', (e) => {
+    const t = e.target
+    if (t.classList.contains('odeme-tutar')) {
+      formatTryTutar(t)
+      const errEl = t.parentElement.querySelector('.odeme-tutar-error')
+      const n = parseTryTutar(t.value)
+      showFieldError(t, errEl, !isNaN(n) && n > 0 ? '' : (t.value ? 'Geçerli bir tutar giriniz.' : ''))
+    } else if (t.classList.contains('odeme-donem')) {
+      const errEl = t.parentElement.querySelector('.odeme-donem-error')
+      const r = validateDonem(t.value)
+      showFieldError(t, errEl, r.valid ? '' : r.error)
+    }
+  })
 
   function initOdemeSatirlari() {
     const container = document.getElementById('odeme-satirlari')
